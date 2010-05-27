@@ -43,7 +43,7 @@
                              (send-all (send self :rarm) :joint)
                              (send-all (send self :torso) :joint))))
      (mapcar #'(lambda (j) (cons
-                            (format nil "~A" (string-upcase (send j :name)))
+                            (format nil "~A"  (send j :name))
                             (send j :joint-angle))) joint-list)))
   )
 
