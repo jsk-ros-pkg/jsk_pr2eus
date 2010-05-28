@@ -5,6 +5,9 @@
   :slots ())
 
 (defmethod pr2-robot
+  (:init (&rest args)
+         (prog1 (send-super* :init args)
+           (send self :reset-pose)))
   (:inverse-kinematics
    (&key (larm-target) (rarm-target)
          (translation-axis t) (rotation-axis t) (debug-view :no-message))
