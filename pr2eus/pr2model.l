@@ -39,12 +39,9 @@
    )
   (:middle-body-joint-angle-list
    ()
-   (let ((joint-list (append (send-all (send self :larm) :joint)
+   (append (send-all (send self :larm) :joint)
                              (send-all (send self :rarm) :joint)
-                             (send-all (send self :torso) :joint))))
-     (mapcar #'(lambda (j) (cons
-                            (format nil "~A"  (send j :name))
-                            (send j :joint-angle))) joint-list)))
+                             (send-all (send self :torso) :joint)))
   )
 
 (defun pr2 ()
