@@ -86,8 +86,15 @@
   (:reset-pose
    ()
    (send self :larm :angle-vector #f(60 80 70 20 -120 -30 180))
-   (send self :rarm :angle-vector #f(-60 70 -70 -20 -120 -30 180))
+   (send self :rarm :angle-vector #f(-60 80 -70 -20 -120 -30 180))
    (send self :torso :angle-vector #f(50))
+   (send self :angle-vector)
+   )
+  (:reset-manip-pose
+   ()
+   (send self :larm :angle-vector #f(90 -30 90 10 -120 -10 -120))
+   (send self :rarm :angle-vector #f(-90 -30 -90 -10 -120 -10 120))
+   (send self :torso :angle-vector #f(200))
    (send self :angle-vector)
    )
   (:middle-body-joint-angle-list
@@ -96,6 +103,5 @@
                              (send-all (send self :rarm) :joint)
                              (send-all (send self :torso) :joint)))
   )
-
 (defun pr2 ()
   (setq *pr2* (instance pr2-robot :init "full_pr2.urdf")))
