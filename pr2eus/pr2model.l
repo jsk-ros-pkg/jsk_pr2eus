@@ -30,7 +30,10 @@
                              (cond ((derivedp rarm-target coordinates) rotation-axis)
                                    ((or (eq rarm-target :fix) (eq rarm-target :relative)) t)
                                    (t nil)))))
+	  (weight (instantiate float-vector (send self :calc-target-joint-dimension link-lists)))
           ret)
+     (fill weight 1)
+     (setf (elt weight 0) 0.1)
      (dotimes (i max-iter ret)
        (let* ((target-coords
                (let ((mid-end-coords))
@@ -62,6 +65,7 @@
                (mapcar #'(lambda (ec tc)
                            (send ec :difference-rotation tc))
                        move-targets target-coords)))
+	 
          (setq ret
                (send self :inverse-kinematics-loop
                      dif-pos dif-rot
@@ -70,6 +74,7 @@
                      :rotation-axis rotation-axis
                      :move-target move-targets :link-list link-lists
                      :debug-view debug-view
+		     :weight weight
                      ))
          (if (eq ret :ik-succeed) (return))
          (let* ((link-lists (remove nil (list (if (eq larm-target :relative) (elt link-lists 0))
@@ -85,6 +90,7 @@
      ))
   (:reset-pose
    ()
+   (send self :head :angle-vector #f(0 0))
    (send self :larm :angle-vector #f(60 80 70 20 -120 -30 180))
    (send self :rarm :angle-vector #f(-60 80 -70 -20 -120 -30 180))
    (send self :torso :angle-vector #f(50))
@@ -92,16 +98,23 @@
    )
   (:reset-manip-pose
    ()
-   (send self :larm :angle-vector #f(90 -30 90 10 -120 -10 -120))
-   (send self :rarm :angle-vector #f(-90 -30 -90 -10 -120 -10 120))
-   (send self :torso :angle-vector #f(200))
+   (send self :head :angle-vector #f(0 50))
+   (send self :rarm :angle-vector #f(-75 50 -110 20 -110 -10 -10))
+   (send self :larm :angle-vector #f(75 50 110 -20 -110 -10 -10))
+   (send self :torso :angle-vector #f(300))
    (send self :angle-vector)
    )
   (:middle-body-joint-angle-list
    ()
    (append (send-all (send self :larm) :joint)
-                             (send-all (send self :rarm) :joint)
+	                     (send-all (send self :rarm) :joint)
                              (send-all (send self :torso) :joint)))
+  (:full-body-joint-angle-list
+   ()
+   (append (send-all (send self :head) :joint)
+		     (send-all (send self :larm) :joint)
+		     (send-all (send self :rarm) :joint)
+		     (send-all (send self :torso) :joint)))
   )
 (defun pr2 ()
   (setq *pr2* (instance pr2-robot :init "full_pr2.urdf")))
