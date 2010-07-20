@@ -1,4 +1,4 @@
-(load (format nil "~A/src/urdf2eus.l" (read (piped-fork "rospack find eusurdf"))))
+(load (format nil "~A/src/urdf2eus.l" (ros::rospack-find "eusurdf")))
 
 (defclass pr2-robot
   :super urdf-robot
