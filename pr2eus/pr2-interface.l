@@ -9,9 +9,8 @@
 
 (load "eustf.l")
 (load "actionlib.l")
-(roseus-add-msgs "sensor_msgs")
-(roseus-add-msgs "pr2_controllers_msgs")
-(roseus-add-actionlibs "pr2_controllers_msgs")
+(ros::roseus-add-msgs "sensor_msgs")
+(ros::roseus-add-msgs "pr2_controllers_msgs")
 
 (defclass pr2-interface
   :super propertied-object
