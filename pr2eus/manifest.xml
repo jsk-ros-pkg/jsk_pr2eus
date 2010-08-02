@@ -8,7 +8,9 @@
   <license>BSD</license>
   <review status="unreviewed" notes=""/>
   <url>http://ros.org/wiki/pr2eus</url>
+
   <depend package="roseus"/>
+  <depend package="pr2_controllers_msgs"/>
 
 </package>
 
