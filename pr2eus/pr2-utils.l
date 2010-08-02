@@ -1,7 +1,7 @@
 ;;
 ;;
 ;;
-;;(load (format nil "~A/pr2.l" (ros::rospack-find "euscollada")))
+(require "package://euscollada/pr2.l")
 
 (defmethod pr2-robot
   (:inverse-kinematics

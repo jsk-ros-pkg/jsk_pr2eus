@@ -8,8 +8,7 @@
          *load-path* :test #'equal)
 
 (load "roseus.l")
-(load (format nil "~A/pr2-interface.l" (ros::rospack-find "pr2eus")))
-(load (format nil "~A/pr2-utils.l" (ros::rospack-find "pr2eus")))
+(load "package://pr2eus/pr2-interface.l")
 (roseus "pr2_send_joints")
 
 (pr2)
