@@ -1,7 +1,7 @@
 ;;
 ;;
 ;;
-(require "package://euscollada/pr2.l")
+(require :pr2 "package://euscollada/pr2.l")
 
 ;;;
 ;;; interface to ros based pr2 system
