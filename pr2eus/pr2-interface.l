@@ -100,7 +100,7 @@
   (:state
    (&rest args)
    (let (joint-names positions)
-     (unless robot-state (return-from :update-angle-vector))
+     (unless robot-state (return-from :state))
      (ros::spin-once)
      (setq joint-names (cdr (assoc :name robot-state))
 	   positions (cdr (assoc :position robot-state)))
