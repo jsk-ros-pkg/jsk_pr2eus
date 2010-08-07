@@ -14,7 +14,8 @@
 
 (defclass pr2-interface
   :super propertied-object
-  :slots (robot robot-state controller-type controller-actions))
+  :slots (robot robot-state controller-type controller-actions
+		r-gripper-action l-gripper-action))
 (defmethod pr2-interface
   (:init
    (&rest args &key (type :default-controller) &allow-other-keys)
@@ -35,6 +36,14 @@
 	    (ros::ros-error "~A is not respond, please restart pr2, check run-stop" controller))))
     (send self controller-type))
    (nreverse controller-actions)
+   (setq r-gripper-action (instance ros::simple-action-client :init
+				    "/r_gripper_controller/gripper_action"
+				    pr2_controllers_msgs::Pr2GripperCommandAction))
+   (setq l-gripper-action (instance ros::simple-action-client :init
+				    "/l_gripper_controller/gripper_action"
+				    pr2_controllers_msgs::Pr2GripperCommandAction))
+   (send r-gripper-action :wait-for-server)
+   (send l-gripper-action :wait-for-server)
    self)
   (:angle-vector
    (av &optional (tm 3000))
@@ -188,7 +197,26 @@
 			      "r_wrist_flex_joint" "r_wrist_roll_joint"
 			      "torso_lift_joint"
 			      "head_pan_joint" "head_tilt_joint")))))
+  (:move-gripper
+   (arm pos &key (effort 25) (wait t))
+   (let* ((goal (instance pr2_controllers_msgs::Pr2GripperCommandActionGoal :init))
+	  (c (send (send goal :goal) :command))
+	  (clients (case arm
+		     (:rarm (list r-gripper-action))
+		     (:larm (list l-gripper-action))
+		     (:arms (list r-gripper-action l-gripper-action)))))
+     (send c :position pos)
+     (send c :max_effort effort)
+     (mapcar #'(lambda(c)(send c :send-goal goal)) clients)
+     (ros::spin-once)
+     (if wait
+	 (mapcar #'(lambda(c)(send c :wait-for-result)) clients))
+     ))
+  (:start-grasp
+   (&optional (arm :arms) &key ((:gain g) 0.01))
+   (send self :move-gripper arm 0.0 :effort (* 2000 g) :wait nil))
+  (:stop-grasp
+   (&optional (arm :arms))
+   (send self :move-gripper arm 0.09 :wait nil))
   )
-
-
 
