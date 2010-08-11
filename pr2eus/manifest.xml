@@ -11,6 +11,7 @@
 
   <depend package="roseus"/>
   <depend package="pr2_controllers_msgs"/>
+  <depend package="euscollada"/>
 
 </package>
 
