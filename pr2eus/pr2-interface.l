@@ -7,8 +7,8 @@
 ;;; interface to ros based pr2 system
 ;;;
 
-(load "eustf.l")
-(load "actionlib.l")
+(require :eustf "package://roseus/euslisp/eustf.l")
+(require :actionlib "package://roseus/euslisp/actionlib.l")
 (ros::roseus-add-msgs "sensor_msgs")
 (ros::roseus-add-msgs "pr2_controllers_msgs")
 
