@@ -119,7 +119,7 @@
                   (when j
 		    (cond
 		     ((derivedp j rotational-joint)
-		      (send j :joint-angle (mod (rad2deg p) 360)))
+		      (send j :joint-angle (mod (floor (rad2deg p)) 360)))
 		     (t
 		      (send j :joint-angle (* 1000 p)))))))
 	    (coerce joint-names cons)
