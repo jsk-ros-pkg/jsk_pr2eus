@@ -1,13 +1,8 @@
-#!/usr/bin/env runeus
+#!/usr/bin/env roseus
 ;;;;
 ;;;; read robot state from pr2 robot and print jacobian
 ;;;;
 
-(pushnew (format nil "~A/euslisp/"
-                 (read-line (setq *strm* (piped-fork "rospack find roseus"))))
-         *load-path* :test #'equal)
-
-(load "roseus.l")
 (load "package://pr2eus/pr2-interface.l")
 (roseus "pr2_read_state")
 
