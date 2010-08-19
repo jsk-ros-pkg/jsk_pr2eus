@@ -16,6 +16,15 @@ set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 #set the default path for built libraries to the "lib" directory
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
+ADD_CUSTOM_COMMAND(
+  OUTPUT ${CMAKE_SOURCE_DIR}/pr2.dae
+  COMMAND rosrun collada_urdf_jsk_patch urdf_to_collada `rospack find pr2_mechanism_model`/pr2.urdf ${CMAKE_SOURCE_DIR}/pr2.dae)
+ADD_CUSTOM_COMMAND(
+  OUTPUT ${CMAKE_SOURCE_DIR}/pr2.l
+  COMMAND rosrun euscollada collada2eus ${CMAKE_SOURCE_DIR}/pr2.dae `rospack find euscollada`/pr2.yaml ${CMAKE_SOURCE_DIR}/pr2.l DEPENDS pr2.dae)
+ADD_CUSTOM_TARGET(pr2.l ALL DEPENDS ${CMAKE_SOURCE_DIR}/pr2.l)
+
+
 #uncomment if you have defined messages
 #rosbuild_genmsg()
 #uncomment if you have defined services
