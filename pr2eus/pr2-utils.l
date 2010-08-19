@@ -1,7 +1,7 @@
 ;;
 ;;
 ;;
-(require :pr2 "package://euscollada/pr2.l")
+(require :pr2 "package://pr2eus/pr2.l")
 
 (defmethod pr2-robot
   (:inverse-kinematics
