@@ -18,6 +18,37 @@
 		  :weight weight
 		  :link-list link-list
 		  args)))
+  (:limb
+   (limb method &rest args)
+   (case method
+     (:gripper
+      (send* self :gripper limb args))
+     (t
+      (send-super* :limb limb method args))))
+  (:gripper
+   (limb &rest args)
+   (cond
+    ((memq :joint-angle args)
+     (if (null (cdr args))
+         (case limb
+           (:larm
+            (* (send self :l_gripper_l_finger_joint :joint-angle) 2))
+           (:rarm
+            (* (send self :r_gripper_l_finger_joint :joint-angle) 2)))
+       (let ((a/2 (/ (cadr args) 2)))
+         (case limb
+           (:larm
+            (send self :l_gripper_l_finger_joint :joint-angle a/2)
+            (send self :l_gripper_r_finger_joint :joint-angle a/2)
+            (send self :l_gripper_l_finger_tip_joint :joint-angle a/2)
+            (send self :l_gripper_r_finger_tip_joint :joint-angle a/2))
+           (:rarm
+            (send self :r_gripper_l_finger_joint :joint-angle a/2)
+            (send self :r_gripper_r_finger_joint :joint-angle a/2)
+            (send self :r_gripper_l_finger_tip_joint :joint-angle a/2)
+            (send self :r_gripper_r_finger_tip_joint :joint-angle a/2)))
+         (* a/2 2))))))
   )
+
 
 
