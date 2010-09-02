@@ -9,13 +9,15 @@
 
 (require :eustf "package://roseus/euslisp/eustf.l")
 (require :actionlib "package://roseus/euslisp/actionlib.l")
+(ros::roseus-add-msgs "move_base_msgs")
 (ros::roseus-add-msgs "sensor_msgs")
 (ros::roseus-add-msgs "pr2_controllers_msgs")
 
 (defclass pr2-interface
   :super propertied-object
   :slots (robot robot-state controller-type controller-actions
-		r-gripper-action l-gripper-action))
+		r-gripper-action l-gripper-action
+                move-base-action))
 (defmethod pr2-interface
   (:init
    (&rest args &key (type :default-controller) &allow-other-keys)
@@ -44,6 +46,10 @@
 				    pr2_controllers_msgs::Pr2GripperCommandAction))
    (send r-gripper-action :wait-for-server)
    (send l-gripper-action :wait-for-server)
+
+   (setq move-base-action (instance ros::simple-action-client :init
+                                    "move_base" move_base_msgs::MoveBaseAction))
+   (send move-base-action :wait-for-server)
    self)
   (:angle-vector
    (av &optional (tm 3000))
@@ -197,6 +203,7 @@
 			      "r_wrist_flex_joint" "r_wrist_roll_joint"
 			      "torso_lift_joint"
 			      "head_pan_joint" "head_tilt_joint")))))
+  ;;
   (:move-gripper
    (arm pos &key (effort 25) (wait t))
    (let* ((goal (instance pr2_controllers_msgs::Pr2GripperCommandActionGoal :init))
@@ -218,5 +225,24 @@
   (:stop-grasp
    (&optional (arm :arms))
    (send self :move-gripper arm 0.09 :wait nil))
+  ;;
+  (:move-to
+   (coords &key (retry 10))
+   (let (ret (count 0) (pose (ros::coords->tf-pose coords))
+             (goal (instance move_base_msgs::MoveBaseActionGoal :init)))
+     (send move-base-action :wait-for-server)
+     (send goal :header :frame_id "/map")
+     (send goal :goal :target_pose :header :frame_id "/map")
+     (send goal :goal :target_pose :pose pose)
+     (while (and (null ret) (<= (inc count) retry))
+       (ros::ros-info "move-to : send-goal to ~A (~d)" (send coords :worldpos) count)
+       (send move-base-action :send-goal goal)
+       (send move-base-action :wait-for-result)
+       (if (and (send move-base-action :get-goal-state)
+                (eq (send (send move-base-action :get-goal-state) :status)
+                    actionlib_msgs::succeeded))
+           (setq ret t)))
+     (ros::ros-info "move-to : ~A" (if ret 'succeeded 'failed))
+     ret))
   )
 
