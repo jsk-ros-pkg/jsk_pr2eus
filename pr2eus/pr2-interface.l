@@ -49,8 +49,6 @@
 
    (setq move-base-action (instance ros::simple-action-client :init
                                     "move_base" move_base_msgs::MoveBaseAction))
-   (unless (send move-base-action :wait-for-server 5)
-     (ros::ros-error "pr2-interface :init : move_base action not found"))
    self)
   (:angle-vector
    (av &optional (tm 3000))
@@ -232,7 +230,6 @@
    (let (ret (count 0) (pose (ros::coords->tf-pose coords))
              (goal (instance move_base_msgs::MoveBaseActionGoal :init)))
      (when (not (send move-base-action :wait-for-server 5))
-       (ros::ros-error "move-to : move_base action not found")
        (return-from :move-to))
      (send goal :goal :target_pose :header :frame_id frame-id)
      (send goal :goal :target_pose :pose pose)
