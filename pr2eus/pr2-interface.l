@@ -241,6 +241,13 @@
            (setq ret t)))
      (ros::ros-info "move-to : ~A" (if ret 'succeeded 'failed))
      ret))
+  (:go-pos
+   (x y &optional (d 0)) ;; [m] [m] [degree]
+   (let (c)
+     (setq c (make-coords :pos (float-vector (* 1000 x) (* y 1000) 0)
+			  :rpy (float-vector (deg2rad d) 0 0)))
+     (send self :move-to c :retry 1 :frame-id "/base_link")
+     ))
   )
 
 
