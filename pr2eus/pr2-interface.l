@@ -49,7 +49,8 @@
 
    (setq move-base-action (instance ros::simple-action-client :init
                                     "move_base" move_base_msgs::MoveBaseAction))
-   (send move-base-action :wait-for-server)
+   (unless (send move-base-action :wait-for-server 5)
+     (ros::ros-error "pr2-interface :init : move_base action not found"))
    self)
   (:angle-vector
    (av &optional (tm 3000))
@@ -227,22 +228,22 @@
    (send self :move-gripper arm 0.09 :wait nil))
   ;;
   (:move-to
-   (coords &key (retry 10))
+   (coords &key (retry 10) (frame-id "/map"))
    (let (ret (count 0) (pose (ros::coords->tf-pose coords))
              (goal (instance move_base_msgs::MoveBaseActionGoal :init)))
-     (send move-base-action :wait-for-server)
-     (send goal :header :frame_id "/map")
-     (send goal :goal :target_pose :header :frame_id "/map")
+     (when (not (send move-base-action :wait-for-server 5))
+       (ros::ros-error "move-to : move_base action not found")
+       (return-from :move-to))
+     (send goal :goal :target_pose :header :frame_id frame-id)
      (send goal :goal :target_pose :pose pose)
      (while (and (null ret) (<= (inc count) retry))
        (ros::ros-info "move-to : send-goal to ~A (~d)" (send coords :worldpos) count)
        (send move-base-action :send-goal goal)
        (send move-base-action :wait-for-result)
-       (if (and (send move-base-action :get-goal-state)
-                (eq (send (send move-base-action :get-goal-state) :status)
-                    actionlib_msgs::succeeded))
+       (if (eq (send move-base-action :get-state) actionlib_msgs::succeeded)
            (setq ret t)))
      (ros::ros-info "move-to : ~A" (if ret 'succeeded 'failed))
      ret))
   )
+
 
