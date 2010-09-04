@@ -205,18 +205,17 @@
   ;;
   (:move-gripper
    (arm pos &key (effort 25) (wait t))
-   (let* ((goal (instance pr2_controllers_msgs::Pr2GripperCommandActionGoal :init))
-	  (c (send (send goal :goal) :command))
+   (let* (goal
 	  (clients (case arm
 		     (:rarm (list r-gripper-action))
 		     (:larm (list l-gripper-action))
 		     (:arms (list r-gripper-action l-gripper-action)))))
-     (send c :position pos)
-     (send c :max_effort effort)
-     (mapcar #'(lambda(c)(send c :send-goal goal)) clients)
-     (ros::spin-once)
-     (if wait
-	 (mapcar #'(lambda(c)(send c :wait-for-result)) clients))
+     (dolist (client clients)
+       (setq goal (instance pr2_controllers_msgs::Pr2GripperCommandActionGoal :init))
+       (send goal :goal :command :position pos)
+       (send goal :goal :command :max_effort effort)
+       (send client :send-goal goal))
+     (if wait  (mapcar #'(lambda(c)(send c :wait-for-result)) clients))
      ))
   (:start-grasp
    (&optional (arm :arms) &key ((:gain g) 0.01))
@@ -226,10 +225,10 @@
    (send self :move-gripper arm 0.09 :wait nil))
   ;;
   (:move-to
-   (coords &key (retry 10) (frame-id "/map"))
+   (coords &key (retry 10) (frame-id "/map") (wait-for-server-timeout 5))
    (let (ret (count 0) (pose (ros::coords->tf-pose coords))
              (goal (instance move_base_msgs::MoveBaseActionGoal :init)))
-     (when (not (send move-base-action :wait-for-server 5))
+     (when (not (send move-base-action :wait-for-server wait-for-server-timeout))
        (return-from :move-to))
      (send goal :goal :target_pose :header :frame_id frame-id)
      (send goal :goal :target_pose :pose pose)
