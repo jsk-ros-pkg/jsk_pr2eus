@@ -15,12 +15,34 @@
 (do-until-key
  (send *pr2* :angle-vector (send *ri* :state :potentio-vector))
  (send *irtviewer* :draw-objects)
+
+ ;; larm jacobian
  (let ((target (send *pr2* :larm :end-coords)))
    (ros::ros-info "larm jacobian ~a"
-		  (send *pr2* :calc-jacobian-from-link-list
-			(send *pr2* :link-list (send target :parent))
-			:move-target target
-			:rotation-axis t
-			:translation-axis t)))
+     (format-array
+      (send *pr2* :calc-jacobian-from-link-list
+	    (send *pr2* :link-list (send target :parent))
+	    :move-target target
+	    :rotation-axis t
+	    :translation-axis t)
+      "" 7 3 nil)))
+
+ ;; dual arm jacobian
+ (with-move-target-link-list
+  (mt ll *pr2* '(:rarm :larm))
+  (ros::ros-info "arms jacobian ~%~a"
+    (format-array
+     (send *pr2* :calc-jacobian-from-link-list
+	   ll :move-target mt
+	   :rotation-axis '(t t)
+	   :translation-axis '(t t))
+     "" 7 3 nil)))
+
+ ;; torque
+ (ros::ros-info "torque ~%~a"
+   (format-array
+    (send *pr2* :calc-torque)
+    "" 7 3 nil))
+
  (ros::spin-once)
  (ros::sleep))
