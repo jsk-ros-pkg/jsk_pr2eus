@@ -31,8 +31,16 @@
     (require :pr2 fname_lisp)))
 
 (defmethod pr2-robot
+  (:select-target-arm
+   (c)
+   (let ((v (send self :inverse-transform-vector (send c :worldpos))))
+     (if (> (elt v 1) 0) :larm :rarm)))
   (:inverse-kinematics
-   (target-coords &rest args &key (link-list) &allow-other-keys)
+   (target-coords &rest args &key (link-list) (move-target) &allow-other-keys)
+   (unless move-target
+     (setq move-target (send self (send self :select-target-arm target-coords) :end-coords)))
+   (unless link-list
+     (setq link-list (send self :link-list (send move-target :parent))))
    (let* ((weight (instantiate float-vector (send self :calc-target-joint-dimension link-list)))
 	  (union-link-list (send self :calc-union-link-list link-list))
 	  (torso-id (position torso_lift_joint (send-all union-link-list :joint))))
@@ -44,6 +52,7 @@
 		  :stop 300
 		  :weight weight
 		  :link-list link-list
+		  :move-target move-target
 		  args)))
   (:limb
    (limb method &rest args)
