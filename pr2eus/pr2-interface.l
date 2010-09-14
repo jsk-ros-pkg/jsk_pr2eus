@@ -55,9 +55,12 @@
    (send robot :angle-vector av)
    (mapcar
     #'(lambda (action param)
-	(send self :send-pr2-controller
-	      action (cdr (assoc :joint-names param))
-	      (/ tm 1000.0)))
+        (send self :send-pr2-controller
+              action (cdr (assoc :joint-names param)) ;; action server and joint-names
+              av   ;; positions
+              nil  ;; velocities
+              0    ;; start time
+              (/ tm 1000.0))) ;; duration
     controller-actions (send self controller-type))
    (ros::spin-once)
    av)
@@ -65,32 +68,35 @@
    ()
    (send-all controller-actions :wait-for-result))
   (:send-pr2-controller
-   (action joint-names duration)
-   (let* ((tm (ros::time duration))
-	  (joints
-	   (mapcar #'(lambda (x)
-		       (send robot (intern (string-upcase x) *keyword-package*)))
-		   joint-names))
-	  (positions
-	   (mapcar #'(lambda (x)
-		       (cond
-			((derivedp x rotational-joint)
-			 (deg2rad (send x :joint-angle)))
-			(t
-			 (* 0.001 (send x :joint-angle)))))
-		   joints))
-	  (goal (send action :make-goal-instance)))
+   (action joint-names all-positions all-velocities starttime duration)
+   (let* ((st (ros::time+ (ros::time-now) (ros::time starttime)))
+          (tm (ros::time duration))
+	  (goal (send action :make-goal-instance))
+          (positions (instantiate float-vector (length joint-names)))
+          (velocities (instantiate float-vector (length joint-names)))
+          (joints (mapcar #'(lambda (x)
+                              (send robot (intern (string-upcase x) *keyword-package*)))
+                          joint-names)))
+     (dotimes (i (length joints))
+       (let ((joint (elt joints i)) v)
+         (setq v (elt all-positions (position joint (send robot :joint-list))))
+         (cond
+          ((derivedp joint rotational-joint)
+           (setq v (deg2rad v)))
+          (t
+           (setq v (* 0.001 v))))
+         (setf (elt positions i) v)))
      (send goal :header :seq 1)
-     (send goal :header :stamp (ros::time-now))
+     (send goal :header :stamp st)
      (cond
       ((eq (class goal) pr2_controllers_msgs::JointTrajectoryActionGoal)
        (send goal :goal :trajectory :joint_names joint-names)
-       (send goal :goal :trajectory :header :stamp (ros::time-now))
+       (send goal :goal :trajectory :header :stamp st)
        (send goal :goal :trajectory :points
 	     (list (instance trajectory_msgs::JointTrajectoryPoint
 			     :init
 			     :positions positions
-			     :velocities (make-list (length positions) :initial-element 0)
+			     :velocities velocities
 			     :time_from_start tm))))
       ((eq (class goal) pr2_controllers_msgs::PointHeadActionGoal)
        (send goal :goal :target :point
