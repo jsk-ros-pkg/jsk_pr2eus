@@ -57,10 +57,10 @@
     #'(lambda (action param)
         (send self :send-pr2-controller
               action (cdr (assoc :joint-names param)) ;; action server and joint-names
-              av   ;; positions
-              nil  ;; velocities
-              0    ;; start time
-              (/ tm 1000.0))) ;; duration
+              av				      ;; positions
+              (instantiate float-vector (length av))  ;; velocities
+              0					      ;; start time
+              (/ tm 1000.0)))			      ;; duration
     controller-actions (send self controller-type))
    (ros::spin-once)
    av)
@@ -84,7 +84,6 @@
                          (* 0.5 (+ (* (/ 1000.0 tm) (elt v0 i))
                                    (* (/ 1000.0 tm-next) (elt v1 i))))
                        0.0)))
-             (print (list 'vel vel))
              )
          (fill vel 0))
        ;;
@@ -94,9 +93,9 @@
             (send self :send-pr2-controller
                   action (cdr (assoc :joint-names param)) ;; action server and joint-names
                   av   ;; positions
-                  vel  ;; velocities
-                  (/ st 1000.0)    ;; start time
-                  (/ tm 1000.0))) ;; duration
+		  vel  ;; velocities
+                  (- (/ st 1000.0) 0.2)   ;; start time
+                  (+ (/ tm 1000.0) 0.2))) ;; duration
         controller-actions (send self controller-type))
        (setq av-prev av)
        (incf st tm)
@@ -117,14 +116,20 @@
                               (send robot (intern (string-upcase x) *keyword-package*)))
                           joint-names)))
      (dotimes (i (length joints))
-       (let ((joint (elt joints i)) v)
-         (setq v (elt all-positions (position joint (send robot :joint-list))))
+       (let* ((joint (elt joints i))
+	      (id (position joint (send robot :joint-list)))
+	      p v)
+         (setq p (elt all-positions id)
+	       v (elt all-velocities id))
          (cond
           ((derivedp joint rotational-joint)
-           (setq v (deg2rad v)))
+           (setq p (deg2rad p))
+	   (setq v (deg2rad v)))
           (t
-           (setq v (* 0.001 v))))
-         (setf (elt positions i) v)))
+           (setq p (* 0.001 p))
+	   (setq v (* 0.001 v))))
+	 (setf (elt positions i) p)
+	 (setf (elt velocities i) v)))
      (send goal :header :seq 1)
      (send goal :header :stamp st)
      (cond
