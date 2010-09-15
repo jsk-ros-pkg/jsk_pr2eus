@@ -64,6 +64,45 @@
     controller-actions (send self controller-type))
    (ros::spin-once)
    av)
+  (:angle-vector-sequence
+   (avs &optional (tms (list 3000)))
+   (ros::spin-once) ;; for :state :potentio-vector
+   (let ((st 0)
+         (av-prev (send self :state :potentio-vector)) av av-next
+         tm tm-next
+         (vel (instantiate float-vector (length (car avs)))))
+     (while avs
+       (setq av (pop avs))
+       (if (car tms) (setq tm (pop tms)))
+       (if (setq av-next (car avs))
+           (let ((v0 (v- av av-prev))
+                 (v1 (v- av-next av)))
+             (setq tm-next (if (car tms) (car tms) tm))
+             (dotimes (i (length vel))
+               (setf (elt vel i)
+                     (if (>= (* (elt v0 i) (elt v1 i)) 0)
+                         (* 0.5 (+ (* (/ 1000.0 tm) (elt v0 i))
+                                   (* (/ 1000.0 tm-next) (elt v1 i))))
+                       0.0)))
+             (print (list 'vel vel))
+             )
+         (fill vel 0))
+       ;;
+       (send robot :angle-vector av)
+       (mapcar
+        #'(lambda (action param)
+            (send self :send-pr2-controller
+                  action (cdr (assoc :joint-names param)) ;; action server and joint-names
+                  av   ;; positions
+                  vel  ;; velocities
+                  (/ st 1000.0)    ;; start time
+                  (/ tm 1000.0))) ;; duration
+        controller-actions (send self controller-type))
+       (setq av-prev av)
+       (incf st tm)
+       )
+     (ros::spin-once)
+     ))
   (:wait-interpolation
    ()
    (send-all controller-actions :wait-for-result))
