@@ -146,7 +146,7 @@
        (send goal :goal :target :point
 	     (ros::pos->tf-point
 	      (send (send (send robot :base_footprint) :transformation
-			  (send (send robot :head :end-coords) :translate #f(0 0 200) :local))
+			  (send (send (send robot :head :end-coords) :copy-worldcoords) :translate #f(0 0 200) :local))
 		    :worldpos)))
        (send goal :goal :target :header :frame_id "base_footprint")
        (send goal :goal :min_duration tm))
