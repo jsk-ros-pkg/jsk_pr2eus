@@ -16,8 +16,7 @@
 (defclass pr2-interface
   :super propertied-object
   :slots (robot robot-state controller-type controller-actions
-		r-gripper-action l-gripper-action
-                move-base-action))
+		r-gripper-action l-gripper-action                move-base-action))
 (defmethod pr2-interface
   (:init
    (&rest args &key (type :default-controller) &allow-other-keys)
@@ -146,7 +145,7 @@
        (send goal :goal :target :point
 	     (ros::pos->tf-point
 	      (send (send (send robot :base_footprint) :transformation
-			  (send (send (send robot :high_def_frame) :copy-worldcoords) :translate #f(0 0 200) :local))
+			  (send (send (send robot :high_def_frame) :copy-worldcoords) :translate #f(1000 0 0) :local))
 		    :worldpos)))
        (send goal :goal :target :header :frame_id "base_footprint")
        (send goal :goal :pointing_frame "high_def_frame")
