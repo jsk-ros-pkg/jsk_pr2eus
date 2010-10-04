@@ -30,6 +30,8 @@
      (f fname_lisp :direction :output :if-exists :append)
      (format f ";;~%")
      (format f ";; additional robot model description from camera_info~%")
+     (format f ";;   based on ~A~%" (lisp-implementation-version))
+     (format f ";;        and irteus ~A~%" (car ros::roseus-svnversion))
      (format f ";;~%")
      (format f "~A~%" (nconc (list 'defun 'make-camera-from-ros-camera-info-aux) (cddddr #'make-camera-from-ros-camera-info-aux)))
      (format f ";;~%")
@@ -54,18 +56,15 @@
          (setq var (eval var))
          (warning-message 2 "received ~A ~A ~A~%" camera-info var (send var :header :frame_id))
          (format f "  (:~A ()~%" (substitute #\- #\/ (string-downcase camera-var)))
-         (format f "   (let ((c (make-camera-from-ros-camera-info-aux ~A ~A ~A))~%" (send var :width) (send var :height) (send var :p))
-         (format f "         (f ~A))~%" (send var :header :frame_id))
+         (format f "   (let ((c (make-camera-from-ros-camera-info-aux ~A ~A ~A ~A)))~%" (send var :width) (send var :height) (send var :p) (send var :header :frame_id))
          (format f "     (send c :name)~%" camera-info)
-         (format f "     (send c :newcoords (send f :copy-worldcoords))~%")
-         (format f "     (send f :assoc c)~%")
          (format f "     c))~%" camera-info)
          ) ;; let
         ) ;; dolist
      (format f "  ) ;; defmethod ~A-robot~%" robot)
      ) ;; with-open-file
     (warning-message 1 "copy model file from ~A to ~A.l~%" fname_lisp robot)
-    (unix::system (format nil "mv ~A ~A.l" fname_lisp robot))
+    (unix::system (format nil "mv ~A ~A/~A.l" fname_lisp (ros::rospack-find "pr2eus") robot))
     ))
 
 (ros::roseus "make-pr2-modle-file")
