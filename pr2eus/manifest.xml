@@ -10,8 +10,9 @@
   <url>http://ros.org/wiki/pr2eus</url>
 
   <depend package="roseus"/>
-  <depend package="pr2_controllers_msgs"/>
   <depend package="euscollada"/>
+  <depend package="pr2_controllers_msgs"/>
+  <depend package="move_base_msgs"/>
 
 </package>
 
