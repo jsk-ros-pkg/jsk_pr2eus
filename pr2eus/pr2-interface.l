@@ -93,7 +93,7 @@
                   action (cdr (assoc :joint-names param)) ;; action server and joint-names
                   av   ;; positions
 		  vel  ;; velocities
-                  (- (/ st 1000.0) 0.2)   ;; start time
+                  (+ (/ st 1000.0) 0.2)   ;; start time
                   (+ (/ tm 1000.0) 0.2))) ;; duration
         controller-actions (send self controller-type))
        (setq av-prev av)
