@@ -43,8 +43,8 @@
    (setq l-gripper-action (instance ros::simple-action-client :init
 				    "/l_gripper_controller/gripper_action"
 				    pr2_controllers_msgs::Pr2GripperCommandAction))
-   (send r-gripper-action :wait-for-server)
-   (send l-gripper-action :wait-for-server)
+   (send r-gripper-action :wait-for-server 10)
+   (send l-gripper-action :wait-for-server 10)
 
    (setq move-base-action (instance ros::simple-action-client :init
                                     "move_base" move_base_msgs::MoveBaseAction))
