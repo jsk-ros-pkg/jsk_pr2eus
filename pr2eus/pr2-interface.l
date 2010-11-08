@@ -10,13 +10,15 @@
 (require :eustf "package://roseus/euslisp/eustf.l")
 (require :actionlib "package://roseus/euslisp/actionlib.l")
 (ros::roseus-add-msgs "move_base_msgs")
+(ros::roseus-add-msgs "pr2_msgs")
 (ros::roseus-add-msgs "sensor_msgs")
 (ros::roseus-add-msgs "pr2_controllers_msgs")
 
 (defclass pr2-interface
   :super propertied-object
   :slots (robot robot-state controller-type controller-actions
-		r-gripper-action l-gripper-action                move-base-action))
+		r-gripper-action l-gripper-action
+                move-base-action finger-pressure-origin))
 (defmethod pr2-interface
   (:init
    (&rest args &key (type :default-controller) &allow-other-keys)
@@ -24,6 +26,10 @@
    ;;
    (ros::subscribe "/joint_states" sensor_msgs::JointState
 		   #'send self :pr2-state-callback)
+   (ros::subscribe "/pressure/r_gripper_motor" pr2_msgs::PressureState
+		   #'send self :pr2-fingertip-callback :rarm-pressure)
+   (ros::subscribe "/pressure/l_gripper_motor" pr2_msgs::PressureState
+		   #'send self :pr2-fingertip-callback :larm-pressure)
    ;;
    (setq controller-type type)
    (mapcar
@@ -145,10 +151,10 @@
        (send goal :goal :target :point
 	     (ros::pos->tf-point
 	      (send (send (send robot :base_footprint) :transformation
-			  (send (send (send robot :high_def_frame) :copy-worldcoords) :translate #f(1000 0 0) :local))
+			  (send (send (send robot :head_tilt_link) :copy-worldcoords) :translate #f(1000 0 0) :local))
 		    :worldpos)))
-       (send goal :goal :target :header :frame_id "base_footprint")
-       (send goal :goal :pointing_frame "high_def_frame")
+       (send goal :goal :target :header :frame_id "/base_footprint")
+       ;;(send goal :goal :pointing_frame "/high_def_optical_frame")
        (send goal :goal :min_duration tm))
       ((eq (class goal) pr2_controllers_msgs::SingleJointPositionActionGoal)
        (send goal :goal :position (elt positions 0))
@@ -160,8 +166,10 @@
   ;;
   (:pr2-state-callback
    (msg)
-   (setq robot-state (list (cons :name (send msg :name))
-			   (cons :position (send msg :position)))))
+   (dolist (key '(:name :position))
+     (if (assoc key robot-state)
+	 (setf (cdr (assoc key robot-state)) (send msg key))
+       (push (cons key (send msg key)) robot-state))))
   (:state
    (&rest args)
    (let (joint-names positions)
@@ -273,6 +281,26 @@
   (:stop-grasp
    (&optional (arm :arms))
    (send self :move-gripper arm 0.09 :wait nil))
+  ;;
+  (:pr2-fingertip-callback
+   (arm msg) ;; arm = :(r|l)arm-pressure
+   (let ((pressure (list (send msg :l_finger_tip) (send msg :r_finger_tip))))
+     (if (assoc arm robot-state)
+	 (setf (cdr (assoc arm robot-state)) pressure)
+       (push (cons arm pressure) robot-state))))
+  (:reset-fingertip
+   ()
+   (ros::spin-once)
+   (setq finger-pressure-origin
+	 (mapcar #'(lambda(k)(assoc k robot-state))
+		 '(:rarm-pressure :larm-pressure))))
+  (:finger-pressure
+   (arm)
+   (setq arm (case arm (:rarm :rarm-pressure) (:larm :larm-pressure)))
+   (let ((current (cdr (assoc arm robot-state)))
+	 (origin (cdr (assoc arm finger-pressure-origin))))
+     (when (and current origin)
+       (mapcar #'v- current origin))))
   ;;
   (:move-to
    (coords &key (retry 10) (frame-id "/map") (wait-for-server-timeout 5))
