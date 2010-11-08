@@ -151,7 +151,7 @@
        (send goal :goal :target :point
 	     (ros::pos->tf-point
 	      (send (send (send robot :base_footprint) :transformation
-			  (send (send (send robot :head_tilt_link) :copy-worldcoords) :translate #f(1000 0 0) :local))
+			  (send (send (send robot :head_tilt_link) :copy-worldcoords) :translate #f(100000 0 0) :local))
 		    :worldpos)))
        (send goal :goal :target :header :frame_id "/base_footprint")
        ;;(send goal :goal :pointing_frame "/high_def_optical_frame")
