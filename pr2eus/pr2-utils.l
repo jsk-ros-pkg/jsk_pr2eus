@@ -49,16 +49,16 @@
         (send (caar ll) :joint :joint-angle
               (float-vector (elt diff-pos-rot 0)
                             (elt diff-pos-rot 1)
-                            (rad2deg (elt diff-pos-rot 5)))))
-       (if (eq use-base t) (setq use-base 0.1))
-       (send-super* :inverse-kinematics target-coords
-                    :rthre (deg2rad 5)
-                    :thre 10
-                    :stop 300
-                    :weight (concatenate float-vector (float-vector use-base use-base use-base) weight)
-                    :link-list (car ll) ;; link-list
-                    :move-target move-target
-                    args))
+                            (rad2deg (elt diff-pos-rot 5))))
+        (if (eq use-base t) (setq use-base 0.1))
+        (send-super* :inverse-kinematics target-coords
+                     :rthre (deg2rad 5)
+                     :thre 10
+                     :stop 300
+                     :weight (concatenate float-vector (float-vector use-base use-base use-base) weight)
+                     :link-list (car ll) ;; link-list
+                     :move-target move-target
+                    args)))
       (t
        (send-super* :inverse-kinematics target-coords
                     :rthre (deg2rad 5)
