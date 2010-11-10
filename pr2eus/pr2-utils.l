@@ -11,7 +11,7 @@
   (:inverse-kinematics
    (target-coords &rest args &key (link-list) (move-arm)
                   (use-torso t)
-                  (use-base nil) (start-coords (make-coords))
+                  (use-base nil) (start-coords (send self :copy-worldcoords))
                   &allow-other-keys)
    (let (move-target weight union-link-list torso-id base-weight diff-pos-rot)
      ;; select move target
