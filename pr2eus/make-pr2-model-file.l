@@ -43,7 +43,8 @@
                                "r_forearm_cam/camera"
                                "l_forearm_cam/camera"))
        (let ((var (intern (substitute #\- #\/ (string-upcase camera-var))))
-             (camera-info (format nil "~A_info" camera-var)))
+             (camera-info (format nil "~A_info" camera-var))
+             (camera-name (substitute #\- #\/ (string-downcase camera-var))))
          (ros::subscribe camera-info sensor_msgs::CameraInfo
                          #'(lambda (msg)
                              (set var msg)
@@ -55,10 +56,13 @@
          (ros::unsubscribe camera-info)
          (setq var (eval var))
          (warning-message 2 "received ~A ~A ~A~%" camera-info var (send var :header :frame_id))
-         (format f "  (:~A ()~%" (substitute #\- #\/ (string-downcase camera-var)))
-         (format f "   (let ((c (make-camera-from-ros-camera-info-aux ~A ~A ~A ~A)))~%" (send var :width) (send var :height) (send var :p) (send var :header :frame_id))
-         (format f "     (send c :name)~%" camera-info)
-         (format f "     c))~%" camera-info)
+         (format f "  (:~A (&rest args)~%" camera-name)
+         (format f "   (let ((c (get self :~A-model)))~%" camera-name)
+         (format f "     (unless c~%")
+         (format f "       (setq c (make-camera-from-ros-camera-info-aux ~A ~A ~A ~A))~%" (send var :width) (send var :height) (send var :p) (send var :header :frame_id))
+         (format f "       (send c :name \"~A\")~%" camera-var)
+         (format f "       (setf (get self :~A-model) c))~%" camera-name)
+         (format f "     (forward-message-to c args)))~%")
          ) ;; let
         ) ;; dolist
      (format f "  ) ;; defmethod ~A-robot~%" robot)
