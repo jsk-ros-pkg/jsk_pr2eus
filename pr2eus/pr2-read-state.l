@@ -30,7 +30,7 @@
  ;; dual arm jacobian
  (with-move-target-link-list
   (mt ll *pr2* '(:rarm :larm))
-  (ros::ros-info "arms jacobian ~%~a"
+  (ros::ros-info "dual-arm jacobian ~%~a"
     (format-array
      (send *pr2* :calc-jacobian-from-link-list
 	   ll :move-target mt
