@@ -16,12 +16,14 @@
 
 (defclass pr2-interface
   :super propertied-object
-  :slots (robot robot-state controller-type controller-actions
+  :slots (robot robot-state joint-action-enable
+		controller-type controller-actions
 		r-gripper-action l-gripper-action
                 move-base-action finger-pressure-origin))
 (defmethod pr2-interface
   (:init
    (&rest args &key (type :default-controller) &allow-other-keys)
+   (setq joint-action-enable t)
    (setq robot (instance pr2-robot :init))
    ;;
    (ros::subscribe "/joint_states" sensor_msgs::JointState
@@ -37,10 +39,7 @@
 	(let* ((controller (cdr (assoc :controller param)))
 	       (action-type (cdr (assoc :action-type param)))
 	       (action (instance ros::simple-action-client :init controller action-type)))
-	  (ros::ros-info  "waiting ~A~%" controller)
-	  (push action controller-actions)
-	  (unless (send action :wait-for-server 10)
-	    (ros::ros-error "~A is not respond, please restart pr2, check run-stop" controller))))
+	  (push action controller-actions)))
     (send self controller-type))
    (nreverse controller-actions)
    (setq r-gripper-action (instance ros::simple-action-client :init
@@ -49,11 +48,15 @@
    (setq l-gripper-action (instance ros::simple-action-client :init
 				    "/l_gripper_controller/gripper_action"
 				    pr2_controllers_msgs::Pr2GripperCommandAction))
-   (send r-gripper-action :wait-for-server 10)
-   (send l-gripper-action :wait-for-server 10)
-
    (setq move-base-action (instance ros::simple-action-client :init
                                     "move_base" move_base_msgs::MoveBaseAction))
+   ;; wait for all action server (except move_base)
+   (dolist (action (append controller-actions (list r-gripper-action l-gripper-action)))
+     (unless (and joint-action-enable (send action :wait-for-server 3))
+       (setq joint-action-enable nil)
+       (ros::ros-warn "~A is not respond, pr2-interface is disabled" action)
+       (return)))
+
    self)
   (:angle-vector
    (av &optional (tm 3000))
@@ -99,7 +102,7 @@
                   action (cdr (assoc :joint-names param)) ;; action server and joint-names
                   av   ;; positions
 		  vel  ;; velocities
-                  (+ (/ st 1000.0) 0.2)   ;; start time
+                  (+ (/ st 1000.0) 0.1)   ;; start time
                   (+ (/ tm 1000.0) 0.2))) ;; duration
         controller-actions (send self controller-type))
        (setq av-prev av)
@@ -109,9 +112,11 @@
      ))
   (:wait-interpolation
    ()
+   (unless joint-action-enable (return-from :wait-interpolation nil))
    (send-all controller-actions :wait-for-result))
   (:send-pr2-controller
    (action joint-names all-positions all-velocities starttime duration)
+   (unless joint-action-enable (return-from :send-pr2-controller nil))
    (let* ((st (ros::time+ (ros::time-now) (ros::time starttime)))
           (tm (ros::time duration))
 	  (goal (send action :make-goal-instance))
@@ -263,6 +268,7 @@
   ;;
   (:move-gripper
    (arm pos &key (effort 25) (wait t))
+   (unless joint-action-enable (return-from :move-gripper nil))
    (let* (goal
 	  (clients (case arm
 		     (:rarm (list r-gripper-action))
@@ -273,7 +279,7 @@
        (send goal :goal :command :position pos)
        (send goal :goal :command :max_effort effort)
        (send client :send-goal goal))
-     (if wait  (mapcar #'(lambda(c)(send c :wait-for-result)) clients))
+     (if wait (mapcar #'(lambda(c)(send c :wait-for-result)) clients))
      ))
   (:start-grasp
    (&optional (arm :arms) &key ((:gain g) 0.01))
