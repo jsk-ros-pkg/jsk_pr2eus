@@ -178,6 +178,7 @@
   (:state
    (&rest args)
    (let (joint-names positions)
+     (unless joint-action-enable (return-from :state (send robot :angle-vector)))
      (unless robot-state (return-from :state))
      (ros::spin-once)
      (setq joint-names (cdr (assoc :name robot-state))
