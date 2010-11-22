@@ -2,6 +2,7 @@
 ;;
 ;;
 (require :pr2 "package://pr2eus/pr2.l")
+(require :pr2-utils "package://pr2eus/pr2-utils.l")
 
 ;;;
 ;;; interface to ros based pr2 system
@@ -19,7 +20,8 @@
   :slots (robot robot-state joint-action-enable
 		controller-type controller-actions
 		r-gripper-action l-gripper-action
-                move-base-action finger-pressure-origin))
+                move-base-action finger-pressure-origin
+                viewer))
 (defmethod pr2-interface
   (:init
    (&rest args &key (type :default-controller) &allow-other-keys)
@@ -57,10 +59,20 @@
        (ros::ros-warn "~A is not respond, pr2-interface is disabled" action)
        (return)))
 
+   (unless joint-action-enable
+     (let ((old-viewer user::*viewer*))
+       (setq viewer (instance x::irtviewer :create :title "pr2-interface"))
+       (send viewer :objects (list robot))
+       (send viewer :look-all)
+       (setq user::*viewer* old-viewer)))
+
    self)
   (:angle-vector
    (av &optional (tm 3000))
    (send robot :angle-vector av)
+   (unless joint-action-enable
+     (if av (send viewer :draw-objects)))
+
    (mapcar
     #'(lambda (action param)
         (send self :send-pr2-controller
