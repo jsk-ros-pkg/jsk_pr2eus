@@ -36,14 +36,17 @@
      (format f "~A~%" (nconc (list 'defun 'make-camera-from-ros-camera-info-aux) (cddddr #'make-camera-from-ros-camera-info-aux)))
      (format f ";;~%")
      (format f "(defmethod ~A-robot~%" robot)
-     (dolist (camera-var (list "narrow_stereo/right/camera"
-                               "narrow_stereo/left/camera"
-                               "wide_stereo/right/camera"
-                               "wide_stereo/left/camera"
-                               "r_forearm_cam/camera"
-                               "l_forearm_cam/camera"))
+     (setq camera-vars
+           (list "narrow_stereo/left"
+                 "narrow_stereo/right"
+                 "wide_stereo/left"
+                 "wide_stereo/right"
+                 "l_forearm_cam"
+                 "r_forearm_cam"
+                 "prosilica"))
+     (dolist (camera-var camera-vars)
        (let ((var (intern (substitute #\- #\/ (string-upcase camera-var))))
-             (camera-info (format nil "~A_info" camera-var))
+             (camera-info (format nil "~A/camera_info" camera-var))
              (camera-name (substitute #\- #\/ (string-downcase camera-var))))
          (ros::subscribe camera-info sensor_msgs::CameraInfo
                          #'(lambda (msg)
@@ -65,6 +68,18 @@
          (format f "     (forward-message-to c args)))~%")
          ) ;; let
         ) ;; dolist
+     (format f "  (:cameras (&rest args)~%")
+     (format f "   (forward-message-to-all (list")
+     (dolist (camera-var camera-vars)
+       (format f " (send self :~A)" (substitute #\- #\/ camera-var)))
+     (format f ") args))~%")
+     (format f "  (:camera (&rest args)~%")
+     (format f "    (cond ((integerp (car args))~%")
+     (format f "           (forward-message-to (elt (send self :cameras) (car args)) (cdr args)))~%")
+     (format f "          ((stringp (car args))~%")
+     (format f "           (forward-message-to (send self (intern (string-upcase (substitute #\\\- #\\\/ (car args))) \"KEYWORD\")) (cdr args)))~%")
+     (format f "          (t~%")
+     (format f "           (forward-message-to (car (send self :cameras)) args))))~%")
      (format f "  ) ;; defmethod ~A-robot~%" robot)
      ) ;; with-open-file
     (warning-message 1 "copy model file from ~A to ~A.l~%" fname_lisp robot)
