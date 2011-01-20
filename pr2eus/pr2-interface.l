@@ -110,13 +110,19 @@
        (send robot :angle-vector av)
        (mapcar
         #'(lambda (action param)
-            (send self :send-pr2-controller
-                  action (cdr (assoc :joint-names param)) ;; action server and joint-names
-                  av   ;; positions
-		  vel  ;; velocities
-                  (+ (/ st 1000.0) 0.1)   ;; start time
-                  (+ (/ tm 1000.0) 0.2))) ;; duration
-        controller-actions (send self controller-type))
+	    ;; if trajectry actoin other than JointTrajectoryAction
+	    ;; could not deal with start time, they only accept duration
+	    (when (or
+		   (null avs) ;; only last avs is sent to SingleJointPosition and PointHead 
+		   (eq (cdr (assoc :action-type param))
+		       pr2_controllers_msgs::jointtrajectoryaction))
+	      (send self :send-pr2-controller
+		    action (cdr (assoc :joint-names param)) ;; action server and joint-names
+		    av   ;; positions
+		    vel  ;; velocities
+		    (+ (/ st 1000.0) 0.1)   ;; start time
+		    (+ (/ tm 1000.0) 0.2)))) ;; duration
+	    controller-actions (send self controller-type))
        (setq av-prev av)
        (incf st tm)
        )
@@ -130,7 +136,6 @@
    (action joint-names all-positions all-velocities starttime duration)
    (unless joint-action-enable (return-from :send-pr2-controller nil))
    (let* ((st (ros::time+ (ros::time-now) (ros::time starttime)))
-          (tm (ros::time duration))
 	  (goal (send action :make-goal-instance))
           (positions (instantiate float-vector (length joint-names)))
           (velocities (instantiate float-vector (length joint-names)))
@@ -163,7 +168,7 @@
 			     :init
 			     :positions positions
 			     :velocities velocities
-			     :time_from_start tm))))
+			     :time_from_start (ros::time duration)))))
       ((eq (class goal) pr2_controllers_msgs::PointHeadActionGoal)
        (send goal :goal :target :point
 	     (ros::pos->tf-point
@@ -172,10 +177,10 @@
 		    :worldpos)))
        (send goal :goal :target :header :frame_id "/base_footprint")
        ;;(send goal :goal :pointing_frame "/high_def_optical_frame")
-       (send goal :goal :min_duration tm))
+       (send goal :goal :min_duration (ros::time (+ starttime duration))))
       ((eq (class goal) pr2_controllers_msgs::SingleJointPositionActionGoal)
        (send goal :goal :position (elt positions 0))
-       (send goal :goal :min_duration tm))
+       (send goal :goal :min_duration (ros::time (+ starttime duration))))
       (t (warning-message 1 ";; ~a is not found" (class goal))))
      (ros::spin-once)
      (send action :send-goal goal)
