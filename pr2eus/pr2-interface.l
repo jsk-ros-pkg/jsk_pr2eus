@@ -12,6 +12,7 @@
 (require :actionlib "package://roseus/euslisp/actionlib.l")
 (ros::roseus-add-msgs "move_base_msgs")
 (ros::roseus-add-msgs "pr2_msgs")
+(ros::roseus-add-msgs "nav_msgs")
 (ros::roseus-add-msgs "sensor_msgs")
 (ros::roseus-add-msgs "pr2_controllers_msgs")
 
@@ -30,6 +31,8 @@
    ;;
    (ros::subscribe "/joint_states" sensor_msgs::JointState
 		   #'send self :pr2-state-callback)
+   (ros::subscribe "/base_odometry/odom" nav_msgs::Odometry
+		   #'send self :pr2-odom-callback)
    (ros::subscribe "/pressure/r_gripper_motor" pr2_msgs::PressureState
 		   #'send self :pr2-fingertip-callback :rarm-pressure)
    (ros::subscribe "/pressure/l_gripper_motor" pr2_msgs::PressureState
@@ -52,6 +55,9 @@
 				    pr2_controllers_msgs::Pr2GripperCommandAction))
    (setq move-base-action (instance ros::simple-action-client :init
                                     "move_base" move_base_msgs::MoveBaseAction))
+   (ros::advertise "/base_trajectory_action/goal"
+		   pr2_controllers_msgs::JointTrajectoryActionGoal 10)
+
    ;; wait for all action server (except move_base)
    (dolist (action (append controller-actions (list r-gripper-action l-gripper-action)))
      (unless (and joint-action-enable (send action :wait-for-server 3))
@@ -192,25 +198,49 @@
      (if (assoc key robot-state)
 	 (setf (cdr (assoc key robot-state)) (send msg key))
        (push (cons key (send msg key)) robot-state))))
+  (:pr2-odom-callback
+   (msg)
+   (let ((parsed
+	  (list
+	   (list :stamp (send msg :header :stamp))
+	   (list :pose (ros::tf-pose->coords (send msg :pose :pose)))
+	   (list :velocity (float-vector
+			    (* 1000 (send msg :twist :twist :linear :x))
+			    (* 1000 (send msg :twist :twist :linear :y))
+			    (send msg :twist :twist :angular :z))))))
+     (if (assoc :odom robot-state)
+	 (dolist (k parsed)
+	   (setf (cdr (assoc (car k) (cdr (assoc :odom robot-state)))) (cadr k)))
+       (push (push :odom parsed) robot-state))))
   (:state
    (&rest args)
-   (let (joint-names positions)
-     (unless joint-action-enable (return-from :state (send robot :angle-vector)))
-     (unless robot-state (return-from :state))
-     (ros::spin-once)
-     (setq joint-names (cdr (assoc :name robot-state))
-	   positions (cdr (assoc :position robot-state)))
-     (mapcar #'(lambda (n p)
-                (let ((j (send robot (intern (string-upcase n) *keyword-package*))))
-                  (when j
-		    (cond
-		     ((derivedp j rotational-joint)
-		      (send j :joint-angle (mod (rad2deg p) 360)))
-		     (t
-		      (send j :joint-angle (* 1000 p)))))))
-	    (coerce joint-names cons)
-            (coerce positions cons))
-     (send robot :angle-vector)))
+   (cond
+    ((or (null args) (eq :angle-vector (car args)) (eq :potentio-vector (car args)))
+     (if (not (eq :potentio-vector (car args)))
+	 (warning-message 1 "please use :state :potentio-vector~%"))
+     (let (joint-names positions)
+       (unless joint-action-enable
+	 (return-from :state (send robot :angle-vector)))
+       (unless robot-state (return-from :state))
+       (ros::spin-once)
+       (setq joint-names (cdr (assoc :name robot-state))
+	     positions (cdr (assoc :position robot-state)))
+       (mapcar #'(lambda (n p)
+		   (let ((j (send robot (intern (string-upcase n) *keyword-package*))))
+		     (when j
+		       (cond
+			((derivedp j rotational-joint)
+			 (send j :joint-angle (mod (rad2deg p) 360)))
+			(t
+			 (send j :joint-angle (* 1000 p)))))))
+	       (coerce joint-names cons)
+	       (coerce positions cons))
+       (send robot :angle-vector)))
+    (t
+     (let ((cur robot-state))
+       (dolist (key args cur)
+	 (setq cur (cdr (assoc key cur))))))
+    ))
   ;;
   ;;
   ;;
@@ -350,12 +380,31 @@
      (send self :move-to c :retry 1 :frame-id "/base_link")
      ))
   (:go-velocity
-   (x y d) ;; [m/sec] [m/sec] [rad/sec]
-   (let ((goal (instance geometry_msgs::Twist :init)))
-     (send goal :linear :x x)
-     (send goal :linear :y y)
-     (send goal :angular :z r)
-     (ros::publish "cmd_vel" goal)))
+   (x y d &optional (msec 1000)) ;; [m/sec] [m/sec] [rad/sec]
+   (ros::spin-once)
+   (let ((sec (/ msec 1000.0))
+	 (odom-pos (scale 0.001 (send (send self :state :odom :pose) :pos)))
+	 (odom-angle (elt (car (send (send self :state :odom :pose) :rpy-angle)) 0))
+	 (msg (instance trajectory_msgs::JointTrajectory :init))
+	 (goal (instance pr2_controllers_msgs::JointTrajectoryActionGoal :init))
+	 (pt1 (instance trajectory_msgs::JointTrajectoryPoint :init))
+	 (pt2 (instance trajectory_msgs::JointTrajectoryPoint :init)))
+     (send pt1 :time_from_start (ros::time 0.1))
+     (send pt2 :time_from_start (ros::time (+ 0.1 sec)))
+     (send pt1 :positions (v+ odom-pos
+			      (float-vector 0 0 (+ odom-angle (* sec d)))))
+     (send pt2 :positions (v+ (v+ odom-pos
+				  (float-vector 0 0 (+ odom-angle (* sec d))))
+			     (rotate-vector (scale sec (float-vector x y 0))
+					    odom-angle :z)))
+     ;;
+     (send msg :header :stamp (ros::time-now))
+     (send msg :joint_names (list "base_link_x" "base_link_y" "base_link_pan"))
+     (send msg :points (list pt1 pt2))
+     (send goal :goal :trajectory msg)
+     ;;
+     (ros::publish "/base_trajectory_action/goal" goal) ;; this is actually actionlib
+     ))
   )
 
 
