@@ -349,6 +349,13 @@
 			  :rpy (float-vector (deg2rad d) 0 0)))
      (send self :move-to c :retry 1 :frame-id "/base_link")
      ))
+  (:go-velocity
+   (x y d) ;; [m/sec] [m/sec] [rad/sec]
+   (let ((goal (instance geometry_msgs::Twist :init)))
+     (send goal :linear :x x)
+     (send goal :linear :y y)
+     (send goal :angular :z r)
+     (ros::publish "cmd_vel" goal)))
   )
 
 
