@@ -187,7 +187,7 @@
       ((eq (class goal) pr2_controllers_msgs::SingleJointPositionActionGoal)
        (send goal :goal :position (elt positions 0))
        (send goal :goal :min_duration (ros::time (+ starttime duration))))
-      (t (warning-message 1 ";; ~a is not found" (class goal))))
+      (t (ros::ros-warn 1 ";; ~a is not found" (class goal))))
      (ros::spin-once)
      (send action :send-goal goal)
      ))
@@ -217,7 +217,7 @@
    (cond
     ((or (null args) (eq :angle-vector (car args)) (eq :potentio-vector (car args)))
      (if (not (eq :potentio-vector (car args)))
-	 (warning-message 1 "please use :state :potentio-vector~%"))
+	 (ros::ros-warn 1 "please use :state :potentio-vector~%"))
      (let (joint-names positions)
        (unless joint-action-enable
 	 (return-from :state (send robot :angle-vector)))
