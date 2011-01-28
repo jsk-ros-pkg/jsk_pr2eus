@@ -380,7 +380,7 @@
      (send self :move-to c :retry 1 :frame-id "/base_link")
      ))
   (:go-velocity
-   (x y d &optional (msec 1000)) ;; [m/sec] [m/sec] [rad/sec]
+   (x y d &optional (msec 1000) &key (stop t)) ;; [m/sec] [m/sec] [rad/sec]
    (ros::spin-once)
    (let ((sec (/ msec 1000.0))
 	 (odom-pos (scale 0.001 (send (send self :state :odom :pose) :pos)))
@@ -389,7 +389,7 @@
 	 (goal (instance pr2_controllers_msgs::JointTrajectoryActionGoal :init))
 	 (pt1 (instance trajectory_msgs::JointTrajectoryPoint :init))
 	 (pt2 (instance trajectory_msgs::JointTrajectoryPoint :init)))
-     (send pt1 :time_from_start (ros::time 0))
+     (send pt1 :time_from_start (ros::time))
      (send pt2 :time_from_start (ros::time sec))
      (send pt1 :positions (v+ odom-pos
 			      (float-vector 0 0 odom-angle)))
@@ -398,10 +398,11 @@
 			     (rotate-vector (scale sec (float-vector x y 0))
 					    odom-angle :z)))
      (send pt1 :velocities (rotate-vector (float-vector x y d) odom-angle :z))
-     ;(send pt2 :velocities (rotate-vector (float-vector x y d) odom-angle :z))
-     (send pt2 :velocities (float-vector 0 0 0)) ;; To stop just
+     (if stop
+	 (send pt2 :velocities (float-vector 0 0 0)) ;; To stop just
+       (send pt2 :velocities (rotate-vector (float-vector x y d) odom-angle :z)))
      ;;
-     (send msg :header :stamp (ros::time+ (ros::time-now) (ros::time 0.1)))
+     (send msg :header :stamp (ros::time-now))
      (send msg :joint_names (list "base_link_x" "base_link_y" "base_link_pan"))
      (send msg :points (list pt1 pt2))
      (send goal :goal :trajectory msg)
