@@ -392,11 +392,14 @@
      (send pt1 :time_from_start (ros::time 0.1))
      (send pt2 :time_from_start (ros::time (+ 0.1 sec)))
      (send pt1 :positions (v+ odom-pos
-			      (float-vector 0 0 (+ odom-angle (* sec d)))))
+			      (float-vector 0 0 odom-angle)))
      (send pt2 :positions (v+ (v+ odom-pos
 				  (float-vector 0 0 (+ odom-angle (* sec d))))
 			     (rotate-vector (scale sec (float-vector x y 0))
 					    odom-angle :z)))
+     ;;(print (list (send pt1 :positions) (send pt2 :positions)))
+     ;(send pt1 :velocities (rotate-vector (float-vector x y d) odom-angle :z))
+     ;(send pt2 :velocities (rotate-vector (float-vector x y d) odom-angle :z))
      ;;
      (send msg :header :stamp (ros::time-now))
      (send msg :joint_names (list "base_link_x" "base_link_y" "base_link_pan"))
