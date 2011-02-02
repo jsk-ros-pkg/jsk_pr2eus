@@ -217,7 +217,7 @@
    (cond
     ((or (null args) (eq :angle-vector (car args)) (eq :potentio-vector (car args)))
      (if (not (eq :potentio-vector (car args)))
-	 (ros::ros-warn 1 "please use :state :potentio-vector~%"))
+	 (ros::ros-warn "please use :state :potentio-vector~%"))
      (let (joint-names positions)
        (unless joint-action-enable
 	 (return-from :state (send robot :angle-vector)))
