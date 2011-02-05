@@ -452,7 +452,6 @@
     (send *pr2* :head :angle-vector #f(0 0))
     (send *pr2* :larm :angle-vector #f(25 0 0 -130 0 0 0))
     (send *pr2* :rarm :angle-vector #f(-25 0 0 -130 0 0 0))
-    (send *ri* :move-gripper :arms 0.005)
     (send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
     (send *ri* :wait-interpolation)
     (if (eq free-arm :larm)
@@ -460,9 +459,19 @@
       (send *pr2* :larm :angle-vector (car *pr2-tuckarm-pose-rarm-free*)))
     (send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
     (send *ri* :wait-interpolation)
+    (send *ri* :move-gripper :arms 0.005)
     (if (eq free-arm :larm)
         (send *pr2* :larm :angle-vector (car *pr2-tuckarm-pose-larm-free*))
       (send *pr2* :rarm :angle-vector (cadr *pr2-tuckarm-pose-rarm-free*)))
     (send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
     (send *ri* :wait-interpolation)
     ))
+
+;; send pr2 to move to reset pose
+(defun pr2-reset-pose ()
+  (let ()
+    (send *pr2* :reset-pose)
+    (send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
+    (send *ri* :wait-interpolation)
+    ))
+
