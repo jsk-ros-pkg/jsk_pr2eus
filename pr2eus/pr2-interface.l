@@ -175,18 +175,6 @@
 			     :positions positions
 			     :velocities velocities
 			     :time_from_start (ros::time duration)))))
-      ((eq (class goal) pr2_controllers_msgs::PointHeadActionGoal)
-       (send goal :goal :target :point
-	     (ros::pos->tf-point
-	      (send (send (send robot :base_footprint) :transformation
-			  (send (send (send robot :head_tilt_link) :copy-worldcoords) :translate #f(100000 0 0) :local))
-		    :worldpos)))
-       (send goal :goal :target :header :frame_id "/base_footprint")
-       ;;(send goal :goal :pointing_frame "/high_def_optical_frame")
-       (send goal :goal :min_duration (ros::time (+ starttime duration))))
-      ((eq (class goal) pr2_controllers_msgs::SingleJointPositionActionGoal)
-       (send goal :goal :position (elt positions 0))
-       (send goal :goal :min_duration (ros::time (+ starttime duration))))
       (t (ros::ros-warn 1 ";; ~a is not found" (class goal))))
      (ros::spin-once)
      (send action :send-goal goal)
@@ -265,14 +253,14 @@
   (:head-controller
    ()
    (list
-    (cons :controller "head_traj_controller/point_head_action")
-    (cons :action-type pr2_controllers_msgs::PointHeadAction)
+    (cons :controller "head_traj_controller/joint_trajectory_action")
+    (cons :action-type pr2_controllers_msgs::JointTrajectoryAction)
     (cons :joint-names (list "head_pan_joint" "head_tilt_joint"))))
   (:torso-controller
    ()
    (list
-    (cons :controller "torso_controller/position_joint_action")
-    (cons :action-type pr2_controllers_msgs::SingleJointPositionAction)
+    (cons :controller "torso_controller/joint_trajectory_action")
+    (cons :action-type pr2_controllers_msgs::JointTrajectoryAction)
     (cons :joint-names (list "torso_lift_joint"))))
   (:default-controller
    ()
