@@ -356,7 +356,7 @@
        (ros::ros-info "move-to : send-goal to ~A (~d)" (send coords :worldpos) count)
        (send move-base-action :send-goal goal)
        (send move-base-action :wait-for-result)
-       (if (eq (send move-base-action :get-state) actionlib_msgs::succeeded)
+       (if (eq (send move-base-action :get-state) actionlib_msgs::*succeeded*)
            (setq ret t)))
      (ros::ros-info "move-to : ~A" (if ret 'succeeded 'failed))
      ret))
