@@ -334,15 +334,17 @@
    ()
    (ros::spin-once)
    (setq finger-pressure-origin
-	 (mapcar #'(lambda(k)(assoc k robot-state))
+	 (mapcar #'(lambda(k)(copy-seq (assoc k robot-state)))
 		 '(:rarm-pressure :larm-pressure))))
   (:finger-pressure
-   (arm)
+   (arm &key (zero nil))
    (setq arm (case arm (:rarm :rarm-pressure) (:larm :larm-pressure)))
    (let ((current (cdr (assoc arm robot-state)))
 	 (origin (cdr (assoc arm finger-pressure-origin))))
-     (when (and current origin)
-       (mapcar #'v- current origin))))
+     (if zero
+	 (when (and current origin)
+	   (mapcar #'v- current origin))
+       current)))
   ;;
   (:move-to
    (coords &key (retry 10) (frame-id "/map") (wait-for-server-timeout 5))

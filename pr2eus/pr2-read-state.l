@@ -4,7 +4,7 @@
 ;;;;
 
 (load "package://pr2eus/pr2-interface.l")
-(roseus "pr2_read_state")
+(ros::roseus "pr2_read_state")
 
 (pr2)
 (make-irtviewer)
@@ -43,6 +43,17 @@
    (format-array
     (send *pr2* :calc-torque)
     "" 7 3 nil))
+
+ ;; fingertip pressure
+ (let ((larm-val (send *ri* :finger-pressure :larm :zero nil))
+       (rarm-val (send *ri* :finger-pressure :rarm :zero nil)))
+   (when larm-val
+   (ros::ros-info "larm-fingertip ~%l:~a~%r:~a"
+		  (car larm-val) (cadr larm-val)))
+   (when rarm-val
+   (ros::ros-info "rarm-fingertip ~%l:~a~%r:~a"
+		  (car rarm-val) (cadr rarm-val)))
+   )
 
  (ros::spin-once)
  (ros::sleep))
