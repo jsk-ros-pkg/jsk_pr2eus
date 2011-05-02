@@ -10,15 +10,24 @@
      (if (> (elt v 1) 0) :larm :rarm)))
   (:inverse-kinematics
    (target-coords &rest args &key (link-list) (move-arm)
-                  (use-torso t)
+                  (use-torso t) (move-target)
                   (use-base nil) (start-coords (send self :copy-worldcoords))
                   &allow-other-keys)
-   (let (move-target weight union-link-list torso-id base-weight diff-pos-rot)
-     ;; select move target
-     (unless (memq move-arm '(:larm :rarm))
+   (let (weight union-link-list torso-id base-weight diff-pos-rot)
+     ;;
+     ;; move-arm     x o x x o o x o ;; only in this function
+     ;; link-list    x x o x o x o o ;; defined in upper class
+     ;; move-target  x x x o x o o o ;; defined in upper class
+     ;;              1 3 x x x 4 2 x
+     ;;
+     ;; 1:set move-arm from target-coords, set move-target from move-arm
+     ;; 2;do nothing, since move-arm is used to set link-list and move-target
+     ;; 3;set move-coords and link-list from move-arm
+     ;; 4;set link-list from move-arm and move-target
+     (unless move-arm
        (setq move-arm (send self :select-target-arm target-coords)))
-     (setq move-target (send self move-arm :end-coords))
-     ;; link-list
+     (unless move-target
+       (setq move-target (send self move-arm :end-coords)))
      (unless link-list
        (setq link-list (send self :link-list (send move-target :parent)
                              (unless use-torso (car (send self move-arm))))))
