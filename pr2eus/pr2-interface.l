@@ -70,7 +70,7 @@
        (setq viewer (instance x::irtviewer :create :title "pr2-interface"))
        (send viewer :objects (list robot))
        (send viewer :look-all)
-       (setq user::*viewer* old-viewer)))
+       (if old-viewer (setq user::*viewer* old-viewer))))
 
    self)
   (:angle-vector
