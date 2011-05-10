@@ -75,10 +75,15 @@
    self)
   (:angle-vector
    (av &optional (tm 3000))
-   (send robot :angle-vector av)
    (unless joint-action-enable
-     (if av (send viewer :draw-objects)))
+     (if av
+       (let ((prev-av (send robot :angle-vector)))
+	 (do ((curr-tm 0.0 (+ curr-tm 100.0)))
+	     ((>= curr-tm tm))
+	   (send robot :angle-vector (midpoint (/ curr-tm tm) prev-av av))
+	   (send viewer :draw-objects)))))
 
+   (send robot :angle-vector av)
    (mapcar
     #'(lambda (action param)
         (send self :send-pr2-controller
