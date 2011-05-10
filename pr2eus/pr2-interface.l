@@ -102,12 +102,22 @@
          (av-prev (send self :state :potentio-vector)) av av-next
          tm tm-next
          (vel (instantiate float-vector (length (car avs)))))
+     (labels ((diff-angle-vector
+	       (v0 v1)
+	       (let ((ret (v- v0 v1))
+		     (joint-list (send robot :joint-list))
+		     (i 0) j)
+		 (while (setq j (pop joint-list))
+		   (if (and (= (send j :min-angle) *-inf*) (= (send j :max-angle) *inf*)
+			    (> (elt ret i) 180.0))
+		       (setf (elt ret i) (- 360.0 (elt ret i)))))
+		 ret)))
      (while avs
        (setq av (pop avs))
        (if (car tms) (setq tm (pop tms)))
        (if (setq av-next (car avs))
-           (let ((v0 (v- av av-prev))
-                 (v1 (v- av-next av)))
+           (let ((v0 (diff-angle-vector av av-prev))
+                 (v1 (diff-angle-vector av-next av)))
              (setq tm-next (if (car tms) (car tms) tm))
              (dotimes (i (length vel))
                (setf (elt vel i)
@@ -117,7 +127,6 @@
                        0.0)))
              )
          (fill vel 0))
-
        ;; for simulation mode
        (unless joint-action-enable
 	 (let ((prev-av (send robot :angle-vector)))
@@ -145,7 +154,7 @@
        (setq av-prev av)
        (incf st tm)
        )
-     ))
+     )))
   (:wait-interpolation
    ()
    (unless joint-action-enable (return-from :wait-interpolation nil))
