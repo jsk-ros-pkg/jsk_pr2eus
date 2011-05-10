@@ -1,4 +1,4 @@
-;;
+1;2600;0c:angle-vec;;
 ;;
 ;;
 (require :pr2 "package://pr2eus/pr2.l")
@@ -88,7 +88,6 @@
               0					      ;; start time
               (/ tm 1000.0)))			      ;; duration
     controller-actions (send self controller-type))
-   (ros::spin-once)
    av)
   (:angle-vector-sequence
    (avs &optional (tms (list 3000)))
