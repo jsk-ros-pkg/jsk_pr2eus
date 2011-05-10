@@ -131,7 +131,6 @@
        (setq av-prev av)
        (incf st tm)
        )
-     (ros::spin-once)
      ))
   (:wait-interpolation
    ()
