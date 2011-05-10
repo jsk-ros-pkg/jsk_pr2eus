@@ -75,6 +75,7 @@
    self)
   (:angle-vector
    (av &optional (tm 3000))
+   ;; for simulation mode
    (unless joint-action-enable
      (if av
        (let ((prev-av (send robot :angle-vector)))
@@ -116,6 +117,14 @@
                        0.0)))
              )
          (fill vel 0))
+
+       ;; for simulation mode
+       (unless joint-action-enable
+	 (let ((prev-av (send robot :angle-vector)))
+	   (do ((curr-tm 0.0 (+ curr-tm 100.0)))
+	       ((>= curr-tm tm))
+	     (send robot :angle-vector (midpoint (/ curr-tm tm) prev-av av))
+	     (send viewer :draw-objects))))
        ;;
        (send robot :angle-vector av)
        (mapcar
