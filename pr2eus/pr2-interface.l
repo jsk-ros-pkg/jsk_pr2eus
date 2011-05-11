@@ -116,45 +116,47 @@
 			      (setf (elt ret i) (+ 360.0 (elt ret i))))))
 		   (incf i))
 		 ret)))
-     (while avs
-       (setq av (pop avs))
-       (if (car tms) (setq tm (pop tms)))
-       (if (setq av-next (car avs))
-           (let ((v0 (diff-angle-vector av av-prev))
-                 (v1 (diff-angle-vector av-next av)))
-             (setq tm-next (if (car tms) (car tms) tm))
-             (dotimes (i (length vel))
-               (setf (elt vel i)
-                     (if (>= (* (elt v0 i) (elt v1 i)) 0)
-                         (* 0.5 (+ (* (/ 1000.0 tm) (elt v0 i))
-                                   (* (/ 1000.0 tm-next) (elt v1 i))))
-                       0.0)))
-             )
-         (fill vel 0))
-       ;; for simulation mode
-       (unless joint-action-enable
-	 (let ((prev-av (send robot :angle-vector)))
-	   (do ((curr-tm 0.0 (+ curr-tm 100.0)))
-	       ((>= curr-tm tm))
-	     (send robot :angle-vector (midpoint (/ curr-tm tm) prev-av av))
-	     (send viewer :draw-objects))))
-       ;;
-       (send robot :angle-vector av)
-       (push (list (copy-seq av)   ;; positions
-		   (copy-seq vel)  ;; velocities
-		   (+ (/ (+ st tm) 1000.0) 0.2)) ;; tm + duration
-	     traj-points)
-       (setq av-prev av)
-       (incf st tm))
-     ;;
-     (mapcar
-        #'(lambda (action param)
-	    (send self :send-pr2-controller
-		  action (cdr (assoc :joint-names param)) ;; action server and joint-names
-		  0.1   ;; start time
-		  traj-points))
-	    controller-actions (send self controller-type))
-     )))
+       (prog1 ;; angle-vector-sequence returns avs
+	   avs
+	 (while avs
+	   (setq av (pop avs))
+	   (if (car tms) (setq tm (pop tms)))
+	   (if (setq av-next (car avs))
+	       (let ((v0 (diff-angle-vector av av-prev))
+		     (v1 (diff-angle-vector av-next av)))
+		 (setq tm-next (if (car tms) (car tms) tm))
+		 (dotimes (i (length vel))
+		   (setf (elt vel i)
+			 (if (>= (* (elt v0 i) (elt v1 i)) 0)
+			     (* 0.5 (+ (* (/ 1000.0 tm) (elt v0 i))
+				       (* (/ 1000.0 tm-next) (elt v1 i))))
+			   0.0)))
+		 )
+	     (fill vel 0))
+	   ;; for simulation mode
+	   (unless joint-action-enable
+	     (let ((prev-av (send robot :angle-vector)))
+	       (do ((curr-tm 0.0 (+ curr-tm 100.0)))
+		   ((>= curr-tm tm))
+		 (send robot :angle-vector (midpoint (/ curr-tm tm) prev-av av))
+		 (send viewer :draw-objects))))
+	   ;;
+	   (send robot :angle-vector av)
+	   (push (list (copy-seq av)   ;; positions
+		       (copy-seq vel)  ;; velocities
+		       (+ (/ (+ st tm) 1000.0) 0.2)) ;; tm + duration
+		 traj-points)
+	   (setq av-prev av)
+	   (incf st tm))
+	 ;;
+	 (mapcar
+	  #'(lambda (action param)
+	      (send self :send-pr2-controller
+		    action (cdr (assoc :joint-names param)) ;; action server and joint-names
+		    0.1   ;; start time
+		    traj-points))
+	  controller-actions (send self controller-type))
+	 ))))
   (:wait-interpolation
    ()
    (unless joint-action-enable (return-from :wait-interpolation nil))
