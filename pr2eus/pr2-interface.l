@@ -78,10 +78,11 @@
    ;; for simulation mode
    (unless joint-action-enable
      (if av
-       (let ((prev-av (send robot :angle-vector)))
+       (let* ((prev-av (send robot :angle-vector))
+	      (scale-av (send self :sub-angle-vector av prev-av)))
 	 (do ((curr-tm 0.0 (+ curr-tm 100.0)))
 	     ((>= curr-tm tm))
-	   (send robot :angle-vector (midpoint (/ curr-tm tm) prev-av av))
+	   (send robot :angle-vector (v+ prev-av (scale (/ curr-tm tm) scale-av)))
 	   (send viewer :draw-objects)))))
 
    (send robot :angle-vector av)
@@ -103,27 +104,14 @@
          (av-prev (send self :state :potentio-vector)) av av-next
          tm tm-next
          (vel (instantiate float-vector (length (car avs)))))
-     (labels ((diff-angle-vector
-	       (v0 v1)
-	       (let ((ret (v- v0 v1))
-		     (joint-list (send robot :joint-list))
-		     (i 0) j)
-		 (while (setq j (pop joint-list))
-		   (if (and (= (send j :min-angle) *-inf*) (= (send j :max-angle) *inf*))
-		       (cond ((> (elt ret i) 180.0)
-			      (setf (elt ret i) (- 360.0 (elt ret i))))
-			     ((< (elt ret i) -180.0)
-			      (setf (elt ret i) (+ 360.0 (elt ret i))))))
-		   (incf i))
-		 ret)))
        (prog1 ;; angle-vector-sequence returns avs
 	   avs
 	 (while avs
 	   (setq av (pop avs))
 	   (if (car tms) (setq tm (pop tms)))
 	   (if (setq av-next (car avs))
-	       (let ((v0 (diff-angle-vector av av-prev))
-		     (v1 (diff-angle-vector av-next av)))
+	       (let ((v0 (send self :sub-angle-vector av av-prev))
+		     (v1 (send self :sub-angle-vector av-next av)))
 		 (setq tm-next (if (car tms) (car tms) tm))
 		 (dotimes (i (length vel))
 		   (setf (elt vel i)
@@ -135,10 +123,11 @@
 	     (fill vel 0))
 	   ;; for simulation mode
 	   (unless joint-action-enable
-	     (let ((prev-av (send robot :angle-vector)))
+	     (let* ((prev-av (send robot :angle-vector))
+		    (scale-av (send self :sub-angle-vector av prev-av)))
 	       (do ((curr-tm 0.0 (+ curr-tm 100.0)))
 		   ((>= curr-tm tm))
-		 (send robot :angle-vector (midpoint (/ curr-tm tm) prev-av av))
+		 (send robot :angle-vector (v+ prev-av (scale (/ curr-tm tm) scale-av)))
 		 (send viewer :draw-objects))))
 	   ;;
 	   (send robot :angle-vector av)
@@ -156,7 +145,7 @@
 		    0.1   ;; start time
 		    traj-points))
 	  controller-actions (send self controller-type))
-	 ))))
+	 )))
   (:wait-interpolation
    ()
    (unless joint-action-enable (return-from :wait-interpolation nil))
@@ -426,6 +415,21 @@
      ;;
      (ros::publish "/base_trajectory_action/goal" goal) ;; this is actually actionlib
      ))
+  ;;
+  ;;
+  ;;
+  (:sub-angle-vector (v0 v1)
+   (let ((ret (v- v0 v1))
+	 (joint-list (send robot :joint-list))
+	 (i 0) j)
+     (while (setq j (pop joint-list))
+       (if (and (= (send j :min-angle) *-inf*) (= (send j :max-angle) *inf*))
+	   (cond ((> (elt ret i) 180.0)
+		  (setf (elt ret i) (- (elt ret i) 360.0)))
+		 ((< (elt ret i) -180.0)
+		  (setf (elt ret i) (+ (elt ret i) 360.0)))))
+       (incf i))
+     ret))
   )
 
 ;;;;;
