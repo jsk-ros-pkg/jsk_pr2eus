@@ -387,6 +387,8 @@
      (send goal :goal :target_pose :header :frame_id frame-id)
      (send goal :goal :target_pose :pose pose)
      (while (and (null ret) (<= (inc count) retry))
+       (if (> count 0) ;; retry
+	   (clear-costmap))
        (ros::ros-info "move-to : send-goal to ~A (~d)" (send coords :worldpos) count)
        (send move-base-action :send-goal goal)
        (send move-base-action :wait-for-result)
@@ -510,5 +512,33 @@
     (send *pr2* :reset-pose)
     (send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
     (send *ri* :wait-interpolation)
+    ))
+
+;;
+;; navigation-client.l
+;;
+
+(defun clear-costmap ()
+  (call-empty-service "/move_base_node/clear_local_costmap")
+  (call-empty-service "/move_base_node/clear_unknown_space"))
+
+(defun initialize-costmap ()
+  (call-empty-service "move_base_node/global_costmap/initialize_costmap")
+  (call-empty-service "move_base_node/local_costmap/initialize_costmap")
+  (clear-costmap))
+
+(defun change-inflation-radius (range param-name) ;;  this is private function
+  (unless (eps= (ros::get-param param-name) range 0.1)
+    (ros::set-param param-name range)))
+
+(defun change-inflation-range (&optional (range 0.55) &key (type :all))
+  (let ((local-costmap "/move_base_node/local_costmap/inflation_radius")
+	(global-costmap "/move_base_node/global_costmap/inflation_radius"))
+    (case type
+      (:global (change-inflation-radius range global-costmap))
+      (:local  (change-inflation-radius range local-costmap))
+      (t
+       (change-inflation-radius range global-costmap)
+       (change-inflation-radius range local-costmap)))
     ))
 
