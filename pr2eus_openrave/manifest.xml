@@ -1,0 +1,17 @@
+<package>
+  <description brief="pr2eus_openrave">
+
+     pr2eus_openrave
+
+  </description>
+  <author>Chen Cheng</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/pr2eus_openrave</url>
+
+  <depend package="roseus"/>
+  <depend package="orrosplanning"/>
+
+</package>
+
+
