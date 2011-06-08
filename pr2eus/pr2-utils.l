@@ -35,7 +35,7 @@
      ;; use torso
      (setq weight (instantiate float-vector (send self :calc-target-joint-dimension link-list))
            union-link-list (send self :calc-union-link-list link-list)
-           torso-id (position torso_lift_joint (send-all union-link-list :joint)))
+           torso-id (position (send self :torso_lift_joint) (send-all union-link-list :joint)))
      (fill weight 1)
      (when (and use-torso torso-id)
        (if (not (numberp use-torso)) (setq use-torso 0.005))
