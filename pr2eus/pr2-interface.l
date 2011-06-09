@@ -214,7 +214,7 @@
   ;;
   (:pr2-state-callback
    (msg)
-   (dolist (key '(:name :position))
+   (dolist (key '(:name :position :effort))
      (if (assoc key robot-state)
 	 (setf (cdr (assoc key robot-state)) (send msg key))
        (push (cons key (send msg key)) robot-state))))
