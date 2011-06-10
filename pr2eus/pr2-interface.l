@@ -232,35 +232,47 @@
 	 (dolist (k parsed)
 	   (setf (cdr (assoc (car k) (cdr (assoc :odom robot-state)))) (cadr k)))
        (push (push :odom parsed) robot-state))))
+  (:update-robot-state
+   ()
+   (let (joint-names positions efforts)
+     (unless joint-action-enable
+       (return-from :update-robot-state (send robot :angle-vector)))
+     (unless robot-state (return-from :update-robot-state))
+     (ros::spin-once)
+     (setq joint-names (cdr (assoc :name robot-state))
+	   positions (cdr (assoc :position robot-state))
+	   efforts (cdr (assoc :effort robot-state)))
+     (mapcar #'(lambda (n p e)
+		 (let ((j (send robot (intern (string-upcase n) *keyword-package*))))
+		   (when j
+		     (cond
+		      ;; position
+		      ((derivedp j rotational-joint)
+		       (send j :joint-angle (rad2deg p)))
+		      (t
+		       (send j :joint-angle (* 1000 p))))
+		     ;; effort
+		     (send j :joint-torque e))))
+	     (coerce joint-names cons)
+	     (coerce positions cons)
+	     (coerce efforts cons))))
   (:state
    (&rest args)
-   (cond
-    ((or (null args) (eq :angle-vector (car args)) (eq :potentio-vector (car args)))
-     (if (not (eq :potentio-vector (car args)))
-	 (ros::ros-warn "please use :state :potentio-vector~%"))
-     (let (joint-names positions)
-       (unless joint-action-enable
-	 (return-from :state (send robot :angle-vector)))
-       (unless robot-state (return-from :state))
-       (ros::spin-once)
-       (setq joint-names (cdr (assoc :name robot-state))
-	     positions (cdr (assoc :position robot-state)))
-       (mapcar #'(lambda (n p)
-		   (let ((j (send robot (intern (string-upcase n) *keyword-package*))))
-		     (when j
-		       (cond
-			((derivedp j rotational-joint)
-			 (send j :joint-angle (rad2deg p)))
-			(t
-			 (send j :joint-angle (* 1000 p)))))))
-	       (coerce joint-names cons)
-	       (coerce positions cons))
-       (send robot :angle-vector)))
-    (t
-     (let ((cur robot-state))
-       (dolist (key args cur)
-	 (setq cur (cdr (assoc key cur))))))
-    ))
+   (case (car args)
+     ((:angle-vector nil)
+      (ros::ros-warn "please use :state :potentio-vector~%")
+      (send self :state :potentio-vector))
+     (:potentio-vector
+      (send self :update-robot-state)
+      (send robot :angle-vector))
+     (:torque-vector
+      (send self :update-robot-state)
+      (send robot :torque-vector))
+     (t
+      (let ((cur robot-state))
+	(dolist (key args cur)
+	  (setq cur (cdr (assoc key cur))))))
+     ))
   ;;
   ;;
   ;;
