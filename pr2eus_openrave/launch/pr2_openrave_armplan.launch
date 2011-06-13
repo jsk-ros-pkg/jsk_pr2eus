@@ -1,6 +1,6 @@
 <launch>
   <include file="$(find pr2_machine)/pr2.machine"/>
-  <node pkg="orrosplannnig" type="armplanning_openrave.py" 
+  <node pkg="orrosplanning" type="armplanning_openrave.py" 
 	args="--collision_map=/collision_map_occ --viewer='' " 
 	machine="c1" output="screen" name="pr2eus_openrave_armplan" />
   <!-- assemble pointcloud into a full world view -->
