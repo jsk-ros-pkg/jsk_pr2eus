@@ -16,28 +16,21 @@
 (ros::roseus-add-msgs "sensor_msgs")
 (ros::roseus-add-msgs "pr2_controllers_msgs")
 
-(defclass pr2-interface
+(defclass ros-interface
   :super propertied-object
   :slots (robot robot-state joint-action-enable
 		controller-type controller-actions
-		r-gripper-action l-gripper-action
-                move-base-action finger-pressure-origin
-                viewer))
-(defmethod pr2-interface
+		viewer))
+
+(defmethod ros-interface
   (:init
-   (&rest args &key (type :default-controller) &allow-other-keys)
+   (&rest args &key ((:robot r)) (type :default-controller) &allow-other-keys)
    (setq joint-action-enable t)
-   (setq robot (instance pr2-robot :init))
+   (setq robot (instance r :init))
    ;;
    (ros::subscribe "/joint_states" sensor_msgs::JointState
-		   #'send self :pr2-state-callback)
-   (ros::subscribe "/base_odometry/odom" nav_msgs::Odometry
-		   #'send self :pr2-odom-callback)
-   (ros::subscribe "/pressure/r_gripper_motor" pr2_msgs::PressureState
-		   #'send self :pr2-fingertip-callback :rarm-pressure)
-   (ros::subscribe "/pressure/l_gripper_motor" pr2_msgs::PressureState
-		   #'send self :pr2-fingertip-callback :larm-pressure)
-   ;;
+		   #'send self :ros-state-callback)
+
    (setq controller-type type)
    (mapcar
     #'(lambda (param)
@@ -47,32 +40,21 @@
 	  (push action controller-actions)))
     (send self controller-type))
    (nreverse controller-actions)
-   (setq r-gripper-action (instance ros::simple-action-client :init
-				    "/r_gripper_controller/gripper_action"
-				    pr2_controllers_msgs::Pr2GripperCommandAction))
-   (setq l-gripper-action (instance ros::simple-action-client :init
-				    "/l_gripper_controller/gripper_action"
-				    pr2_controllers_msgs::Pr2GripperCommandAction))
-   (setq move-base-action (instance ros::simple-action-client :init
-                                    "move_base" move_base_msgs::MoveBaseAction))
-   (ros::advertise "/base_trajectory_action/goal"
-		   pr2_controllers_msgs::JointTrajectoryActionGoal 10)
 
-   ;; wait for all action server (except move_base)
-   (dolist (action (append controller-actions (list r-gripper-action l-gripper-action)))
+   (dolist (action controller-actions)
      (unless (and joint-action-enable (send action :wait-for-server 3))
        (setq joint-action-enable nil)
-       (ros::ros-warn "~A is not respond, pr2-interface is disabled" action)
+       (ros::ros-warn "~A is not respond, ~A-interface is disabled" (send robot :name) action)
        (return)))
-
+   ;;
    (unless joint-action-enable
      (let ((old-viewer user::*viewer*))
-       (setq viewer (instance x::irtviewer :create :title "pr2-interface"))
+       (setq viewer (instance x::irtviewer :create :title (format nil "~A-interface" (send robot :name))))
        (send viewer :objects (list robot))
        (send viewer :look-all)
        (if old-viewer (setq user::*viewer* old-viewer))))
-
    self)
+  ;;
   (:angle-vector
    (av &optional (tm 3000))
    ;; for simulation mode
@@ -88,7 +70,7 @@
    (send robot :angle-vector av)
    (mapcar
     #'(lambda (action param)
-        (send self :send-pr2-controller
+        (send self :send-ros-controller
               action (cdr (assoc :joint-names param)) ;; action server and joint-names
               0					      ;; start time
               (list
@@ -156,7 +138,7 @@
 	 ;;
 	 (mapcar
 	  #'(lambda (action param)
-	      (send self :send-pr2-controller
+	      (send self :send-ros-controller
 		    action (cdr (assoc :joint-names param)) ;; action server and joint-names
 		    0.1   ;; start time
 		    traj-points))
@@ -166,9 +148,11 @@
    ()
    (unless joint-action-enable (return-from :wait-interpolation nil))
    (send-all controller-actions :wait-for-result))
-  (:send-pr2-controller
+  ;;
+  ;;
+  (:send-ros-controller
    (action joint-names starttime trajpoints)
-   (unless joint-action-enable (return-from :send-pr2-controller nil))
+   (unless joint-action-enable (return-from :send-ros-controller nil))
    (let* ((goal (send action :make-goal-instance))
 	  (goal-points nil)
 	  (st (ros::time+ (ros::time-now) (ros::time starttime)))
@@ -212,26 +196,12 @@
      (send action :send-goal goal)
      ))
   ;;
-  (:pr2-state-callback
+  (:ros-state-callback
    (msg)
    (dolist (key '(:name :position :effort))
      (if (assoc key robot-state)
 	 (setf (cdr (assoc key robot-state)) (send msg key))
        (push (cons key (send msg key)) robot-state))))
-  (:pr2-odom-callback
-   (msg)
-   (let ((parsed
-	  (list
-	   (list :stamp (send msg :header :stamp))
-	   (list :pose (ros::tf-pose->coords (send msg :pose :pose)))
-	   (list :velocity (float-vector
-			    (* 1000 (send msg :twist :twist :linear :x))
-			    (* 1000 (send msg :twist :twist :linear :y))
-			    (send msg :twist :twist :angular :z))))))
-     (if (assoc :odom robot-state)
-	 (dolist (k parsed)
-	   (setf (cdr (assoc (car k) (cdr (assoc :odom robot-state)))) (cadr k)))
-       (push (push :odom parsed) robot-state))))
   (:update-robot-state
    ()
    (let (joint-names positions efforts)
@@ -273,6 +243,79 @@
 	(dolist (key args cur)
 	  (setq cur (cdr (assoc key cur))))))
      ))
+  ;;
+  (:default-controller
+   ()
+   (list
+    (list
+     (cons :controller "fullbody_controller/joint_trajectory_action")
+     (cons :action-type pr2_controllers_msgs::JointTrajectoryAction)
+     (cons :joint-names (mapcar #'(lambda (n) (symbol-name n)) (send-all (send *hrp4* :joint-list) :name))))))
+  ;;
+  (:sub-angle-vector (v0 v1)
+   (let ((ret (v- v0 v1))
+	 (joint-list (send robot :joint-list))
+	 (i 0) j)
+     (while (setq j (pop joint-list))
+       (if (and (= (send j :min-angle) *-inf*) (= (send j :max-angle) *inf*))
+	   (cond ((> (elt ret i) 180.0)
+		  (setf (elt ret i) (- (elt ret i) 360.0)))
+		 ((< (elt ret i) -180.0)
+		  (setf (elt ret i) (+ (elt ret i) 360.0)))))
+       (incf i))
+     ret))
+  ) ;; ros-interface
+
+(defclass pr2-interface
+  :super ros-interface
+  :slots (r-gripper-action l-gripper-action
+			   move-base-action finger-pressure-origin))
+(defmethod pr2-interface
+  (:init
+   (&rest args &key (type :default-controller) &allow-other-keys)
+   ;;
+   (ros::subscribe "/base_odometry/odom" nav_msgs::Odometry
+		   #'send self :pr2-odom-callback)
+   (ros::subscribe "/pressure/r_gripper_motor" pr2_msgs::PressureState
+		   #'send self :pr2-fingertip-callback :rarm-pressure)
+   (ros::subscribe "/pressure/l_gripper_motor" pr2_msgs::PressureState
+		   #'send self :pr2-fingertip-callback :larm-pressure)
+   ;;
+   (setq r-gripper-action (instance ros::simple-action-client :init
+				    "/r_gripper_controller/gripper_action"
+				    pr2_controllers_msgs::Pr2GripperCommandAction))
+   (setq l-gripper-action (instance ros::simple-action-client :init
+				    "/l_gripper_controller/gripper_action"
+				    pr2_controllers_msgs::Pr2GripperCommandAction))
+   (setq move-base-action (instance ros::simple-action-client :init
+                                    "move_base" move_base_msgs::MoveBaseAction))
+   (ros::advertise "/base_trajectory_action/goal"
+		   pr2_controllers_msgs::JointTrajectoryActionGoal 10)
+
+   ;; wait for pr2-action server (except move_base)
+   (dolist (action (list r-gripper-action l-gripper-action))
+     (unless (and joint-action-enable (send action :wait-for-server 3))
+       (setq joint-action-enable nil)
+       (ros::ros-warn "~A is not respond, pr2-interface is disabled" action)
+       (return)))
+
+   (send-super :init :robot pr2-robot :type type)
+   )
+  ;;
+  (:pr2-odom-callback
+   (msg)
+   (let ((parsed
+	  (list
+	   (list :stamp (send msg :header :stamp))
+	   (list :pose (ros::tf-pose->coords (send msg :pose :pose)))
+	   (list :velocity (float-vector
+			    (* 1000 (send msg :twist :twist :linear :x))
+			    (* 1000 (send msg :twist :twist :linear :y))
+			    (send msg :twist :twist :angular :z))))))
+     (if (assoc :odom robot-state)
+	 (dolist (k parsed)
+	   (setf (cdr (assoc (car k) (cdr (assoc :odom robot-state)))) (cadr k)))
+       (push (push :odom parsed) robot-state))))
   ;;
   ;;
   ;;
@@ -448,18 +491,6 @@
   ;;
   ;;
   ;;
-  (:sub-angle-vector (v0 v1)
-   (let ((ret (v- v0 v1))
-	 (joint-list (send robot :joint-list))
-	 (i 0) j)
-     (while (setq j (pop joint-list))
-       (if (and (= (send j :min-angle) *-inf*) (= (send j :max-angle) *inf*))
-	   (cond ((> (elt ret i) 180.0)
-		  (setf (elt ret i) (- (elt ret i) 360.0)))
-		 ((< (elt ret i) -180.0)
-		  (setf (elt ret i) (+ (elt ret i) 360.0)))))
-       (incf i))
-     ret))
   )
 
 ;;;;;
