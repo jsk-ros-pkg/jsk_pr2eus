@@ -250,7 +250,7 @@
     (list
      (cons :controller "fullbody_controller/joint_trajectory_action")
      (cons :action-type pr2_controllers_msgs::JointTrajectoryAction)
-     (cons :joint-names (mapcar #'(lambda (n) (symbol-name n)) (send-all (send *hrp4* :joint-list) :name))))))
+     (cons :joint-names (mapcar #'(lambda (n) (symbol-name n)) (send-all (send robot :joint-list) :name))))))
   ;;
   (:sub-angle-vector (v0 v1)
    (let ((ret (v- v0 v1))
