@@ -33,6 +33,7 @@
      (format f ";;   based on ~A~%" (lisp-implementation-version))
      (format f ";;        and irteus ~A~%" (car ros::roseus-svnversion))
      (format f ";;~%")
+     (format f "~A~%" (nconc (list 'defun 'make-camera-from-ros-camera-info-aux) (cddddr #'make-camera-from-ros-camera-info-aux)))
      (format f ";;~%")
      (format f "(defmethod ~A-robot~%" robot)
      (setq camera-vars
