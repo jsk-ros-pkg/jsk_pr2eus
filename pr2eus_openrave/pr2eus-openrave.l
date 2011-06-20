@@ -62,8 +62,9 @@
      (send req :hand_frame_id hand-frame-id)
      (send req :manip_name manip-name)
      (send req :hand_goal hand-goal)
-     (ros::wait-for-service "MoveToHandPosition")
-     (setq res (ros::service-call "MoveToHandPosition" req))
+     (if (ros::wait-for-service "MoveToHandPosition" 10)
+	 (setq res (ros::service-call "MoveToHandPosition" req))
+       (ros::ros-warn "MoveToHandPosition did not respond"))
      (if res (send res :traj))))
   )
 
