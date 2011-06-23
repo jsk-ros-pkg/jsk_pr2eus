@@ -198,7 +198,7 @@
   ;;
   (:ros-state-callback
    (msg)
-   (dolist (key '(:name :position :effort))
+   (dolist (key '(:name :position :velocity :effort))
      (if (assoc key robot-state)
 	 (setf (cdr (assoc key robot-state)) (send msg key))
        (push (cons key (send msg key)) robot-state))))
@@ -211,8 +211,9 @@
      (ros::spin-once)
      (setq joint-names (cdr (assoc :name robot-state))
 	   positions (cdr (assoc :position robot-state))
+	   velocities (cdr (assoc :velocity robot-state))
 	   efforts (cdr (assoc :effort robot-state)))
-     (mapcar #'(lambda (n p e)
+     (mapcar #'(lambda (n p v e)
 		 (let ((j (send robot (intern (string-upcase n) *keyword-package*))))
 		   (when j
 		     (cond
@@ -221,10 +222,13 @@
 		       (send j :joint-angle (rad2deg p)))
 		      (t
 		       (send j :joint-angle (* 1000 p))))
+			 ;; velocity
+		     (send j :joint-velocity v)
 		     ;; effort
 		     (send j :joint-torque e))))
 	     (coerce joint-names cons)
 	     (coerce positions cons)
+		 (coerce velocities cons)
 	     (coerce efforts cons))))
   (:state
    (&rest args)
@@ -317,6 +321,19 @@
 	   (setf (cdr (assoc (car k) (cdr (assoc :odom robot-state)))) (cadr k)))
        (push (push :odom parsed) robot-state))))
   ;;
+  (:wait-interpolation ;; overwrite for pr2
+   ()
+   (unless joint-action-enable (return-from :wait-interpolation nil))
+   (let (result)
+	 (setq result (send-all controller-actions :wait-for-result))
+	 (while (ros::ok)
+	   (send self :update-robot-state)
+	   (when (every #'(lambda(x)(< (abs (send x :joint-velocity))
+								   (if (derivedp x rotational-joint) 0.05 0.001)))
+			  (send robot :joint-list))
+		 (return)))
+	 result))
+
   ;;
   ;;
   (:larm-controller
