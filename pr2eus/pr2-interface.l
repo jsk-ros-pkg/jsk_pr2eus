@@ -44,7 +44,7 @@
    (dolist (action controller-actions)
      (unless (and joint-action-enable (send action :wait-for-server 3))
        (setq joint-action-enable nil)
-       (ros::ros-warn "~A is not respond, ~A-interface is disabled" (send robot :name) action)
+       (ros::ros-warn "~A is not respond, ~A-interface is disabled" action (send robot :name) )
        (return)))
    ;;
    (unless joint-action-enable
@@ -297,6 +297,7 @@
 		   pr2_controllers_msgs::JointTrajectoryActionGoal 10)
 
    ;; wait for pr2-action server (except move_base)
+   (setq joint-action-enable t)
    (dolist (action (list r-gripper-action l-gripper-action))
      (unless (and joint-action-enable (send action :wait-for-server 3))
        (setq joint-action-enable nil)
