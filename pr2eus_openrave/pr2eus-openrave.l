@@ -6,15 +6,14 @@
 
 (defmethod pr2-interface
   (:angle-vector-motion-plan
-   (av tm &key (move-target :larm) (use-torso t))
+   (av &key (move-target :larm) (use-torso t))
    (let (coords mname)
      (send robot :angle-vector av)
      (setq coords (send robot move-target :end-coords :copy-worldcoords))
-     (send self :move-end-coords-plan coords tm :move-target move-target :use-torso use-torso)))
+     (send self :move-end-coords-plan coords :move-target move-target :use-torso use-torso)))
   (:move-end-coords-plan
-   (coords tm &key (move-target :larm) (use-torso t))
-   (let (joint-trajectory joint-trajectory-points joints avs tms)
-     (unless tm (steq tm 10000)) ;; default time
+   (coords &key (move-target :larm) (use-torso t))
+   (let (joint-trajectory joint-trajectory-points joints avs tms (tm (ros::time)))
      ;; call openrave
      (setq joint-trajectory
 	   (send self :call-openrave-move-to-hand-position
@@ -27,6 +26,7 @@
 	       joints (mapcar #'(lambda (x) (send robot (intern (string-upcase x) *keyword-package*))) (send joint-trajectory :joint_names))))
      ;;
      (dolist (point joint-trajectory-points)
+       (print point)
        (mapcar '(lambda (ajoint aposition)
 		  (cond
 		   ((derivedp ajoint rotational-joint)
@@ -35,7 +35,9 @@
 		    (send ajoint :joint-angle (* 1000 aposition)))))
 	       joints (coerce (send point :positions) cons))
        (push (send robot :angle-vector) avs)
-       (push (/ (float tm) (length joint-trajectory-points)) tms))
+       (push (* (send (ros::time- (send point :time_from_start) tm) :to-sec) 1000) tms)
+       (setq tm (send point :time_from_start))
+       )
      ;; send to ri
      (send self :angle-vector-sequence (nreverse avs) (nreverse tms))
      ))
@@ -71,5 +73,5 @@
   )
 
 
-;;; (send *ri* :move-end-coords-plan (make-coords :pos #f(600 -100 1200)) 5000 :move-target :rarm :use-torso t)
+;;; (send *ri* :move-end-coords-plan (make-coords :pos #f(600 -100 1200)) :move-target :rarm :use-torso t)
 ;;; (send *ri* :angle-vector-motion-plan (send *pr2* :angle-vector) 5000 :move-target :rarm)
