@@ -52,9 +52,30 @@
        (setq viewer (instance x::irtviewer :create :title (format nil "~A-interface" (send robot :name))))
        (send viewer :objects (list robot))
        (send viewer :look-all)
-       (if old-viewer (setq user::*viewer* old-viewer))))
+       (if old-viewer (setq user::*viewer* old-viewer))
+
+       (ros::advertise "/joint_states" sensor_msgs::JointState 1)
+       ))
    self)
   ;;
+  (:publish-joint-state ;; for simulatio mode (joint-action-enable is nil)
+   ()
+   (let ((msg (instance sensor_msgs::JointState :init)) names positions velocities efforts)
+     (send msg :header :stamp (ros::time-now))
+     (dolist (j (send robot :joint-list))
+       (push (string-downcase (symbol-name (send j :name))) names)
+       (push (cond ((derivedp j rotational-joint)
+		    (deg2rad (send j :joint-angle)))
+		   (t
+		    (* 0.001 (send j :joint-angle))))
+	     positions)
+       (push 0 velocities)
+       (push 0 efforts))
+     (send msg :name names)
+     (send msg :position positions)
+     (send msg :velocity velocities)
+     (send msg :effort efforts)
+     (ros::publish "/joint_states" msg)))
   (:angle-vector
    (av &optional (tm 3000))
    ;; for simulation mode
@@ -65,6 +86,7 @@
 	 (do ((curr-tm 0.0 (+ curr-tm 100.0)))
 	     ((>= curr-tm tm))
 	   (send robot :angle-vector (v+ prev-av (scale (/ curr-tm tm) scale-av)))
+	   (send self :publish-joint-state)
 	   (send viewer :draw-objects)))))
 
    (send robot :angle-vector av)
@@ -111,6 +133,7 @@
 	       (do ((curr-tm 0.0 (+ curr-tm 100.0)))
 		   ((>= curr-tm tm))
 		 (send robot :angle-vector (v+ prev-av (scale (/ curr-tm tm) scale-av)))
+		 (send self :publish-joint-state)
 		 (send viewer :draw-objects))))
 	   ;;
 	   (send robot :angle-vector av)
