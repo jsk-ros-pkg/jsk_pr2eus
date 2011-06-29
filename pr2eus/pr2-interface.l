@@ -316,7 +316,7 @@
 				    pr2_controllers_msgs::Pr2GripperCommandAction))
    (setq move-base-action (instance ros::simple-action-client :init
                                     "move_base" move_base_msgs::MoveBaseAction))
-   (ros::advertise "/base_controller/joint_trajectory_action/goal"
+   (ros::advertise "/base_controller/base_trajectory_action/goal"
 		   pr2_controllers_msgs::JointTrajectoryActionGoal 10)
 
    ;; wait for pr2-action server (except move_base)
@@ -527,7 +527,7 @@
      (send msg :points (list pt1 pt2))
      (send goal :goal :trajectory msg)
      ;;
-     (ros::publish "/base_controller/joint_trajectory_action/goal" goal) ;; this is actually actionlib
+     (ros::publish "/base_controller/base_trajectory_action/goal" goal) ;; this is actually actionlib
      ))
   ;;
   ;;
