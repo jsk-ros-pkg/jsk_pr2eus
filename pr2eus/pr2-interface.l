@@ -527,7 +527,7 @@
      (send msg :points (list pt1 pt2))
      (send goal :goal :trajectory msg)
      ;;
-     (ros::publish "/base_trajectory_action/goal" goal) ;; this is actually actionlib
+     (ros::publish "/base_controller/base_trajectory_action/goal" goal) ;; this is actually actionlib
      ))
   ;;
   ;;
