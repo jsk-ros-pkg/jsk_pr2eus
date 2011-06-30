@@ -1,8 +1,11 @@
 <launch>
-  <include file="$(find pr2_machine)/pr2.machine"/>
-  <node pkg="orrosplanning" type="armplanning_openrave.py" 
-	args="--collision_map=/collision_map_occ --viewer='' " 
-	machine="c1" output="screen" name="pr2eus_openrave_armplan" />
+  <machine name="localhost" address="localhost" ros-root="$(env ROS_ROOT)"
+           ros-package-path="$(env ROS_PACKAGE_PATH)"/>
+  <machine name="c1" address="pr1012" ros-root="$(env ROS_ROOT)"
+           ros-package-path="$(env ROS_PACKAGE_PATH)"/>
+  <node pkg="orrosplanning" type="armplanning_openrave.py"
+	args="--collision_map=/collision_map_occ --viewer='' "
+	output="screen" name="pr2eus_openrave_armplan" machine="localhost"/>
   <!-- assemble pointcloud into a full world view -->
   <node pkg="laser_assembler" type="point_cloud_assembler" machine="c1"
         output="screen"  name="arm_navigation_point_cloud_assembler">
@@ -41,8 +44,8 @@
     <param name="origin_y" type="double" value="0.0" />
     <param name="origin_z" type="double" value="0.0" />
 
-    <param name="dimension_x" type="double" value="1.0" />
-    <param name="dimension_y" type="double" value="1.5" />
+    <param name="dimension_x" type="double" value="2.0" />
+    <param name="dimension_y" type="double" value="2.0" />
     <param name="dimension_z" type="double" value="2.0" />
 
     <!-- set the resolution (1.0 cm) -->

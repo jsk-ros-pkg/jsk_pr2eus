@@ -1,8 +1,8 @@
 #!/usr/bin/env roseus
 (ros::load-ros-manifest "pr2eus_openrave")
-(ros::roseus "pr2eus_openrave")
-(load "package://pr2eus/pr2-interface.l")
 (ros::load-ros-manifest "orrosplanning")
+(load "package://pr2eus/pr2-interface.l")
+(ros::roseus "pr2eus_openrave")
 
 (defmethod pr2-interface
   (:angle-vector-motion-plan
@@ -13,7 +13,7 @@
      (send self :move-end-coords-plan coords :move-target move-target :use-torso use-torso)))
   (:move-end-coords-plan
    (coords &key (move-target :larm) (use-torso t))
-   (let (joint-trajectory joint-trajectory-points joints avs tms (tm (ros::time)))
+   (let (joint-trajectory joint-trajectory-points joints avs tms (tm (ros::time -1)))
      ;; call openrave
      (setq joint-trajectory
 	   (send self :call-openrave-move-to-hand-position
@@ -26,7 +26,6 @@
 	       joints (mapcar #'(lambda (x) (send robot (intern (string-upcase x) *keyword-package*))) (send joint-trajectory :joint_names))))
      ;;
      (dolist (point joint-trajectory-points)
-       (print point)
        (mapcar '(lambda (ajoint aposition)
 		  (cond
 		   ((derivedp ajoint rotational-joint)
