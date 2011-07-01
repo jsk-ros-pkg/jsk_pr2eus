@@ -18,6 +18,8 @@
 	(p (ros::tf-pose->coords (send msg :pose))))
     (cond ((> 0 (send (ros::time- htime *begin*) :to-sec))
 	   (return-fron pose-cb nil)))
+    (if *simu*
+	(send *ri* :publish-joint-state))
     (ros::ros-info "subscribed~A" p)
     (send box :transform p)
     (unless *simu*
@@ -29,15 +31,10 @@
     ))
 
 (defun execute-main ()
-  (print 'start2)
   (init-settings)
   (ros::rate 10)
-  (print *simu*)
   (while (ros::ok)
-    (if *simu*
-	(send *ri* :publish-joint-state))
     (ros::spin-once)
     (ros::sleep)
     ))
 
-(print 'start)
