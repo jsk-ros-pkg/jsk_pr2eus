@@ -1,0 +1,25 @@
+<launch>
+  <!--
+      usage:
+      $ rostopic pub "ray_coords" geometry_msgs/PoseStamped '{header: {stamp: now, frame_id: base_link}, pose: {position: [0.8, 0.0, 0.7]}}' --once
+
+  -->
+  <param name="robot_description"
+	 textfile="$(find pr2_mechanism_model)/pr2.urdf" />
+  <node name="robot_state_publisher" pkg="robot_state_publisher"
+	type="state_publisher"/>
+  <node pkg="orrosplanning" type="armplanning_openrave.py"
+	output="screen" name="pr2eus_openrave_armplan" />
+  <node pkg="pr2eus_openrave" type="move_to_screenpoint.l"
+	output="screen" name="pr2eus_openrave_eus"
+	args="(setq *simu* t)(execute)"
+	/>
+  <node pkg="pr2eus_openrave" type="move_to_screenpoint.l"
+	output="screen" name="pr2eus_openrave_eus"
+	args="(setq\ *simu*\ t)
+	      (execute-main)"/>
+  <!--
+     TODO:set sample scene to pr2-interface viewer and use pointcloud_screepoint to direct ray_target
+     TODO:update collision_map from euslisp
+  -->
+</launch>
