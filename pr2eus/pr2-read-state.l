@@ -14,8 +14,8 @@
 (ros::rate 10)
 (do-until-key
  (send *pr2* :angle-vector (send *ri* :state :potentio-vector))
- (send *irtviewer* :draw-objects)
-
+ (send *irtviewer* :draw-objects :flush nil)
+ (send *pr2* :draw-torque *viewer* :torque-vector (send *ri* :state :torque-vector) :flush t)
  ;; larm jacobian
  (let ((target (send *pr2* :larm :end-coords)))
    (ros::ros-info "larm jacobian ~a"
@@ -41,7 +41,7 @@
  ;; torque
  (ros::ros-info "torque ~%~a"
    (format-array
-    (send *pr2* :calc-torque)
+    (send *ri* :state :torque-vector)
     "" 7 3 nil))
 
  ;; fingertip pressure
@@ -56,4 +56,5 @@
    )
 
  (ros::spin-once)
- (ros::sleep))
+ (ros::sleep)
+ (x::window-main-one))
