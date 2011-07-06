@@ -7,7 +7,7 @@
   (unless (boundp '*ri*)
       (setq *ri* (instance pr2-interface :init)))
   (unless *simu*
-    (objects (list *pr2*)))
+      (objects (list *pr2*)))
   (ros::subscribe "ray_coords" geometry_msgs::PoseStamped #'pose-cb)
   (setq *begin* (ros::time-now))
   )

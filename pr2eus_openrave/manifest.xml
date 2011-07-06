@@ -11,6 +11,7 @@
 
   <depend package="roseus"/>
   <depend package="orrosplanning"/>
+  <depend package="robot_state_publisher"/>
 
 </package>
 
