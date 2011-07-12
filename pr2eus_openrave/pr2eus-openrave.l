@@ -39,6 +39,7 @@
        )
      ;; send to ri
      (send self :angle-vector-sequence (nreverse avs) (nreverse tms))
+     (list avs tms)
      ))
   (:call-openrave-move-to-hand-position
    (coords manip-name hand-frame-id)
