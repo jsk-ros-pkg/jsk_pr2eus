@@ -549,7 +549,7 @@
 ;; args = () (:rarm) (:larm)
 ;; return = nil :rarm :larm
 (defun check-tuckarm-pose (&rest args)
-  (send *pr2* :angle-vector (send *ri* :state))
+  (send *pr2* :angle-vector (send *ri* :state :potentio-vector))
   (let ((l-angle (map float-vector #'(lambda(d)(- d (* 360 (round (/ d 360.0)))))
                       (send *pr2* :larm :angle-vector)))
         (r-angle (map float-vector #'(lambda(d)(- d (* 360 (round (/ d 360.0)))))
