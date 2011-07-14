@@ -1,0 +1,4 @@
+<launch>
+  <test test-name="pr2-ik-test" pkg="roseus" type="roseus"
+	args="$(find pr2eus)/test/pr2-ik-test.l" />
+</launch>
