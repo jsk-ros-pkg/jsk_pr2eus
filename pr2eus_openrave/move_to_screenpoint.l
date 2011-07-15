@@ -30,7 +30,7 @@
 		    (send (send p :copy-worldcoords) :translate #f(-10 0 0) :local)
 		    :move-target :rarm :use-torso t))
     (ros::ros-info "move-end-coords-plan -> ~A~%" ret)
-    (if (and *exit-on-fail* (null ret)9 (exit 1))
+    (if (and *exit-on-fail* (null ret)) (exit 1))
     (send *ri* :wait-interpolation)
     ))
 
