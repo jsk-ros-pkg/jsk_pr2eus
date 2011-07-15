@@ -47,12 +47,13 @@
        (ros::ros-warn "~A is not respond, ~A-interface is disabled" action (send robot :name) )
        (return)))
    ;;
-   (unless (and joint-action-enable x::*display* (> x::*display* 0))
+   (unless joint-action-enable
      (let ((old-viewer user::*viewer*))
-       (setq viewer (instance x::irtviewer :create :title (format nil "~A-interface" (send robot :name))))
-       (send viewer :objects (list robot))
-       (send viewer :look-all)
-       (if old-viewer (setq user::*viewer* old-viewer))
+       (when (and x::*display* (> x::*display* 0))
+	 (setq viewer (instance x::irtviewer :create :title (format nil "~A-interface" (send robot :name))))
+	 (send viewer :objects (list robot))
+	 (send viewer :look-all)
+	 (if old-viewer (setq user::*viewer* old-viewer)))
 
        (ros::advertise "/joint_states" sensor_msgs::JointState 1)
        ))
