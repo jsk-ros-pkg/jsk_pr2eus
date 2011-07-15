@@ -4,12 +4,14 @@
       rostopic pub "ray_coords" geometry_msgs/PoseStamped '{header: {stamp: now, frame_id: base_link}, pose: {position: [0.8, 0.0, 0.7]}}' -1
 
   -->
+  <arg name="VIEWER" default="qtcoin" />
   <param name="robot_description"
 	 textfile="$(find pr2_mechanism_model)/pr2.urdf" />
   <node name="robot_state_publisher" pkg="robot_state_publisher"
 	type="state_publisher"/>
   <node pkg="orrosplanning" type="armplanning_openrave.py"
-	output="screen" name="pr2eus_openrave_armplan" />
+	output="screen" name="pr2eus_openrave_armplan"
+	args="--viewer='$(arg VIEWER)'"/>
   <node pkg="pr2eus_openrave" type="move_to_screenpoint.l"
 	output="screen" name="pr2eus_openrave_eus"
 	args="(setq\ *simu*\ t)
