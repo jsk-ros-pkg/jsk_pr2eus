@@ -47,7 +47,7 @@
        (ros::ros-warn "~A is not respond, ~A-interface is disabled" action (send robot :name) )
        (return)))
    ;;
-   (unless joint-action-enable
+   (unless (and joint-action-enable x::*display* (> x::*display* 0))
      (let ((old-viewer user::*viewer*))
        (setq viewer (instance x::irtviewer :create :title (format nil "~A-interface" (send robot :name))))
        (send viewer :objects (list robot))
@@ -87,7 +87,7 @@
 	     ((>= curr-tm tm))
 	   (send robot :angle-vector (v+ prev-av (scale (/ curr-tm tm) scale-av)))
 	   (send self :publish-joint-state)
-	   (send viewer :draw-objects)))))
+	   (if viewer (send viewer :draw-objects))))))
 
    (send robot :angle-vector av)
    (mapcar
@@ -134,7 +134,7 @@
 		   ((>= curr-tm tm))
 		 (send robot :angle-vector (v+ prev-av (scale (/ curr-tm tm) scale-av)))
 		 (send self :publish-joint-state)
-		 (send viewer :draw-objects))))
+		 (if viewer (send viewer :draw-objects)))))
 	   ;;
 	   (send robot :angle-vector av)
 
