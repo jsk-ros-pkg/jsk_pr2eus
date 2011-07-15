@@ -25,6 +25,7 @@
 	 (setq joint-trajectory-points (send joint-trajectory :points)
 	       joints (mapcar #'(lambda (x) (send robot (intern (string-upcase x) *keyword-package*))) (send joint-trajectory :joint_names))))
      ;;
+     (if (= (length joint-trajectory-points) 0) (return-from :move-end-coords-plan nil))
      (dolist (point joint-trajectory-points)
        (mapcar '(lambda (ajoint aposition)
 		  (cond
