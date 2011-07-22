@@ -9,7 +9,8 @@
   <review status="unreviewed" notes=""/>
   <url>http://ros.org/wiki/pr2eus_openrave</url>
 
-  <depend package="roseus"/>
+  <depend package="pr2eus"/>
+
   <depend package="orrosplanning"/>
   <depend package="robot_state_publisher"/>
 
