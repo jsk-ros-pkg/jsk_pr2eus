@@ -15,6 +15,7 @@
 (ros::roseus-add-msgs "nav_msgs")
 (ros::roseus-add-msgs "sensor_msgs")
 (ros::roseus-add-msgs "pr2_controllers_msgs")
+(ros::roseus-add-msgs "sound_play")
 
 (defclass ros-interface
   :super propertied-object
@@ -78,7 +79,7 @@
      (send msg :effort efforts)
      (ros::publish "/joint_states" msg)))
   (:angle-vector
-   (av &optional (tm 3000))
+   (av &optional (tm 3000) &key ((:controller-actions ca) controller-actions) ((:controller-type ct) controller-type))
    ;; for simulation mode
    (unless joint-action-enable
      (if av
@@ -100,7 +101,7 @@
 	       (list av				      ;; positions
 		     (instantiate float-vector (length av))  ;; velocities
 		     (/ tm 1000.0)))))			      ;; duration
-	controller-actions (send self controller-type))
+	ca (send self ct))
    av)
   (:angle-vector-sequence
    (avs &optional (tms (list 3000)))
@@ -300,7 +301,9 @@
 			   move-base-action finger-pressure-origin))
 (defmethod pr2-interface
   (:init
-   (&rest args &key (type :default-controller) &allow-other-keys)
+   (&rest args &key (type :default-controller)
+          (move-base-action-name "move_base")
+		  &allow-other-keys)
    ;;
    (ros::subscribe "/base_odometry/odom" nav_msgs::Odometry
 		   #'send self :pr2-odom-callback)
@@ -311,14 +314,14 @@
    ;;
    (setq r-gripper-action (instance ros::simple-action-client :init
 				    "/r_gripper_controller/gripper_action"
-				    pr2_controllers_msgs::Pr2GripperCommandAction))
+                    pr2_controllers_msgs::Pr2GripperCommandAction))
    (setq l-gripper-action (instance ros::simple-action-client :init
 				    "/l_gripper_controller/gripper_action"
-				    pr2_controllers_msgs::Pr2GripperCommandAction))
+                    pr2_controllers_msgs::Pr2GripperCommandAction))
    (setq move-base-action (instance ros::simple-action-client :init
-                                    "move_base" move_base_msgs::MoveBaseAction))
+                    move-base-action-name move_base_msgs::MoveBaseAction))
    (ros::advertise "/base_controller/joint_trajectory_action/goal"
-		   pr2_controllers_msgs::JointTrajectoryActionGoal 10)
+                    pr2_controllers_msgs::JointTrajectoryActionGoal 10)
 
    ;; wait for pr2-action server (except move_base)
    (setq joint-action-enable t)
@@ -364,36 +367,40 @@
   (:larm-controller
    ()
    (list
-    (cons :controller "l_arm_controller/joint_trajectory_action")
-    (cons :action-type pr2_controllers_msgs::JointTrajectoryAction)
-    (cons :joint-names (list "l_shoulder_pan_joint"
-			     "l_shoulder_lift_joint" "l_upper_arm_roll_joint"
-			     "l_elbow_flex_joint" "l_forearm_roll_joint"
-			     "l_wrist_flex_joint" "l_wrist_roll_joint"))))
+	(list
+	 (cons :controller "l_arm_controller/joint_trajectory_action")
+	 (cons :action-type pr2_controllers_msgs::JointTrajectoryAction)
+	 (cons :joint-names (list "l_shoulder_pan_joint"
+							  "l_shoulder_lift_joint" "l_upper_arm_roll_joint"
+							  "l_elbow_flex_joint" "l_forearm_roll_joint"
+							  "l_wrist_flex_joint" "l_wrist_roll_joint")))))
   (:rarm-controller
    ()
    (list
-    (cons :controller "r_arm_controller/joint_trajectory_action")
-    (cons :action-type pr2_controllers_msgs::JointTrajectoryAction)
-    (cons :joint-names (list "r_shoulder_pan_joint"
-			     "r_shoulder_lift_joint" "r_upper_arm_roll_joint"
-			     "r_elbow_flex_joint" "r_forearm_roll_joint"
-			     "r_wrist_flex_joint" "r_wrist_roll_joint"))))
+	(list
+	 (cons :controller "r_arm_controller/joint_trajectory_action")
+	 (cons :action-type pr2_controllers_msgs::JointTrajectoryAction)
+	 (cons :joint-names (list "r_shoulder_pan_joint"
+							  "r_shoulder_lift_joint" "r_upper_arm_roll_joint"
+							  "r_elbow_flex_joint" "r_forearm_roll_joint"
+							  "r_wrist_flex_joint" "r_wrist_roll_joint")))))
   (:head-controller
    ()
    (list
-    (cons :controller "head_traj_controller/joint_trajectory_action")
-    (cons :action-type pr2_controllers_msgs::JointTrajectoryAction)
-    (cons :joint-names (list "head_pan_joint" "head_tilt_joint"))))
+	(list
+	 (cons :controller "head_traj_controller/joint_trajectory_action")
+	 (cons :action-type pr2_controllers_msgs::JointTrajectoryAction)
+	 (cons :joint-names (list "head_pan_joint" "head_tilt_joint")))))
   (:torso-controller
    ()
    (list
-    (cons :controller "torso_controller/joint_trajectory_action")
-    (cons :action-type pr2_controllers_msgs::JointTrajectoryAction)
-    (cons :joint-names (list "torso_lift_joint"))))
+	(list
+	 (cons :controller "torso_controller/joint_trajectory_action")
+	 (cons :action-type pr2_controllers_msgs::JointTrajectoryAction)
+	 (cons :joint-names (list "torso_lift_joint")))))
   (:default-controller
    ()
-   (list
+   (append
     (send self :larm-controller)
     (send self :rarm-controller)
     (send self :head-controller)
@@ -430,6 +437,18 @@
 			      "r_wrist_flex_joint" "r_wrist_roll_joint"
 			      "torso_lift_joint"
 			      "head_pan_joint" "head_tilt_joint")))))
+  ;;
+  (:controller-angle-vector
+   (av tm type)
+   (send self :angle-vector av tm
+		 :controller-actions (mapcar #'(lambda (param) (find (cdr (assoc :controller param)) controller-actions :key #'(lambda (x) (send x :name)) :test #'string=)) (send self type))
+		 :controller-type type))
+  (:larm-angle-vector (av tm)
+   (send self :controller-angle-vector av tm :larm-controller))
+  (:rarm-angle-vector (av tm)
+   (send self :controller-angle-vector av tm :rarm-controller))
+  (:head-angle-vector (av tm)
+   (send self :controller-angle-vector av tm :head-controller))
   ;;
   (:move-gripper
    (arm pos &key (effort 25) (wait t))
@@ -525,7 +544,7 @@
      ;;
      (send msg :header :stamp (ros::time-now))
      (send msg :joint_names (list "base_link_x" "base_link_y" "base_link_pan"))
-     (send msg :points (list pt1 pt2))
+	 (send msg :points (list pt1 pt2))
      (send goal :goal :trajectory msg)
      ;;
      (ros::publish "/base_controller/joint_trajectory_action/goal" goal) ;; this is actually actionlib
@@ -549,17 +568,17 @@
 ;;       which arm is free
 ;; args = () (:rarm) (:larm)
 ;; return = nil :rarm :larm
-(defun check-tuckarm-pose (&rest args)
+(defun check-tuckarm-pose (&key (thre 20) &rest args)
   (send *pr2* :angle-vector (send *ri* :state :potentio-vector))
   (let ((l-angle (map float-vector #'(lambda(d)(- d (* 360 (round (/ d 360.0)))))
                       (send *pr2* :larm :angle-vector)))
         (r-angle (map float-vector #'(lambda(d)(- d (* 360 (round (/ d 360.0)))))
                       (send *pr2* :rarm :angle-vector)))
-        is-rarm is-larm (thre-deg 20))
-    (setq is-larm (and (< (distance l-angle (car *pr2-tuckarm-pose-larm-free*)) thre-deg)
-                       (< (distance r-angle (cadr *pr2-tuckarm-pose-larm-free*)) thre-deg)))
-    (setq is-rarm (and (< (distance l-angle (car *pr2-tuckarm-pose-rarm-free*)) thre-deg)
-                       (< (distance r-angle (cadr *pr2-tuckarm-pose-rarm-free*)) thre-deg)))
+        is-rarm is-larm)
+    (setq is-larm (and (< (distance l-angle (car *pr2-tuckarm-pose-larm-free*)) thre)
+                       (< (distance r-angle (cadr *pr2-tuckarm-pose-larm-free*)) thre)))
+    (setq is-rarm (and (< (distance l-angle (car *pr2-tuckarm-pose-rarm-free*)) thre)
+                       (< (distance r-angle (cadr *pr2-tuckarm-pose-rarm-free*)) thre)))
     (cond ((and (memq :rarm args) is-rarm) :rarm)
           ((and (memq :larm args) is-larm) :larm)
           (is-rarm :rarm)
@@ -569,25 +588,31 @@
 ;; send pr2 to move to tuckarm pose if not the pose now
 ;; args is set the arm to move freely
 (defun pr2-tuckarm-pose (&rest args)
-  (let* ((current-arm (check-tuckarm-pose)) ;; nil rarm larm
-         (free-arm (or (car args) current-arm :larm)))
-    (if (eq current-arm free-arm)
-        (return-from pr2-tuckarm-pose t))
-    (send *pr2* :head :angle-vector #f(0 0))
-    (send *pr2* :larm :angle-vector #f(25 0 0 -130 0 0 0))
-    (send *pr2* :rarm :angle-vector #f(-25 0 0 -130 0 0 0))
-    (send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
+  (let* ((current-arm (check-tuckarm-pose :thre 50)) ;; nil rarm larm
+         (free-arm (or (car args) current-arm :larm))
+		 (msec 500))
+    (when (not (eq current-arm free-arm))
+	  (progn
+		(setq msec 2000)
+		(send *pr2* :larm :angle-vector #f(25 0 0 -130 0 0 0))
+		(send *pr2* :rarm :angle-vector #f(-25 0 0 -130 0 0 0))
+		(send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
+		(send *ri* :wait-interpolation)))
+    (if (eq free-arm :larm)
+        (progn
+		  (send *pr2* :rarm :angle-vector (cadr *pr2-tuckarm-pose-larm-free*))
+		  (send *ri* :rarm-angle-vector (send *pr2* :angle-vector) msec))
+	  (progn
+		(send *pr2* :larm :angle-vector (car *pr2-tuckarm-pose-rarm-free*))
+		(send *ri* :larm-angle-vector (send *pr2* :angle-vector) msec)))
     (send *ri* :wait-interpolation)
     (if (eq free-arm :larm)
-        (send *pr2* :rarm :angle-vector (cadr *pr2-tuckarm-pose-larm-free*))
-      (send *pr2* :larm :angle-vector (car *pr2-tuckarm-pose-rarm-free*)))
-    (send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
-    (send *ri* :wait-interpolation)
-    (send *ri* :move-gripper :arms 0.005)
-    (if (eq free-arm :larm)
-        (send *pr2* :larm :angle-vector (car *pr2-tuckarm-pose-larm-free*))
-      (send *pr2* :rarm :angle-vector (cadr *pr2-tuckarm-pose-rarm-free*)))
-    (send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
+        (progn
+		  (send *pr2* :larm :angle-vector (car *pr2-tuckarm-pose-larm-free*))
+		  (send *ri* :larm-angle-vector (send *pr2* :angle-vector) msec))
+      (progn
+		(send *pr2* :rarm :angle-vector (cadr *pr2-tuckarm-pose-rarm-free*))
+		(send *ri* :rarm-angle-vector (send *pr2* :angle-vector) msec)))
     (send *ri* :wait-interpolation)
     ))
 
@@ -626,4 +651,3 @@
        (change-inflation-radius range global-costmap)
        (change-inflation-radius range local-costmap)))
     ))
-
