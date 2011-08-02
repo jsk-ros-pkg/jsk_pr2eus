@@ -4,7 +4,7 @@
   <machine name="c1" address="pr1012" ros-root="$(env ROS_ROOT)"
            ros-package-path="$(env ROS_PACKAGE_PATH)"/>
   <node pkg="orrosplanning" type="armplanning_openrave.py"
-	args="--collision_map=/collision_map_occ --maxvelmult=0.8 --viewer='' "
+	args="--collision_map=/collision_map_occ --maxvelmult=0.5 --viewer='' "
 	output="screen" name="pr2eus_openrave_armplan" machine="localhost"/>
   <!-- assemble pointcloud into a full world view -->
   <node pkg="laser_assembler" type="point_cloud_assembler" machine="c1"
