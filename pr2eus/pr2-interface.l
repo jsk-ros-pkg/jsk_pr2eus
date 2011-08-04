@@ -452,7 +452,11 @@
   ;;
   (:move-gripper
    (arm pos &key (effort 25) (wait t))
-   (unless joint-action-enable (return-from :move-gripper nil))
+   (unless joint-action-enable
+     (send robot arm :gripper :joint-angle (* pos 1000))
+     (send self :publish-joint-state)
+     (if viewer (send viewer :draw-objects))
+     (return-from :move-gripper nil))
    (let* (goal
 	  (clients (case arm
 		     (:rarm (list r-gripper-action))
