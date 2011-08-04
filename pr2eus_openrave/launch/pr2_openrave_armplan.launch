@@ -1,13 +1,9 @@
 <launch>
-  <machine name="localhost" address="localhost" ros-root="$(env ROS_ROOT)"
-           ros-package-path="$(env ROS_PACKAGE_PATH)"/>
-  <machine name="c1" address="pr1012" ros-root="$(env ROS_ROOT)"
-           ros-package-path="$(env ROS_PACKAGE_PATH)"/>
   <node pkg="orrosplanning" type="armplanning_openrave.py"
 	args="--collision_map=/collision_map_occ --maxvelmult=0.5 --viewer='' "
-	output="screen" name="pr2eus_openrave_armplan" machine="localhost"/>
+	output="screen" name="pr2eus_openrave_armplan" />
   <!-- assemble pointcloud into a full world view -->
-  <node pkg="laser_assembler" type="point_cloud_assembler" machine="c1"
+  <node pkg="laser_assembler" type="point_cloud_assembler"
         output="screen"  name="arm_navigation_point_cloud_assembler">
     <remap from="cloud" to="tilt_scan_filtered"/>
     <param name="tf_cache_time_secs" type="double" value="10.0" />
@@ -17,7 +13,7 @@
     <param name="fixed_frame" type="string" value="base_link" />
   </node>
   <!-- make snapshots whenever laser reaches the top or bottom of a nod -->
-  <node pkg="pr2_arm_navigation_perception" machine="c1"
+  <node pkg="pr2_arm_navigation_perception"
         type="pr2_laser_snapshotter" output="screen"
         name="snapshotter">
     <param name="num_skips" type="int" value="1" />
@@ -28,7 +24,7 @@
   </node>
 
   <!-- make point cloud snapshots into collision maps -->
-  <node pkg="collision_map" type="collision_map_self_occ_node" machine="c1"
+  <node pkg="collision_map" type="collision_map_self_occ_node"
         name="collision_map_self_occ_node" respawn="true" output="screen">
     <!-- The default padding to be added for the body parts the robot can see -->
     <param name="self_see_default_padding" type="double" value="0.02"/>
