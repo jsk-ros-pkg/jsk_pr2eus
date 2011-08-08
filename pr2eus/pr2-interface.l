@@ -477,8 +477,8 @@
 	 (:larm (send robot :l_gripper_joint :joint-angle))
 	 (:rarm (send robot :r_gripper_joint :joint-angle))
 	 (t (list 
-	     (send robot :l_gripper_joint :joint-anlge)
-	     (send robot :r_gripper_joint :joint-anlge)))))
+	     (send robot :l_gripper_joint :joint-angle)
+	     (send robot :r_gripper_joint :joint-angle)))))
   (:stop-grasp
    (&optional (arm :arms))
    (send self :move-gripper arm 0.09 :wait nil))
