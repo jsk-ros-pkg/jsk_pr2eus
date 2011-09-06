@@ -512,6 +512,13 @@
    (coords &key (retry 10) (frame-id "/map") (wait-for-server-timeout 5))
    (let (ret (count 0) (pose (ros::coords->tf-pose coords))
              (goal (instance move_base_msgs::MoveBaseActionGoal :init)))
+     (unless joint-action-enable
+       (let ((orig-coords (send robot :copy-worldcoords)))
+	 (do ((curr-tm 0.0 (+ curr-tm 100.0)))
+	     ((> curr-tm 1000))
+	   (send robot :newcoords (midcoords (/ curr-tm 1000.0) orig-coords coords))
+	   (if viewer (send viewer :draw-objects))))
+       (return-from :move-to t))
      (when (not (send move-base-action :wait-for-server wait-for-server-timeout))
        (return-from :move-to))
      (send goal :goal :target_pose :header :frame_id frame-id)
