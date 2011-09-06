@@ -293,6 +293,9 @@
 		  (setf (elt ret i) (+ (elt ret i) 360.0)))))
        (incf i))
      ret))
+  ;;
+  (:robot  (&rest args) (forward-message-to robot args))
+  (:viewer (&rest args) (forward-message-to viewer args))
   ) ;; ros-interface
 
 (defclass pr2-interface
