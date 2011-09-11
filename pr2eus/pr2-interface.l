@@ -239,8 +239,8 @@
 	   velocities (cdr (assoc :velocity robot-state))
 	   efforts (cdr (assoc :effort robot-state)))
      (mapcar #'(lambda (n p v e)
-		 (let ((j (send robot (intern (string-upcase n) *keyword-package*))))
-		   (when j
+		 (let (j (kn (intern (string-upcase n) *keyword-package*)))
+		   (when (and (find-method robot kn) (setq j (send robot kn)))
 		     (cond
 		      ;; position
 		      ((derivedp j rotational-joint)
