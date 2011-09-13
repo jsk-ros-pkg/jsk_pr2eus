@@ -651,21 +651,19 @@
 ;;
 
 (defun clear-costmap ()
-  (call-empty-service "/move_base_node/clear_local_costmap")
+  (call-empty-service "/move_base_node/clear_costmaps")
   (call-empty-service "/move_base_node/clear_unknown_space"))
 
 (defun initialize-costmap ()
-  (call-empty-service "move_base_node/global_costmap/initialize_costmap")
-  (call-empty-service "move_base_node/local_costmap/initialize_costmap")
+  (ros::ros-warn "initialize-costmap is already rmeoved")
   (clear-costmap))
 
-(defun change-inflation-radius (range param-name) ;;  this is private function
-  (unless (eps= (ros::get-param param-name) range 0.1)
-    (ros::set-param param-name range)))
+(defun change-inflation-radius (range node &optional (param "inflation_radius")) ;;  this is private function
+  (unix::system (format nil "rosrun dynamic_reconfigure dynparam set ~a ~a ~a" node param range)))
 
 (defun change-inflation-range (&optional (range 0.55) &key (type :all))
-  (let ((local-costmap "/move_base_node/local_costmap/inflation_radius")
-	(global-costmap "/move_base_node/global_costmap/inflation_radius"))
+  (let ((local-costmap "/move_base_node/local_costmap")
+	(global-costmap "/move_base_node/global_costmap"))
     (case type
       (:global (change-inflation-radius range global-costmap))
       (:local  (change-inflation-radius range local-costmap))
