@@ -301,7 +301,8 @@
 (defclass pr2-interface
   :super ros-interface
   :slots (r-gripper-action l-gripper-action
-			   move-base-action finger-pressure-origin))
+			   move-base-action move-base-trajectory-action
+			   finger-pressure-origin))
 (defmethod pr2-interface
   (:init
    (&rest args &key (type :default-controller)
@@ -323,8 +324,10 @@
                     pr2_controllers_msgs::Pr2GripperCommandAction))
    (setq move-base-action (instance ros::simple-action-client :init
                     move-base-action-name move_base_msgs::MoveBaseAction))
-   (ros::advertise "/base_controller/joint_trajectory_action/goal"
-                    pr2_controllers_msgs::JointTrajectoryActionGoal 10)
+   (setq move-base-trajectory-action
+	 (instance ros::simple-action-client :init
+		   "/base_controller/joint_trajectory_action"
+		   pr2_controllers_msgs::JointTrajectoryAction))
 
    ;; wait for pr2-action server (except move_base)
    (setq joint-action-enable t)
@@ -542,6 +545,20 @@
      ))
   (:go-velocity
    (x y d &optional (msec 1000) &key (stop t)) ;; [m/sec] [m/sec] [rad/sec]
+   (let ((goal (send self :move-trajectory x y d msec :stop stop)))
+     (print goal)
+     (send move-base-trajectory-action :send-goal goal)
+     ))
+  (:go-pos-unsafe
+   (x y &optional (d 0)) ;; [m] [m] [degree]
+   (let ((msec 10000) step goal)
+     (setq step (/ 1000.0 msec))
+     (setq goal (send self :move-trajectory (* x step) (* y step) (* (deg2rad d) step) msec :stop t))
+     (send move-base-trajectory-action :send-goal goal)
+     (send move-base-trajectory-action :wait-for-result)
+     ))
+  (:move-trajectory
+   (x y d &optional (msec 1000) &key (stop t)) ;; [m/sec] [m/sec] [rad/sec]
    (ros::spin-once)
    (let ((sec (/ msec 1000.0))
 	 (odom-pos (scale 0.001 (send (send self :state :odom :pose) :pos)))
@@ -568,8 +585,7 @@
 	 (send msg :points (list pt1 pt2))
      (send goal :goal :trajectory msg)
      ;;
-     (ros::publish "/base_controller/joint_trajectory_action/goal" goal) ;; this is actually actionlib
-     ))
+     goal))
   ;;
   ;;
   ;;
