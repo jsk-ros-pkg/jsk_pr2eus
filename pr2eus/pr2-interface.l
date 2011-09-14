@@ -545,12 +545,32 @@
      ))
   (:go-velocity
    (x y d &optional (msec 1000) &key (stop t)) ;; [m/sec] [m/sec] [rad/sec]
+   (unless joint-action-enable
+     (let ((orig-coords (send robot :copy-worldcoords))
+	   (coords (send robot :copy-worldcoords)))
+       (send coords :translate (float-vector (* x msec) (* y msec) 0))
+       (send coords :rotate (deg2rad (/ (* d msec) 1000.0)) :z)
+       (do ((curr-tm 0.0 (+ curr-tm 100.0)))
+	   ((> curr-tm 1000))
+	 (send robot :newcoords (midcoords (/ curr-tm 1000.0) orig-coords coords))
+	 (if viewer (send viewer :draw-objects))))
+     (return-from :go-velocity t))
    (let ((goal (send self :move-trajectory x y d msec :stop stop)))
      (print goal)
      (send move-base-trajectory-action :send-goal goal)
      ))
   (:go-pos-unsafe
    (x y &optional (d 0)) ;; [m] [m] [degree]
+   (unless joint-action-enable
+     (let ((orig-coords (send robot :copy-worldcoords))
+	   (coords (send robot :copy-worldcoords)))
+       (send coords :translate (float-vector (* x 1000) (* y 1000) 0))
+       (send coords :rotate (deg2rad d) :z)
+       (do ((curr-tm 0.0 (+ curr-tm 100.0)))
+	   ((> curr-tm 1000))
+	 (send robot :newcoords (midcoords (/ curr-tm 1000.0) orig-coords coords))
+	 (if viewer (send viewer :draw-objects))))
+     (return-from :go-pos-unsafe t))
    (let ((msec 10000) step goal)
      (setq step (/ 1000.0 msec))
      (setq goal (send self :move-trajectory (* x step) (* y step) (* (deg2rad d) step) msec :stop t))
