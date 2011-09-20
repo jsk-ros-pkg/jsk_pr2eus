@@ -513,7 +513,8 @@
   ;;
   (:move-to
    (coords &key (retry 10) (frame-id "/map") (wait-for-server-timeout 5))
-   (let (ret (count 0) (pose (ros::coords->tf-pose coords))
+   (let (ret (count 0) (tm (ros::time-now))
+	     (pose (ros::coords->tf-pose coords))
              (goal (instance move_base_msgs::MoveBaseActionGoal :init)))
      (unless joint-action-enable
        (let ((orig-coords (send robot :copy-worldcoords)))
@@ -524,6 +525,8 @@
        (return-from :move-to t))
      (when (not (send move-base-action :wait-for-server wait-for-server-timeout))
        (return-from :move-to))
+     (send goal :header :stamp tm)
+     (send goal :goal :target_pose :header :stamp tm)
      (send goal :goal :target_pose :header :frame_id frame-id)
      (send goal :goal :target_pose :pose pose)
      (while (and (null ret) (<= (inc count) retry))
@@ -694,16 +697,16 @@
   (ros::ros-warn "initialize-costmap is already rmeoved")
   (clear-costmap))
 
-(defun change-inflation-radius (range node &optional (param "inflation_radius")) ;;  this is private function
-  (unix::system (format nil "rosrun dynamic_reconfigure dynparam set ~a ~a ~a" node param range)))
-
 (defun change-inflation-range (&optional (range 0.55) &key (type :all))
   (let ((local-costmap "/move_base_node/local_costmap")
 	(global-costmap "/move_base_node/global_costmap"))
-    (case type
-      (:global (change-inflation-radius range global-costmap))
-      (:local  (change-inflation-radius range local-costmap))
-      (t
-       (change-inflation-radius range global-costmap)
-       (change-inflation-radius range local-costmap)))
-    ))
+    (flet ((change-inflation-radius
+	    (range node)
+	    (unix::system (format nil "rosrun dynamic_reconfigure dynparam set ~a inflation_radius ~a" node range))))
+	  (case type
+		(:global (change-inflation-radius range global-costmap))
+		(:local  (change-inflation-radius range local-costmap))
+		(t
+		 (change-inflation-radius range global-costmap)
+		 (change-inflation-radius range local-costmap)))
+	  t )))
