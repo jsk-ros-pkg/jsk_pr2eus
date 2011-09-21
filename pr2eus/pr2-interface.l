@@ -10,6 +10,7 @@
 
 (require :eustf "package://roseus/euslisp/eustf.l")
 (require :actionlib "package://roseus/euslisp/actionlib.l")
+(ros::load-ros-manifest "pr2eus")
 (ros::roseus-add-msgs "move_base_msgs")
 (ros::roseus-add-msgs "pr2_msgs")
 (ros::roseus-add-msgs "nav_msgs")
@@ -694,19 +695,13 @@
   (call-empty-service "/move_base_node/clear_unknown_space"))
 
 (defun initialize-costmap ()
-  (ros::ros-warn "initialize-costmap is already rmeoved")
+  (ros::ros-warn "initialize-costmap is already removed")
   (clear-costmap))
 
-(defun change-inflation-range (&optional (range 0.55) &key (type :all))
-  (let ((local-costmap "/move_base_node/local_costmap")
-	(global-costmap "/move_base_node/global_costmap"))
-    (flet ((change-inflation-radius
-	    (range node)
-	    (unix::system (format nil "rosrun dynamic_reconfigure dynparam set ~a inflation_radius ~a" node range))))
-	  (case type
-		(:global (change-inflation-radius range global-costmap))
-		(:local  (change-inflation-radius range local-costmap))
-		(t
-		 (change-inflation-radius range global-costmap)
-		 (change-inflation-radius range local-costmap)))
-	  t )))
+(defun change-inflation-range (&optional (range 0.55) &key (type :local))
+  (let ((req (instance dynamic_reconfigure::ReconfigureRequest :init)))
+    (send req :config :doubles
+	  (list (instance dynamic_reconfigure::DoubleParameter :init
+			  :name "inflation_radius" :value range)))
+    (ros::service-call "/move_base_node/local_costmap/set_parameters" req)
+    ))
