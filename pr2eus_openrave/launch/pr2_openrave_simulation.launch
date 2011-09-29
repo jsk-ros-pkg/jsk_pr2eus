@@ -11,12 +11,12 @@
 	type="state_publisher"/>
   <node name="armplanning_openrave"
 	pkg="orrosplanning" type="armplanning_openrave.py"
-	args='--viewer=\"$(arg VIEWER)\"' output="screen"/>
-  <node name="pr2eus_openrave_eus"
-	pkg="roseus" type="roseus"
-	args='$(find pr2eus_openrave)/move_to_screenpoint.l
-	      "(setq *simulation* t *exit-on-fail* t)" "(execute-main)" '
-	output="screen" />
+	args='--viewer=\"$(arg VIEWER)\" --jitter=0.1' output="screen"/>
+  <!-- <node name="pr2eus_openrave_eus" -->
+  <!-- 	pkg="roseus" type="roseus" -->
+  <!-- 	args='$(find pr2eus_openrave)/move_to_screenpoint.l -->
+  <!-- 	      "(setq *simulation* t *exit-on-fail* t)" "(execute-main)" ' -->
+  <!-- 	output="screen" /> -->
   <!-- 
      TODO:set sample scene to pr2-interface viewer and use pointcloud_screepoint to direct ray_target
      TODO:update collision_map from euslisp

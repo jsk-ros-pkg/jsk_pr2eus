@@ -38,6 +38,7 @@
        (push (* (send (ros::time- (send point :time_from_start) tm) :to-sec) 1000) tms)
        (setq tm (send point :time_from_start))
        )
+     (send robot :angle-vector (car (last avs)))
      ;; send to ri
      (send self :angle-vector-sequence (nreverse avs) (nreverse tms))
      (if avs
