@@ -20,13 +20,13 @@
 
 (defclass ros-interface
   :super propertied-object
-  :slots (robot robot-state joint-action-enable
+  :slots (robot objects robot-state joint-action-enable
 		controller-type controller-actions
 		viewer))
 
 (defmethod ros-interface
   (:init
-   (&rest args &key ((:robot r)) (type :default-controller) &allow-other-keys)
+   (&rest args &key ((:robot r)) ((:objects objs)) (type :default-controller) &allow-other-keys)
    (setq joint-action-enable t)
    (setq robot (instance r :init))
    ;;
@@ -53,7 +53,7 @@
      (let ((old-viewer user::*viewer*))
        (when (and x::*display* (> x::*display* 0))
 	 (setq viewer (instance x::irtviewer :create :title (format nil "~A-interface" (send robot :name))))
-	 (send viewer :objects (list robot))
+	 (send self :objects objs)
 	 (send viewer :look-all)
 	 (if old-viewer (setq user::*viewer* old-viewer)))
 
@@ -297,6 +297,12 @@
   ;;
   (:robot  (&rest args) (forward-message-to robot args))
   (:viewer (&rest args) (forward-message-to viewer args))
+  (:objects (&optional objs)
+	    (when objs
+	      (setq objects (mapcar #'(lambda (o) (copy-object o)) objs))
+	      (mapcar #'(lambda (o) (setf (get o :GL-DISPLAYLIST-ID) nil)) (x::draw-things objects))
+	      (send viewer :objects (append (list robot) objects)))
+	    objects)
   ) ;; ros-interface
 
 (defclass pr2-interface
@@ -479,6 +485,21 @@
   (:start-grasp
    (&optional (arm :arms) &key ((:gain g) 0.01))
    (send self :move-gripper arm 0.0 :effort (* 2000 g) :wait t)
+   (unless joint-action-enable
+     (dolist (a (if (eq arm :arms) '(:larm :rarm) (list arm)))
+       (let ((grasp-convex
+	      (convex-hull-3d
+	       (flatten
+		(mapcar
+		 #'(lambda (l)
+		     (send-all (send l :bodies) :worldcoords)
+		     (send-all (send l :bodies) :vertices))
+		 (send robot a :gripper :links))))))
+	 (send grasp-convex :draw-on :flush t)
+	 (dolist (obj objects)
+	   (if (pqp-collision-check grasp-convex obj)
+	       (send robot a :end-coords :assoc obj)))))
+     (return-from :start-grasp nil))
    (send self :state)
    (case arm
 	 (:larm (send robot :l_gripper_joint :joint-angle))
@@ -488,7 +509,11 @@
 	     (send robot :r_gripper_joint :joint-angle)))))
   (:stop-grasp
    (&optional (arm :arms))
-   (send self :move-gripper arm 0.09 :wait nil))
+   (send self :move-gripper arm 0.09 :wait nil)
+   (unless joint-action-enable
+     (dolist (a (if (eq arm :arms) '(:larm :rarm) (list arm)))
+       (dolist (obj (send robot a :end-coords :descendants))
+	 (send robot arm :end-coords :dissoc obj)))))
   ;;
   (:pr2-fingertip-callback
    (arm msg) ;; arm = :(r|l)arm-pressure
