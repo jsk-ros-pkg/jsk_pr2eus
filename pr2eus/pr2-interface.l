@@ -53,8 +53,9 @@
      (let ((old-viewer user::*viewer*))
        (when (and x::*display* (> x::*display* 0))
 	 (setq viewer (instance x::irtviewer :create :title (format nil "~A-interface" (send robot :name))))
-	 (send self :objects objs)
+	 (send viewer :objects (list robot))
 	 (send viewer :look-all)
+	 (send self :objects objs)
 	 (if old-viewer (setq user::*viewer* old-viewer)))
 
        (ros::advertise "/joint_states" sensor_msgs::JointState 1)
