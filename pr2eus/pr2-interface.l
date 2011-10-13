@@ -300,7 +300,7 @@
   (:viewer (&rest args) (forward-message-to viewer args))
   (:objects (&optional objs)
 	    (when objs
-	      (setq objects (mapcar #'(lambda (o) (copy-object o)) objs))
+	      (setq objects (mapcar #'(lambda (o) (copy-object o)) (x::draw-things objs)))
 	      (mapcar #'(lambda (o) (setf (get o :GL-DISPLAYLIST-ID) nil)) (x::draw-things objects))
 	      (send viewer :objects (append (list robot) objects)))
 	    objects)
@@ -496,10 +496,11 @@
 		     (send-all (send l :bodies) :worldcoords)
 		     (send-all (send l :bodies) :vertices))
 		 (send robot a :gripper :links))))))
-	 (send grasp-convex :draw-on :flush t)
 	 (dolist (obj objects)
-	   (if (pqp-collision-check grasp-convex obj)
-	       (send robot a :end-coords :assoc obj)))))
+	   (when (and (find-method obj :faces)
+		      (not (= (pqp-collision-check grasp-convex obj) 0)))
+	     (if (send obj :parent) (send (send obj :parent) :dissoc obj))
+	     (send robot a :end-coords :assoc obj)))))
      (return-from :start-grasp nil))
    (send self :state)
    (case arm
