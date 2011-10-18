@@ -302,7 +302,7 @@
 	    (when objs
 	      (setq objects (mapcar #'(lambda (o) (copy-object o)) objs))
 	      (mapcar #'(lambda (o) (setf (get o :GL-DISPLAYLIST-ID) nil)) (x::draw-things objects))
-	      (send viewer :objects (append (list robot) objects)))
+	      (if viewer (send viewer :objects (append (list robot) objects))))
 	    objects)
   ) ;; ros-interface
 
