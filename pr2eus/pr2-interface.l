@@ -602,7 +602,12 @@
 	 (send robot :newcoords (midcoords (/ curr-tm 1000.0) orig-coords coords))
 	 (if viewer (send viewer :draw-objects))))
      (return-from :go-pos-unsafe t))
-   (let ((msec 10000) step goal)
+   (let (msec step goal (maxvel 0.3) (maxrad 0.5))
+     ;; package://pr2_base_trajectory_action/config/pr2_base_link.yaml
+     ;; 80% of maxvel = 0.3[m/sec]
+     ;; 80% of maxrad = 0.5[rad/sec]
+     (setq msec (max (/ (norm (float-vector x y)) (* maxvel 0.8))
+		     (/ (abs d) (* maxrad 0.8))))
      (setq step (/ 1000.0 msec))
      (setq goal (send self :move-trajectory (* x step) (* y step) (* (deg2rad d) step) msec :stop t))
      (send move-base-trajectory-action :send-goal goal)
