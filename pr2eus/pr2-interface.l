@@ -231,7 +231,7 @@
        (push (cons key (send msg key)) robot-state))))
   (:update-robot-state
    ()
-   (let (joint-names positions efforts)
+   (let (joint-names positions velocities efforts)
      (unless joint-action-enable
        (return-from :update-robot-state (send robot :angle-vector)))
      (unless robot-state (return-from :update-robot-state))
