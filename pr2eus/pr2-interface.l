@@ -269,6 +269,10 @@
      (:torque-vector
       (send self :update-robot-state)
       (send robot :torque-vector))
+     (:worldcoords
+      (unless (boundp '*tfl*)
+	(setq *tfl* (instance ros::transform-listener :init)))
+      (send *tfl* :lookup-transform (or (cadr args) "/map") "/base_link" (ros::time)))
      (t
       (let ((cur robot-state))
 	(dolist (key args cur)
@@ -566,6 +570,34 @@
        (if (eq (send move-base-action :get-state) actionlib_msgs::GoalStatus::*succeeded*)
            (setq ret t)))
      (ros::ros-info "move-to : ~A" (if ret 'succeeded 'failed))
+
+     (when ret
+       (let (diff tmp msec start-coords goal-coords ret x y d)
+	 (unless (boundp '*tfl*)
+	   (setq *tfl* (instance ros::transform-listener :init)))
+	 (dotimes (i 2)
+	   (setq ret (send *tfl* :wait-for-transform frame-id "/base_footprint" (ros::time-now) 5))
+	   (ros::ros-warn ":move-to wait-for transform ~s to /base_footprint -> ~A" frame-id ret)
+	   (setq start-coords (send *tfl* :lookup-transform frame-id "/base_footprint" (ros::time 0))
+		 goal-coords (send coords :copy-worldcoords))
+	   (setq diff (send start-coords :transformation goal-coords))
+	   (if (< (norm (subseq (send diff :worldpos) 0 2)) 200) ;; move_base thre = 200mm
+	       (progn
+		 (setq msec (* (norm (subseq (send diff :worldpos) 0 2)) 10)
+		       x (/ (elt (send diff :worldpos) 0) msec)
+		       y (/ (elt (send diff :worldpos) 1) msec)
+		       d (/ (elt (car (rpy-angle (send diff :worldrot))) 0) (/ msec 1000)))
+		 (ros::ros-warn ":move-to -> :go-velocity x:~A y:~A d:~A msec:~A" x y d msec)
+		 (unix:sleep 1) ;; ???
+		 (send self :go-velocity x y d msec)
+		 (unix::usleep (* (round msec) 1000)))
+	     (ros::ros-error "too far from goal position (> 200mm)"))
+	   (send *tfl* :wait-for-transform frame-id "/base_footprint" (ros::time-now) 5)
+	   (setq start-coords (send *tfl* :lookup-transform frame-id "/base_footprint" (ros::time 0)))
+	   (setq diff (send start-coords :transformation goal-coords))
+	   (ros::ros-warn ":move-to goal difference ~A" diff)
+	   )
+	 ))
      ret))
   (:go-pos
    (x y &optional (d 0)) ;; [m] [m] [degree]
@@ -587,7 +619,6 @@
 	 (if viewer (send viewer :draw-objects))))
      (return-from :go-velocity t))
    (let ((goal (send self :move-trajectory x y d msec :stop stop)))
-     (print goal)
      (send move-base-trajectory-action :send-goal goal)
      ))
   (:go-pos-unsafe
