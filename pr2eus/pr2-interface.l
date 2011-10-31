@@ -117,11 +117,13 @@
 	   avs
 	 (while avs
 	   (setq av (pop avs))
-	   (if (car tms) (setq tm (pop tms)))
+	   (when (= (car tms) 0.0)
+	     (ros::ros-error "0.0 in time list @ :angle-vector-sequence"))
+	   (if (car tms) (setq tm (max (pop tms) 1.0))) ;; minimum is 1[msec]
 	   (if (setq av-next (car avs))
 	       (let ((v0 (send self :sub-angle-vector av av-prev))
 		     (v1 (send self :sub-angle-vector av-next av)))
-		 (setq tm-next (if (car tms) (car tms) tm))
+		 (setq tm-next (max (if (car tms) (car tms) tm) 1.0))
 		 (dotimes (i (length vel))
 		   (setf (elt vel i)
 			 (if (>= (* (elt v0 i) (elt v1 i)) 0)
