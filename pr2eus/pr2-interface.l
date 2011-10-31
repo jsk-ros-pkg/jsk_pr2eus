@@ -272,7 +272,7 @@
      (:worldcoords
       (unless (boundp '*tfl*)
 	(setq *tfl* (instance ros::transform-listener :init)))
-      (send *tfl* :lookup-transform (or (cadr args) "/map") "/base_link" (ros::time)))
+      (send *tfl* :lookup-transform (or (cadr args) "/map") "/base_footprint" (ros::time)))
      (t
       (let ((cur robot-state))
 	(dolist (key args cur)
@@ -612,7 +612,7 @@
    (let (c)
      (setq c (make-coords :pos (float-vector (* 1000 x) (* y 1000) 0)
 			  :rpy (float-vector (deg2rad d) 0 0)))
-     (send self :move-to c :retry 1 :frame-id "/base_link")
+     (send self :move-to c :retry 1 :frame-id "/base_footprint")
      ))
   (:go-velocity
    (x y d &optional (msec 1000) &key (stop t)) ;; [m/sec] [m/sec] [rad/sec]
