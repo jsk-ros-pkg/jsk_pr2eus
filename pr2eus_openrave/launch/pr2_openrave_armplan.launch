@@ -27,7 +27,7 @@
   <node pkg="collision_map" type="collision_map_self_occ_node"
         name="collision_map_self_occ_node" respawn="true" output="screen">
     <!-- The default padding to be added for the body parts the robot can see -->
-    <param name="self_see_default_padding" type="double" value="0.02"/>
+    <param name="self_see_default_padding" type="double" value="0.04"/>
     <!-- The default scaling to be added for the body parts the robot  can see -->
     <param name="self_see_default_scale" type="double" value="1.0" />
     <!-- if someone asks for a stable map, publish the static map on
@@ -40,7 +40,7 @@
     <param name="origin_y" type="double" value="0.0" />
     <param name="origin_z" type="double" value="0.0" />
 
-    <param name="dimension_x" type="double" value="2.0" />
+    <param name="dimension_x" type="double" value="1.5" />
     <param name="dimension_y" type="double" value="2.0" />
     <param name="dimension_z" type="double" value="2.0" />
 
