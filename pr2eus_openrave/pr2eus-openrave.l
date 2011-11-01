@@ -55,7 +55,7 @@
      (return-from :call-openrave-move-to-hand-position nil))
    (let ((req (instance orrosplanning::MoveToHandPositionRequest :init))
 	 (hand-goal (ros::coords->tf-pose-stamped coords "base_footprint"))
-	 res)
+	 res (mux-req (instance topic_tools::MuxSelectRequest :init)))
      (ros::ros-info "pos ~A ~A ~A"
 		    (send hand-goal :pose :position :x)
 		    (send hand-goal :pose :position :y)
@@ -69,17 +69,17 @@
      (send req :manip_name manip-name)
      (send req :hand_goal hand-goal)
 
-     (if (ros::service-exists "mux_collision_map")
-	 (ros::service-call "mux_collision_map" "collision_map_occ"))
-
+     (when (ros::service-exists "collision_map_mux/select")
+       (send mux-req :topic "collision_map_occ")
+       (ros::service-call "collision_map_mux/select" mux-req))
      (if (and
 	  (ros::service-exists "MoveToHandPosition")
 	  (ros::wait-for-service "MoveToHandPosition" 30))
 	 (setq res (ros::service-call "MoveToHandPosition" req))
        (ros::ros-warn "MoveToHandPosition did not respond"))
-
-     (if (ros::service-exists "mux_collision_map")
-	 (ros::service-call "mux_collision_map" "collision_map_none"))
+     (when (ros::service-exists "collision_map_mux/select")
+       (send mux-req :topic "collision_map_none")
+       (ros::service-call "collision_map_mux/select" mux-req))
 
      (if res (send res :traj))))
   )
