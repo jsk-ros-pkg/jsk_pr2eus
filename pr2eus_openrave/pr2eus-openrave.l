@@ -41,6 +41,7 @@
      (send robot :angle-vector (car (last avs)))
      ;; send to ri
      (send self :angle-vector-sequence (nreverse avs) (nreverse tms))
+
      (if avs
 	 (list avs tms))
      ))
@@ -67,11 +68,19 @@
      (send req :hand_frame_id hand-frame-id)
      (send req :manip_name manip-name)
      (send req :hand_goal hand-goal)
+
+     (if (ros::service-exists "mux_collision_map")
+	 (ros::service-call "mux_collision_map" "collision_map_occ"))
+
      (if (and
 	  (ros::service-exists "MoveToHandPosition")
 	  (ros::wait-for-service "MoveToHandPosition" 30))
 	 (setq res (ros::service-call "MoveToHandPosition" req))
        (ros::ros-warn "MoveToHandPosition did not respond"))
+
+     (if (ros::service-exists "mux_collision_map")
+	 (ros::service-call "mux_collision_map" "collision_map_none"))
+
      (if res (send res :traj))))
   )
 
