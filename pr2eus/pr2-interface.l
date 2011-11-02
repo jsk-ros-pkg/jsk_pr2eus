@@ -30,6 +30,7 @@
    (setq joint-action-enable t)
    (setq robot (instance r :init))
    ;;
+   (defvar *tfl* (instance ros::transform-listener :init))
    (ros::subscribe "/joint_states" sensor_msgs::JointState
 		   #'send self :ros-state-callback)
 
@@ -272,8 +273,6 @@
       (send self :update-robot-state)
       (send robot :torque-vector))
      (:worldcoords
-      (unless (boundp '*tfl*)
-	(setq *tfl* (instance ros::transform-listener :init)))
       (send *tfl* :lookup-transform (or (cadr args) "/map") "/base_footprint" (ros::time)))
      (t
       (let ((cur robot-state))
@@ -560,8 +559,6 @@
        (return-from :move-to t))
      (when (not (send move-base-action :wait-for-server wait-for-server-timeout))
        (return-from :move-to))
-     (unless (boundp '*tfl*)
-       (setq *tfl* (instance ros::transform-listener :init)))
      (setq map-goal-coords (send (send *tfl* :lookup-transform "/map" frame-id (ros::time 0)) :transform (send coords :copy-worldcoords))) ;; goal-coords in /map coordinates
      ;;
      (send goal :header :stamp tm)
