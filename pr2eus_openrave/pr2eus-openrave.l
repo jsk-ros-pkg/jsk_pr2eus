@@ -5,6 +5,17 @@
 (ros::roseus "pr2eus_openrave")
 
 (defmethod pr2-interface
+  (:service-call-joint-state
+   ()
+   (let ((req (instance pr2eus_openrave::SetJointStateRequest :init)) res)
+     (send self :update-robot-state)
+     (send req :jointstate (send self :publish-joint-state))
+     (if (and
+	  (ros::service-exists "SetJointState")
+	  (ros::wait-for-service "SetJointState" 30))
+	 (setq res (ros::service-call "SetJointState" req))
+       (ros::ros-warn "SetJointState did not respond"))
+     res))
   (:angle-vector-motion-plan
    (av &key (move-target :larm) (use-torso t))
    (let (coords mname)
@@ -68,6 +79,8 @@
      (send req :hand_frame_id hand-frame-id)
      (send req :manip_name manip-name)
      (send req :hand_goal hand-goal)
+
+     (send self :service-call-joint-state)
 
      (when (ros::service-exists "collision_map_mux/select")
        (send mux-req :topic "collision_map_occ")
