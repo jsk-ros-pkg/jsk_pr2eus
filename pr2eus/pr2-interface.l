@@ -63,7 +63,7 @@
        ))
    self)
   ;;
-  (:publish-joint-state ;; for simulatio mode (joint-action-enable is nil)
+  (:publish-joint-state ;; for simulation mode (joint-action-enable is nil)
    ()
    (let ((msg (instance sensor_msgs::JointState :init)) names positions velocities efforts)
      (send msg :header :stamp (ros::time-now))
@@ -80,7 +80,9 @@
      (send msg :position positions)
      (send msg :velocity velocities)
      (send msg :effort efforts)
-     (ros::publish "/joint_states" msg)))
+     (unless joint-action-enable
+       (ros::publish "/joint_states" msg))
+     msg))
   (:angle-vector
    (av &optional (tm 3000) &key ((:controller-actions ca) controller-actions) ((:controller-type ct) controller-type))
    ;; for simulation mode
@@ -258,7 +260,7 @@
 		     (send j :joint-torque e))))
 	     (coerce joint-names cons)
 	     (coerce positions cons)
-		 (coerce velocities cons)
+	     (coerce velocities cons)
 	     (coerce efforts cons))))
   (:state
    (&rest args)
