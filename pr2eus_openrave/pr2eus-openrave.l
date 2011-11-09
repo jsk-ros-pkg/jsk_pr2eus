@@ -7,7 +7,7 @@
 (defmethod pr2-interface
   (:service-call-joint-state
    ()
-   (let ((req (instance pr2eus_openrave::SetJointStateRequest :init)) res)
+   (let ((req (instance orrosplanning::SetJointStateRequest :init)) res)
      (send self :update-robot-state)
      (send req :jointstate (send self :publish-joint-state))
      (if (and
