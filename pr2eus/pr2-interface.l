@@ -16,7 +16,7 @@
 
 
 (defclass pr2-interface
-  :super ros-interface
+  :super robot-interface
   :slots (r-gripper-action l-gripper-action
 			   move-base-action move-base-trajectory-action
 			   finger-pressure-origin))
