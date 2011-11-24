@@ -14,6 +14,12 @@
 (ros::roseus-add-msgs "nav_msgs")
 (ros::roseus-add-msgs "sound_play")
 
+(defmethod pr2-robot
+  (:torque-vector
+   (&rest args)
+   (if args (ros::ros-warn "pr2 torque-vector does not have parameters"))
+   (coerce (send-all (send self :joint-list) :joint-torque) float-vector)))
+
 
 (defclass pr2-interface
   :super robot-interface
@@ -249,7 +255,7 @@
        current)))
   ;;
   (:move-to
-   (coords &key (retry 10) (frame-id "/map") (wait-for-server-timeout 5))
+   (coords &key (retry 10) (frame-id "/world") (wait-for-server-timeout 5))
    (let (ret (count 0) (tm (ros::time-now))
 	     (pose (ros::coords->tf-pose coords))
              (goal (instance move_base_msgs::MoveBaseActionGoal :init))
