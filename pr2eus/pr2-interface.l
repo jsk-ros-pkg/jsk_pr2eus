@@ -255,7 +255,7 @@
        current)))
   ;;
   (:move-to
-   (coords &key (retry 10) (frame-id "/world") (wait-for-server-timeout 5))
+   (coords &key (retry 10) (frame-id "/map") (wait-for-server-timeout 5))
    (let (ret (count 0) (tm (ros::time-now))
 	     (pose (ros::coords->tf-pose coords))
              (goal (instance move_base_msgs::MoveBaseActionGoal :init))
