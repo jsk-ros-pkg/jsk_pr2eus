@@ -14,6 +14,9 @@
   <depend package="orrosplanning"/>
   <depend package="robot_state_publisher"/>
 
+  <depend package="sensor_msgs"/>
+  <depend package="visualization_msgs"/>
+
 </package>
 
 
