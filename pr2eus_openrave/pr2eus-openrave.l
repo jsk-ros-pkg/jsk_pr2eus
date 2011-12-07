@@ -57,6 +57,8 @@
    (coords &key (move-target :larm) (use-torso t))
    (let (joint-trajectory joint-trajectory-points joints avs tms (tm (ros::time -1)) robot-list (diff-sum 0) (diff-thre 100))
      ;; call openrave
+     (send self :show-goal-hand-coords coords move-target)
+
      (setq joint-trajectory
 	   (send self :call-openrave-move-to-hand-position
 		 coords
@@ -85,7 +87,7 @@
        (setq tm (send point :time_from_start))
        )
      ;; send visualization_msgs to rviz ;;TODO adjust time to *ri* ?
-     (send self :show-mesh-traj-with-color *arm-dae-list* (reverse robot-list))
+     (send self :show-mesh-traj-with-color *arm-dae-list* robot-list)
 
 
 
@@ -136,6 +138,18 @@
 
      (if res (send res :traj))))
 
+  (:show-goal-hand-coords ;;very temporary
+   (coords move-target)
+   (let (robot-list (hand-state (make-list 2)) (goal-hand-parts-list (make-list 3)))
+     (setq robot-list (send self :get-robot-list move-target))
+     (setf (elt hand-state 0) (send (elt robot-list 0) :transformation (elt robot-list 1)))
+     (setf (elt hand-state 1) (send (elt robot-list 0) :transformation (elt robot-list 2)))
+     (setf (elt goal-hand-parts-list 0) (send (send coords :copy-worldcoords) :translate (float-vector -180 0 0) :local))
+     (setf (elt goal-hand-parts-list 1) (send (send (elt goal-hand-parts-list 0) :copy-worldcoords) :transform (elt hand-state 0)))
+     (setf (elt goal-hand-parts-list 2) (send (send (elt goal-hand-parts-list 0) :copy-worldcoords) :transform (elt hand-state 1)))
+     (print goal-hand-parts-list)
+     (send self :show-mesh-traj-with-color (subseq *arm-dae-list* 0 3) (list goal-hand-parts-list) :lifetime 0 :color #f(1 0 0))))
+
   (:get-robot-list ;;very temporary
    (move-target)
    (let ((robot-list (make-list (length *arm-dae-list*))))
@@ -165,8 +179,7 @@
 			   :stamp (ros::time-now) :frame_id "base_footprint"))
 	 (l (length robot-list)) markers-list alpha-list)
      (dotimes (i l)
-       (push (+ (/ (/ i 2.0) l) 0.5) alpha-list))
-     (nreverse alpha-list)
+       (push (+ (/ (/ (1+ i) 2.0) l) 0.5) alpha-list))
      (dotimes (i l)
        (let (markers)
 	 (mapcar #'(lambda(x y) (push (mesh->marker-msg x y header :mesh_use_embedded_materials nil :color col :alpha (elt alpha-list i)) markers))
