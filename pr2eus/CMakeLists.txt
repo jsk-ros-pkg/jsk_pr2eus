@@ -22,7 +22,6 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 #ADD_CUSTOM_COMMAND(
 #  OUTPUT ${CMAKE_SOURCE_DIR}/pr2.l
 #  COMMAND rosrun euscollada collada2eus ${CMAKE_SOURCE_DIR}/pr2.dae `rospack find euscollada`/pr2.yaml ${CMAKE_SOURCE_DIR}/pr2.l DEPENDS pr2.dae)
-set(MAKE_PR2_MODEL_FILE_ARGS '(ros::roseus \"make-pr2-modle-file\") (make-pr2-model-file :output-directory "/tmp")')
 ADD_CUSTOM_COMMAND(
   OUTPUT ${CMAKE_SOURCE_DIR}/pr2.l
   COMMAND rosrun roseus roseus `rospack find pr2eus`/make-pr2-model-file.l           "\"(ros::roseus" "\\\"make-pr2-model-file\\\")\"" "\"(make-pr2-model-file" ":output-directory" "(ros::rospack-find" "\\\"pr2eus\\\"))\"" )
