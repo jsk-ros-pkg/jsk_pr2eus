@@ -1,4 +1,4 @@
-(defun make-pr2-model-file ()
+(defun make-pr2-model-file (&key (output-directory (ros::rospack-find "pr2eus")))
   (let ((robot "pr2") s
         fname_urdf fname_fix_urdf fname_collada fname_yaml fname_lisp)
     (unless (setq s (ros::get-param "/robot_description"))
@@ -47,26 +47,31 @@
      (dolist (camera-var camera-vars)
        (let ((var (intern (substitute #\- #\/ (string-upcase camera-var))))
              (camera-info (format nil "~A/camera_info" camera-var))
-             (camera-name (substitute #\- #\/ (string-downcase camera-var))))
+             (camera-name (substitute #\- #\/ (string-downcase camera-var)))
+	     (i 0))
          (ros::subscribe camera-info sensor_msgs::CameraInfo
                          #'(lambda (msg)
                              (set var msg)
                              var))
+
          (ros::rate 10)
-         (while (and (ros::ok) (not (boundp var)))
+         (while (and (ros::ok) (not (boundp var)) (< (incf i) 10))
            (ros::spin-once)
            (ros::sleep))
          (ros::unsubscribe camera-info)
-         (setq var (eval var))
-         (warning-message 2 "received ~A ~A ~A~%" camera-info var (send var :header :frame_id))
-         (format f "  (:~A (&rest args)~%" camera-name)
-         (format f "   (let ((c (get self :~A-model)))~%" camera-name)
-         (format f "     (unless c~%")
-         (format f "       (setq c (make-camera-from-ros-camera-info-aux ~A ~A ~A ~A))~%" (send var :width) (send var :height) (send var :p) (send var :header :frame_id))
-         (format f "       (send c :name \"~A\")~%" camera-var)
-         (format f "       (setf (get self :~A-model) c))~%" camera-name)
-         (format f "     (forward-message-to c args)))~%")
-         ) ;; let
+	 (if (boundp var)
+	     (progn
+	       (setq var (eval var))
+	       (warning-message 2 "received ~A ~A ~A~%" camera-info var (send var :header :frame_id))
+	       (format f "  (:~A (&rest args)~%" camera-name)
+	       (format f "   (let ((c (get self :~A-model)))~%" camera-name)
+	       (format f "     (unless c~%")
+	       (format f "       (setq c (make-camera-from-ros-camera-info-aux ~A ~A ~A ~A))~%" (send var :width) (send var :height) (send var :p) (send var :header :frame_id))
+	       (format f "       (send c :name \"~A\")~%" camera-var)
+	       (format f "       (setf (get self :~A-model) c))~%" camera-name)
+	       (format f "     (forward-message-to c args)))~%"))
+	   (ros::ros-error "could not receive ~A ~A" camera-info var))
+	   ) ;; let
         ) ;; dolist
      (format f "  (:cameras (&rest args)~%")
      (format f "   (forward-message-to-all (list")
@@ -83,10 +88,9 @@
      (format f "  ) ;; defmethod ~A-robot~%" robot)
      ) ;; with-open-file
     (warning-message 1 "copy model file from ~A to ~A.l~%" fname_lisp robot)
-    (unix::system (format nil "mv ~A ~A/~A.l" fname_lisp (ros::rospack-find "pr2eus") robot))
+    (unix::system (format nil "mv ~A ~A/~A.l" fname_lisp output-directory robot))
     ))
 
-(ros::roseus "make-pr2-modle-file")
-(make-pr2-model-file)
-
+;;(ros::roseus "make-pr2-modle-file")
+;;(make-pr2-model-file)
 
