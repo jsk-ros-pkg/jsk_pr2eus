@@ -1,17 +1,19 @@
 (load "unittest.l")
 
-;(load "package://pr2eus/make-pr2-model-file")
-;(ros::roseus "make-pr2-modle-file")
-;(make-pr2-model-file :output-directory "/tmp")
+(load "package://pr2eus/make-pr2-model-file")
+(ros::roseus "make-pr2-modle-file")
+(make-pr2-model-file :output-directory "/tmp")
 
 (init-unit-test)
 
 (when (not (boundp '*pr2-recent*))
   (load "/tmp/pr2.l")
-  (setq *pr2-recent* (instance pr2-robot :init)))
+  (setq *pr2-recent* (instance pr2-robot :init))
+  (setq *pr2-cameras-recent* (send *pr2-recent* :cameras)))
 (when (not (boundp '*pr2-current*))
   (load "package://pr2eus/pr2.l")
-  (setq *pr2-current* (instance pr2-robot :init)))
+  (setq *pr2-current* (instance pr2-robot :init))
+  (setq *pr2-cameras-current* (send *pr2-current* :cameras)))
 
 (assert (= (norm (v- (send *pr2-recent* :angle-vector)
 		     (send *pr2-current* :angle-vector))) 0.0)
@@ -93,39 +95,41 @@
      (format nil "check jacobian for ~A~" limb))))
 
 (deftest test-cameras
-  (assert (= (length (send *pr2-recent* :cameras))
-	     (length (send *pr2-current* :cameras)))
+  (assert (= (length *pr2-cameras-recent*)
+	     (length *pr2-cameras-current*))
 	  "check camera number")
-  (dolist (camera (send-all (send *pr2-current* :cameras) :name))
-    (assert (send *pr2-recent* :camera camera)
-	    (format nil "check camera ~A" camera))
-    (assert (= (norm (send (send *pr2-recent* :camera camera) :difference-position
-			   (send *pr2-recent* :camera camera))) 0.0)
-	    (format nil "check camera position for ~A" camera))
-    (assert (= (norm (send (send *pr2-recent* :camera camera) :difference-rotation
-			   (send *pr2-recent* :camera camera))) 0.0)
-	    (format nil "check camera rotation for ~A" camera))
-    (assert (= (send (send *pr2-recent* :camera camera) :width)
-	       (send (send *pr2-recent* :camera camera) :width))
-	    (format nil "check camera width for ~A" camera))
-    (assert (= (send (send *pr2-recent* :camera camera) :height)
-	       (send (send *pr2-recent* :camera camera) :height))
-	    (format nil "check camera height for ~A" camera))
-    (assert (= (send (send *pr2-recent* :camera camera) :fovy)
-	       (send (send *pr2-recent* :camera camera) :fovy))
-	    (format nil "check camera fovy for ~A" camera))
-    (assert (= (norm (v- (send (send *pr2-recent* :camera camera) :view-direction)
-			 (send (send *pr2-recent* :camera camera) :view-direction))) 0.0)
-	    (format nil "check camera view-direction for ~A" camera))
-    (assert (= (norm
-		(array-entity
-		 (m- (send (send *pr2-recent* :camera camera) :projection)
-		     (send (send *pr2-recent* :camera camera) :projection)))) 0.0)
-	    (format nil "check camera projection for ~A" camera))
-    ))
-
-
-
+  (dolist (camera-current *pr2-cameras-current*)
+    (let* ((camera-name (send camera-current :name))
+	   (camera-recent (find camera-name *pr2-cameras-recent* :key #'(lambda (x) (send x :name)) :test #'string=)))
+      (assert camera-recent
+	      (format nil "check camera ~A" camera-name))
+      (when camera-recent
+	(print (list 'check2 camera-recent))
+	(assert (= (norm (send camera-recent :difference-position
+			     camera-current)) 0.0)
+		(format nil "check camera position for ~A" camera-name))
+	(assert (= (norm (send camera-recent :difference-rotation
+			       camera-current)) 0.0)
+		(format nil "check camera rotation for ~A" camera-name))
+	(assert (= (send camera-recent :width)
+		   (send camera-current :width))
+		(format nil "check camera width for ~A" camera-name))
+	(assert (= (send camera-recent :height)
+		   (send camera-current :height))
+		(format nil "check camera height for ~A" camera-name))
+	(assert (= (send camera-recent :fovy)
+		   (send camera-current :fovy))
+		(format nil "check camera fovy for ~A" camera-name))
+	(assert (= (norm (v- (send camera-recent :view-direction)
+			     (send camera-current :view-direction))) 0.0)
+		(format nil "check camera view-direction for ~A" camera-name))
+	(assert (= (norm
+		    (array-entity
+		     (m- (send camera-recent :projection)
+			 (send camera-current :projection)))) 0.0)
+		(format nil "check camera projection for ~A" camera-name))
+	)))
+  )
 
 (run-all-tests)
 
