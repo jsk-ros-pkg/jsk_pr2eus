@@ -1,6 +1,7 @@
 (defun make-pr2-model-file (&key (output-directory (ros::rospack-find "pr2eus")))
   (let ((robot "pr2") s
-        fname_urdf fname_fix_urdf fname_collada fname_yaml fname_lisp)
+        fname_urdf fname_fix_urdf fname_collada fname_yaml fname_lisp
+	camera-vars valid-camera-vars)
     (unless (setq s (ros::get-param "/robot_description"))
       (ros::ros-error "could not load model file from /robot_description~%")
       (return-from make-pr2-model-file))
@@ -62,6 +63,7 @@
 	 (if (boundp var)
 	     (progn
 	       (setq var (eval var))
+	       (push camera-var valid-camera-vars)
 	       (warning-message 2 "received ~A ~A ~A~%" camera-info var (send var :header :frame_id))
 	       (format f "  (:~A (&rest args)~%" camera-name)
 	       (format f "   (let ((c (get self :~A-model)))~%" camera-name)
@@ -75,7 +77,7 @@
         ) ;; dolist
      (format f "  (:cameras (&rest args)~%")
      (format f "   (forward-message-to-all (list")
-     (dolist (camera-var camera-vars)
+     (dolist (camera-var valid-camera-vars)
        (format f " (send self :~A)" (substitute #\- #\/ camera-var)))
      (format f ") args))~%")
      (format f "  (:camera (&rest args)~%")
