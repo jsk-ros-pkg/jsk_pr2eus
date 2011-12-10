@@ -42,3 +42,4 @@ ADD_CUSTOM_TARGET(pr2model ALL DEPENDS ${CMAKE_SOURCE_DIR}/pr2.l)
 #target_link_libraries(example ${PROJECT_NAME})
 
 rosbuild_add_rostest(test/pr2eus-test.launch)
+rosbuild_add_rostest(test/make-pr2-model-file-test.launch)
