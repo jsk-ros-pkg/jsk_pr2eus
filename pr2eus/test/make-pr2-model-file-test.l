@@ -6,74 +6,74 @@
 
 (init-unit-test)
 
-(when (not (boundp '*pr2-recent*))
+(when (not (boundp '*pr2-unstable*))
   (load "/tmp/pr2.l")
-  (setq *pr2-recent* (instance pr2-robot :init))
-  (setq *pr2-cameras-recent* (send *pr2-recent* :cameras)))
-(when (not (boundp '*pr2-current*))
+  (setq *pr2-unstable* (instance pr2-robot :init))
+  (setq *pr2-cameras-unstable* (send *pr2-unstable* :cameras)))
+(when (not (boundp '*pr2-stable*))
   (load "package://pr2eus/pr2.l")
-  (setq *pr2-current* (instance pr2-robot :init))
-  (setq *pr2-cameras-current* (send *pr2-current* :cameras)))
+  (setq *pr2-stable* (instance pr2-robot :init))
+  (setq *pr2-cameras-stable* (send *pr2-stable* :cameras)))
 
-(assert (= (norm (v- (send *pr2-recent* :angle-vector)
-		     (send *pr2-current* :angle-vector))) 0.0)
+(assert (= (norm (v- (send *pr2-unstable* :angle-vector)
+		     (send *pr2-stable* :angle-vector))) 0.0)
 	"check default angle-vector")
-(assert (= (norm (v- (send *pr2-recent* :reset-pose)
-		     (send *pr2-current* :reset-pose))) 0.0)
+(assert (= (norm (v- (send *pr2-unstable* :reset-pose)
+		     (send *pr2-stable* :reset-pose))) 0.0)
 	"check reset-pose angle-vector")
-(send *pr2-recent* :angle-vector (send *pr2-current* :angle-vector))
+(send *pr2-unstable* :angle-vector (send *pr2-stable* :angle-vector))
 
 (deftest test-link ()
   (assert (=
-	   (length (send *pr2-recent* :links))
-	   (length (send *pr2-current* :links)))
+	   (length (send *pr2-unstable* :links))
+	   (length (send *pr2-stable* :links)))
 	  "check number of link"
 	  )
-  (mapcar #'(lambda (link-recent link-current)
-	      (assert (eq (send link-recent :name) (send link-current :name))
+  (mapcar #'(lambda (link-unstable link-stable)
+	      (assert (eq (send link-unstable :name) (send link-stable :name))
 		      "check link name")
 	      (assert
-	       (= (norm (send (send link-recent :worldcoords) :difference-position (send link-current :worldcoords))) 0.0)
+	       (= (norm (send (send link-unstable :worldcoords) :difference-position (send link-stable :worldcoords))) 0.0)
 	       "check link position")
 	      (assert
-	       (= (norm (send (send link-recent :worldcoords) :difference-rotation (send link-current :worldcoords))) 0.0)
+	       (= (norm (send (send link-unstable :worldcoords) :difference-rotation (send link-stable :worldcoords))) 0.0)
 	       "check link orientation"))
-	  (send *pr2-recent* :links) (send *pr2-current* :links))
+	  (send *pr2-unstable* :links) (send *pr2-stable* :links))
   )
 
 (deftest test-joint
   (assert (=
-	   (length (send *pr2-recent* :joint-list))
-	   (length (send *pr2-current* :joint-list)))
+	   (length (send *pr2-unstable* :joint-list))
+	   (length (send *pr2-stable* :joint-list)))
 	  "check number of joint")
 
-  (mapcar #'(lambda (joint-recent joint-current)
-	      (assert (eq (send joint-recent :name) (send joint-current :name))
+  (mapcar #'(lambda (joint-unstable joint-stable)
+	      (assert (eq (send joint-unstable :name) (send joint-stable :name))
 		      "check joint name")
 	      (assert
-	       (= (send joint-recent :min-angle)  (send joint-current :min-angle))
-	       (format nil "check min angle between ~A ~A" (send joint-recent :name) (send joint-current :name)))
+	       (= (send joint-unstable :min-angle)  (send joint-stable :min-angle))
+	       (format nil "check min angle between ~A ~A" (send joint-unstable :name) (send joint-stable :name)))
 	      (assert
-	       (= (send joint-recent :max-angle)  (send joint-current :max-angle))
-	       (format nil "check max angle between ~A ~A" (send joint-recent :name) (send joint-current :name))
+	       (= (send joint-unstable :max-angle)  (send joint-stable :max-angle))
+	       (format nil "check max angle between ~A ~A" (send joint-unstable :name) (send joint-stable :name))
 	      ))
-	  (send *pr2-recent* :joint-list) (send *pr2-current* :joint-list))
+	  (send *pr2-unstable* :joint-list) (send *pr2-stable* :joint-list))
   )
 
 
 (deftest test-end-coords
   (dolist (limb (list :larm :rarm :head))
-    (assert (= (norm (send (send *pr2-recent* limb :end-coords) :difference-position
-			      (send *pr2-current* limb :end-coords))) 0)
+    (assert (= (norm (send (send *pr2-unstable* limb :end-coords) :difference-position
+			      (send *pr2-stable* limb :end-coords))) 0)
 	    (format nil "strict check end-coords position of ~A" limb))
-    (assert (= (norm (send (send *pr2-recent* limb :end-coords) :difference-rotation
-			      (send *pr2-current* limb :end-coords))) 0)
+    (assert (= (norm (send (send *pr2-unstable* limb :end-coords) :difference-rotation
+			      (send *pr2-stable* limb :end-coords))) 0)
 	    (format nil "strict check end-coords rotation of ~A" limb))
-    (assert (eps= (norm (send (send *pr2-recent* limb :end-coords) :difference-position
-			      (send *pr2-current* limb :end-coords))) 0)
+    (assert (eps= (norm (send (send *pr2-unstable* limb :end-coords) :difference-position
+			      (send *pr2-stable* limb :end-coords))) 0)
 	    (format nil "check end-coords position of ~A" limb))
-    (assert (eps= (norm (send (send *pr2-recent* limb :end-coords) :difference-rotation
-			      (send *pr2-current* limb :end-coords))) 0)
+    (assert (eps= (norm (send (send *pr2-unstable* limb :end-coords) :difference-rotation
+			      (send *pr2-stable* limb :end-coords))) 0)
 	    (format nil "check end-coords rotation of ~A" limb))
     ))
 
@@ -84,49 +84,48 @@
       (norm
        (array-entity
 	(m-
-	 (send *pr2-recent* :calc-jacobian-from-link-list
-	       (send *pr2-recent* :link-list (send *pr2-recent* limb :end-coords :parent))
-	       :move-target (send *pr2-recent* limb :end-coords))
-	 (send *pr2-current* :calc-jacobian-from-link-list
-	       (send *pr2-current* :link-list (send *pr2-current* limb :end-coords :parent))
-	       :move-target (send *pr2-current* limb :end-coords))))
+	 (send *pr2-unstable* :calc-jacobian-from-link-list
+	       (send *pr2-unstable* :link-list (send *pr2-unstable* limb :end-coords :parent))
+	       :move-target (send *pr2-unstable* limb :end-coords))
+	 (send *pr2-stable* :calc-jacobian-from-link-list
+	       (send *pr2-stable* :link-list (send *pr2-stable* limb :end-coords :parent))
+	       :move-target (send *pr2-stable* limb :end-coords))))
        )
       0.0)
      (format nil "check jacobian for ~A~" limb))))
 
 (deftest test-cameras
-  (assert (= (length *pr2-cameras-recent*)
-	     (length *pr2-cameras-current*))
+  (assert (= (length *pr2-cameras-unstable*)
+	     (length *pr2-cameras-stable*))
 	  "check camera number")
-  (dolist (camera-current *pr2-cameras-current*)
-    (let* ((camera-name (send camera-current :name))
-	   (camera-recent (find camera-name *pr2-cameras-recent* :key #'(lambda (x) (send x :name)) :test #'string=)))
-      (assert camera-recent
+  (dolist (camera-stable *pr2-cameras-stable*)
+    (let* ((camera-name (send camera-stable :name))
+	   (camera-unstable (find camera-name *pr2-cameras-unstable* :key #'(lambda (x) (send x :name)) :test #'string=)))
+      (assert camera-unstable
 	      (format nil "check camera ~A" camera-name))
-      (when camera-recent
-	(print (list 'check2 camera-recent))
-	(assert (= (norm (send camera-recent :difference-position
-			     camera-current)) 0.0)
+      (when camera-unstable
+	(assert (= (norm (send camera-unstable :difference-position
+			     camera-stable)) 0.0)
 		(format nil "check camera position for ~A" camera-name))
-	(assert (= (norm (send camera-recent :difference-rotation
-			       camera-current)) 0.0)
+	(assert (= (norm (send camera-unstable :difference-rotation
+			       camera-stable)) 0.0)
 		(format nil "check camera rotation for ~A" camera-name))
-	(assert (= (send camera-recent :width)
-		   (send camera-current :width))
+	(assert (= (send camera-unstable :width)
+		   (send camera-stable :width))
 		(format nil "check camera width for ~A" camera-name))
-	(assert (= (send camera-recent :height)
-		   (send camera-current :height))
+	(assert (= (send camera-unstable :height)
+		   (send camera-stable :height))
 		(format nil "check camera height for ~A" camera-name))
-	(assert (= (send camera-recent :fovy)
-		   (send camera-current :fovy))
+	(assert (= (send camera-unstable :fovy)
+		   (send camera-stable :fovy))
 		(format nil "check camera fovy for ~A" camera-name))
-	(assert (= (norm (v- (send camera-recent :view-direction)
-			     (send camera-current :view-direction))) 0.0)
+	(assert (= (norm (v- (send camera-unstable :view-direction)
+			     (send camera-stable :view-direction))) 0.0)
 		(format nil "check camera view-direction for ~A" camera-name))
 	(assert (= (norm
 		    (array-entity
-		     (m- (send camera-recent :projection)
-			 (send camera-current :projection)))) 0.0)
+		     (m- (send camera-unstable :projection)
+			 (send camera-stable :projection)))) 0.0)
 		(format nil "check camera projection for ~A" camera-name))
 	)))
   )
