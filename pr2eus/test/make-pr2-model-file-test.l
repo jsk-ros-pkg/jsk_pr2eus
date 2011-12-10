@@ -92,7 +92,7 @@
 	       :move-target (send *pr2-stable* limb :end-coords))))
        )
       0.0)
-     (format nil "check jacobian for ~A~" limb))))
+     (format nil "check jacobian for ~A~%" limb))))
 
 (deftest test-cameras
   (assert (= (length *pr2-cameras-unstable*)
