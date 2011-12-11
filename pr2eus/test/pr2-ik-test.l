@@ -9,8 +9,8 @@
   (send *pr2* :reset-pose)
   (assert
    (send* *pr2* arm :inverse-kinematics target-coords :debug-view (and x::*display* (> x::*display* 0)) args)
-   "failed to solve (send* *pr2* ~A :inverse-kinematics ~A '~A)~%"
-   arm  (list 'make-coords :pos (send target-coords :pos) :rot (send target-coords :rot)) args)
+   (format nil "failed to solve (send* *pr2* ~A :inverse-kinematics ~A '~A)~%"
+   arm  (list 'make-coords :pos (send target-coords :pos) :rot (send target-coords :rot)) args))
    )
 
 (deftest pr2-test-angle-vector ()
