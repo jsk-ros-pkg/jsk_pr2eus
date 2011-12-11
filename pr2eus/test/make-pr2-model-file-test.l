@@ -15,13 +15,14 @@
   (setq *pr2-stable* (instance pr2-robot :init))
   (setq *pr2-cameras-stable* (send *pr2-stable* :cameras)))
 
-(assert (= (norm (v- (send *pr2-unstable* :angle-vector)
-		     (send *pr2-stable* :angle-vector))) 0.0)
-	"check default angle-vector")
-(assert (= (norm (v- (send *pr2-unstable* :reset-pose)
-		     (send *pr2-stable* :reset-pose))) 0.0)
-	"check reset-pose angle-vector")
-(send *pr2-unstable* :angle-vector (send *pr2-stable* :angle-vector))
+(deftest test-angle-vector
+  (assert (= (norm (v- (send *pr2-unstable* :angle-vector)
+		       (send *pr2-stable* :angle-vector))) 0.0)
+	  "check default angle-vector")
+  (assert (= (norm (v- (send *pr2-unstable* :reset-pose)
+		       (send *pr2-stable* :reset-pose))) 0.0)
+	  "check reset-pose angle-vector")
+  (send *pr2-unstable* :angle-vector (send *pr2-stable* :angle-vector)))
 
 (deftest test-link ()
   (assert (=
@@ -50,25 +51,38 @@
   (mapcar #'(lambda (joint-unstable joint-stable)
 	      (assert (eq (send joint-unstable :name) (send joint-stable :name))
 		      (format nil "check joint name ~A ~A" (send joint-unstable :name) (send joint-stable :name)))
+	      ;;
+
+	      (unless (= (send joint-unstable :min-angle)  (send joint-stable :min-angle))
+		(ros::ros-warn "check min angle between unstable ~A and stable ~A of ~A" (send joint-unstable :min-angle) (send joint-stable :min-angle) (send joint-stable :name) ))
+	      (unless (= (send joint-unstable :max-angle)  (send joint-stable :max-angle))
+		(ros::ros-warn "check max angle between unstable ~A and stable ~A of ~A" (send joint-unstable :max-angle) (send joint-stable :max-angle) (send joint-stable :name) ))
+	      ;;
 	      (assert
-	       (= (send joint-unstable :min-angle)  (send joint-stable :min-angle))
-	       (format nil "check min angle between ~A ~A" (send joint-unstable :name) (send joint-stable :name)))
+	       (< (- (send joint-unstable :min-angle)  (send joint-stable :min-angle)) 0)
+	       (format nil "check min angle between unstable ~A and stable ~A of ~A" (send joint-unstable :min-angle) (send joint-stable :min-angle) (send joint-stable :name) ))
 	      (assert
-	       (= (send joint-unstable :max-angle)  (send joint-stable :max-angle))
-	       (format nil "check max angle between ~A ~A" (send joint-unstable :name) (send joint-stable :name))
-	      ))
+	       (> (- (send joint-unstable :max-angle)  (send joint-stable :max-angle)) 0)
+	       (format nil "check max angle between unstable ~A and stable ~A of ~A" (send joint-unstable :max-angle) (send joint-stable :max-angle) (send joint-stable :name) ))
+	      )
 	  (send *pr2-unstable* :joint-list) (send *pr2-stable* :joint-list))
   )
 
 
 (deftest test-end-coords
   (dolist (limb (list :larm :rarm :head))
-    (assert (= (norm (send (send *pr2-unstable* limb :end-coords) :difference-position
-			      (send *pr2-stable* limb :end-coords))) 0)
-	    (format nil "strict check end-coords position of ~A" limb))
-    (assert (= (norm (send (send *pr2-unstable* limb :end-coords) :difference-rotation
-			      (send *pr2-stable* limb :end-coords))) 0)
-	    (format nil "strict check end-coords rotation of ~A" limb))
+    (unless (= (norm (send (send *pr2-unstable* limb :end-coords) :difference-position
+			   (send *pr2-stable* limb :end-coords))) 0)
+      (ros::ros-warn "strict check end-coords position of ~A assertion!" limb)
+      (ros::ros-warn "strict check end-coords position : ~A ~A"
+		      (send *pr2-unstable* limb :end-coords)
+		      (send *pr2-stable* limb :end-coords)))
+    (unless (= (norm (send (send *pr2-unstable* limb :end-coords) :difference-rotation
+			   (send *pr2-stable* limb :end-coords))) 0)
+      (ros::ros-warn "strict check end-coords rotation of ~A assertion!" limb)
+      (ros::ros-warn "strict check end-coords rotation : ~A ~A"
+		      (send *pr2-unstable* limb :end-coords)
+		      (send *pr2-stable* limb :end-coords)))
     (assert (eps= (norm (send (send *pr2-unstable* limb :end-coords) :difference-position
 			      (send *pr2-stable* limb :end-coords))) 0)
 	    (format nil "check end-coords position of ~A" limb))
