@@ -31,13 +31,13 @@
 	  )
   (mapcar #'(lambda (link-unstable link-stable)
 	      (assert (eq (send link-unstable :name) (send link-stable :name))
-		      "check link name")
+		      (format nil "check link name ~A ~A" (send link-unstable :name) (send link-stable :name)))
 	      (assert
 	       (= (norm (send (send link-unstable :worldcoords) :difference-position (send link-stable :worldcoords))) 0.0)
-	       "check link position")
+	       (format nil "check link position ~A ~A" (send link-unstable :name) (send link-stable :name)))
 	      (assert
 	       (= (norm (send (send link-unstable :worldcoords) :difference-rotation (send link-stable :worldcoords))) 0.0)
-	       "check link orientation"))
+	       (format nil "check link orientation ~A ~A" (send link-unstable :name) (send link-stable :name))))
 	  (send *pr2-unstable* :links) (send *pr2-stable* :links))
   )
 
@@ -49,7 +49,7 @@
 
   (mapcar #'(lambda (joint-unstable joint-stable)
 	      (assert (eq (send joint-unstable :name) (send joint-stable :name))
-		      "check joint name")
+		      (format nil "check joint name ~A ~A" (send joint-unstable :name) (send joint-stable :name)))
 	      (assert
 	       (= (send joint-unstable :min-angle)  (send joint-stable :min-angle))
 	       (format nil "check min angle between ~A ~A" (send joint-unstable :name) (send joint-stable :name)))
