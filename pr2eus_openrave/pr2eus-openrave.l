@@ -12,6 +12,8 @@
        "package://pr2_description/meshes/gripper_v0/gripper_palm.dae"
        "package://pr2_description/meshes/gripper_v0/l_finger.dae"
        "package://pr2_description/meshes/gripper_v0/l_finger.dae"
+       "package://pr2_description/meshes/gripper_v0/l_finger_tip.dae"
+       "package://pr2_description/meshes/gripper_v0/l_finger_tip.dae"
        "package://pr2_description/meshes/forearm_v0/wrist_flex.dae"
        "package://pr2_description/meshes/forearm_v0/forearm.dae"
        "package://pr2_description/meshes/upper_arm_v0/upper_arm.dae"
@@ -86,6 +88,7 @@
        (push (* (send (ros::time- (send point :time_from_start) tm) :to-sec) 1000) tms)
        (setq tm (send point :time_from_start))
        )
+     (push (send self :get-robot-list move-target) robot-list)
      ;; send visualization_msgs to rviz ;;TODO adjust time to *ri* ?
      (send self :show-mesh-traj-with-color *arm-dae-list* robot-list)
 
@@ -140,15 +143,18 @@
 
   (:show-goal-hand-coords ;;very temporary
    (coords move-target)
-   (let (robot-list (hand-state (make-list 2)) (goal-hand-parts-list (make-list 3)))
+   (let (robot-list (hand-state (make-list 4)) (goal-hand-parts-list (make-list 5)))
      (setq robot-list (send self :get-robot-list move-target))
      (setf (elt hand-state 0) (send (elt robot-list 0) :transformation (elt robot-list 1)))
      (setf (elt hand-state 1) (send (elt robot-list 0) :transformation (elt robot-list 2)))
+     (setf (elt hand-state 2) (send (elt robot-list 0) :transformation (elt robot-list 3)))
+     (setf (elt hand-state 3) (send (elt robot-list 0) :transformation (elt robot-list 4)))
      (setf (elt goal-hand-parts-list 0) (send (send coords :copy-worldcoords) :translate (float-vector -180 0 0) :local))
      (setf (elt goal-hand-parts-list 1) (send (send (elt goal-hand-parts-list 0) :copy-worldcoords) :transform (elt hand-state 0)))
      (setf (elt goal-hand-parts-list 2) (send (send (elt goal-hand-parts-list 0) :copy-worldcoords) :transform (elt hand-state 1)))
-     (print goal-hand-parts-list)
-     (send self :show-mesh-traj-with-color (subseq *arm-dae-list* 0 3) (list goal-hand-parts-list) :lifetime 0 :color #f(1 0 0))))
+     (setf (elt goal-hand-parts-list 3) (send (send (elt goal-hand-parts-list 0) :copy-worldcoords) :transform (elt hand-state 2)))
+     (setf (elt goal-hand-parts-list 4) (send (send (elt goal-hand-parts-list 0) :copy-worldcoords) :transform (elt hand-state 3)))
+     (send self :show-mesh-traj-with-color (subseq *arm-dae-list* 0 5) (list goal-hand-parts-list) :lifetime 0 :color #f(1 0 0))))
 
   (:get-robot-list ;;very temporary
    (move-target)
@@ -156,20 +162,24 @@
      (if (eq move-target :rarm)
 	 (progn
 	   (setf (elt robot-list 0) (send robot :r_gripper_palm_link :copy-worldcoords))
-	   (setf (elt robot-list 1) (send robot :r_gripper_r_finger_link :copy-worldcoords))
-	   (setf (elt robot-list 2) (send (send robot :r_gripper_l_finger_link :copy-worldcoords) :rotate pi :x))
-	   (setf (elt robot-list 3) (send robot :r_wrist_flex_link :copy-worldcoords))
-	   (setf (elt robot-list 4) (send robot :r_forearm_link :copy-worldcoords))
-	   (setf (elt robot-list 5) (send robot :r_upper_arm_link :copy-worldcoords))
-	   (setf (elt robot-list 6) (send robot :r_shoulder_lift_link :copy-worldcoords)))
+	   (setf (elt robot-list 1) (send robot :r_gripper_l_finger_link :copy-worldcoords))
+	   (setf (elt robot-list 2) (send (send robot :r_gripper_r_finger_link :copy-worldcoords) :rotate pi :x))
+	   (setf (elt robot-list 3) (send robot :r_gripper_l_finger_tip_link :copy-worldcoords))
+	   (setf (elt robot-list 4) (send (send robot :r_gripper_r_finger_tip_link :copy-worldcoords) :rotate pi :x))
+	   (setf (elt robot-list 5) (send robot :r_wrist_flex_link :copy-worldcoords))
+	   (setf (elt robot-list 6) (send robot :r_forearm_link :copy-worldcoords))
+	   (setf (elt robot-list 7) (send robot :r_upper_arm_link :copy-worldcoords))
+	   (setf (elt robot-list 8) (send robot :r_shoulder_lift_link :copy-worldcoords)))
        (progn
 	 (setf (elt robot-list 0) (send robot :l_gripper_palm_link :copy-worldcoords))
-	 (setf (elt robot-list 1) (send robot :l_gripper_r_finger_link :copy-worldcoords))
-	 (setf (elt robot-list 2) (send (send robot :l_gripper_l_finger_link :copy-worldcoords) :rotate pi :x))
-	 (setf (elt robot-list 3) (send robot :l_wrist_flex_link :copy-worldcoords))
-	 (setf (elt robot-list 4) (send robot :l_forearm_link :copy-worldcoords))
-	 (setf (elt robot-list 5) (send robot :l_upper_arm_link :copy-worldcoords))
-	 (setf (elt robot-list 6) (send robot :l_shoulder_lift_link :copy-worldcoords))))
+	 (setf (elt robot-list 1) (send robot :l_gripper_l_finger_link :copy-worldcoords))
+	 (setf (elt robot-list 2) (send (send robot :l_gripper_r_finger_link :copy-worldcoords) :rotate pi :x))
+	 (setf (elt robot-list 3) (send robot :l_gripper_l_finger_tip_link :copy-worldcoords))
+	 (setf (elt robot-list 4) (send (send robot :l_gripper_r_finger_tip_link :copy-worldcoords) :rotate pi :x))
+	 (setf (elt robot-list 5) (send robot :l_wrist_flex_link :copy-worldcoords))
+	 (setf (elt robot-list 6) (send robot :l_forearm_link :copy-worldcoords))
+	 (setf (elt robot-list 7) (send robot :l_upper_arm_link :copy-worldcoords))
+	 (setf (elt robot-list 8) (send robot :l_shoulder_lift_link :copy-worldcoords))))
     robot-list))
   (:show-mesh-traj-with-color
    (arm-dae-list robot-list &key ((:lifetime lf) 20)
