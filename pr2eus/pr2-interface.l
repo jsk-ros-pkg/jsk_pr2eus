@@ -73,10 +73,7 @@
 			    (* 1000 (send msg :twist :twist :linear :x))
 			    (* 1000 (send msg :twist :twist :linear :y))
 			    (send msg :twist :twist :angular :z))))))
-     (if (assoc :odom robot-state)
-	 (dolist (k parsed)
-	   (setf (cdr (assoc (car k) (cdr (assoc :odom robot-state)))) (cadr k)))
-       (push (push :odom parsed) robot-state))))
+     (send self :set-robot-state1 :odom parsed)))
   ;;
   (:state (&rest args) ;; overwrite for jsk_maps/pr2
    (case (car args)
@@ -243,19 +240,17 @@
   (:pr2-fingertip-callback
    (arm msg) ;; arm = :(r|l)arm-pressure
    (let ((pressure (list (send msg :l_finger_tip) (send msg :r_finger_tip))))
-     (if (assoc arm robot-state)
-	 (setf (cdr (assoc arm robot-state)) pressure)
-       (push (cons arm pressure) robot-state))))
+     (send self :set-robot-state1 arm pressure)))
   (:reset-fingertip
    ()
    (ros::spin-once)
    (setq finger-pressure-origin
-	 (mapcar #'(lambda(k)(copy-seq (assoc k robot-state)))
+	 (mapcar #'(lambda(k)(cons k (copy-seq (send self :state k))))
 		 '(:rarm-pressure :larm-pressure))))
   (:finger-pressure
    (arm &key (zero nil))
    (setq arm (case arm (:rarm :rarm-pressure) (:larm :larm-pressure)))
-   (let ((current (cdr (assoc arm robot-state)))
+   (let ((current (send self :state arm))
 	 (origin (cdr (assoc arm finger-pressure-origin))))
      (if zero
 	 (when (and current origin)
