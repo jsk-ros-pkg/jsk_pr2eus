@@ -59,10 +59,10 @@
 		(ros::ros-warn "check max angle between unstable ~A and stable ~A of ~A" (send joint-unstable :max-angle) (send joint-stable :max-angle) (send joint-stable :name) ))
 	      ;;
 	      (assert
-	       (< (- (send joint-unstable :min-angle)  (send joint-stable :min-angle)) 0)
+	       (<= (- (send joint-unstable :min-angle)  (send joint-stable :min-angle)) 0)
 	       (format nil "check min angle between unstable ~A and stable ~A of ~A" (send joint-unstable :min-angle) (send joint-stable :min-angle) (send joint-stable :name) ))
 	      (assert
-	       (> (- (send joint-unstable :max-angle)  (send joint-stable :max-angle)) 0)
+	       (>= (- (send joint-unstable :max-angle)  (send joint-stable :max-angle)) 0)
 	       (format nil "check max angle between unstable ~A and stable ~A of ~A" (send joint-unstable :max-angle) (send joint-stable :max-angle) (send joint-stable :name) ))
 	      )
 	  (send *pr2-unstable* :joint-list) (send *pr2-stable* :joint-list))
