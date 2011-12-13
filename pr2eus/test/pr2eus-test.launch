@@ -1,4 +1,8 @@
 <launch>
-  <test test-name="pr2-ik-test" pkg="roseus" type="roseus"
+  <node name="pr2_sensor_data" pkg="rosbag" type="rosbag"
+	args="play -l $(find pr2eus)/test/pr1012_sensors.bag" />
+  <test test-name="pr2_read_state_test" pkg="roseus" type="roseus"
+	args="$(find pr2eus)/test/pr2-read-state-test.l" />
+  <test test-name="pr2_ik_test" pkg="roseus" type="roseus"
 	args="$(find pr2eus)/test/pr2-ik-test.l" />
 </launch>
