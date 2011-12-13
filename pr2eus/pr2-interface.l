@@ -67,9 +67,9 @@
    (msg)
    (let ((parsed
 	  (list
-	   (list :stamp (send msg :header :stamp))
-	   (list :pose (ros::tf-pose->coords (send msg :pose :pose)))
-	   (list :velocity (float-vector
+	   (cons :stamp (send msg :header :stamp))
+	   (cons :pose (ros::tf-pose->coords (send msg :pose :pose)))
+	   (cons :velocity (float-vector
 			    (* 1000 (send msg :twist :twist :linear :x))
 			    (* 1000 (send msg :twist :twist :linear :y))
 			    (send msg :twist :twist :angular :z))))))

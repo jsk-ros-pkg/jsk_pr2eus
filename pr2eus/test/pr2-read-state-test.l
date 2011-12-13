@@ -47,6 +47,7 @@
   (ros::spin-once)
   (assert (send *ri* :state :odom :stamp))
   (assert (send *ri* :state :odom :pose))
+  (assert (derivedp (send *ri* :state :odom :pose) coordinates))
   (assert (send *ri* :state :odom :velocity))
   )
 
