@@ -78,6 +78,14 @@
 	   (setf (cdr (assoc (car k) (cdr (assoc :odom robot-state)))) (cadr k)))
        (push (push :odom parsed) robot-state))))
   ;;
+  (:state (&rest args) ;; overwrite for jsk_maps/pr2
+   (case (car args)
+     (:worldcoords
+      (send-super :state :worldcoords (or (cadr args) "/world")))
+     (t
+      (send-super* :state args))
+     ))
+  ;;
   (:wait-interpolation ;; overwrite for pr2
    ()
    (unless joint-action-enable (return-from :wait-interpolation nil))
@@ -255,7 +263,7 @@
        current)))
   ;;
   (:move-to
-   (coords &key (retry 10) (frame-id "/map") (wait-for-server-timeout 5))
+   (coords &key (retry 10) (frame-id "/world") (wait-for-server-timeout 5))
    (let (ret (count 0) (tm (ros::time-now))
 	     (pose (ros::coords->tf-pose coords))
              (goal (instance move_base_msgs::MoveBaseActionGoal :init))
@@ -269,7 +277,6 @@
        (return-from :move-to t))
      (when (not (send move-base-action :wait-for-server wait-for-server-timeout))
        (return-from :move-to))
-     (setq map-goal-coords (send (send *tfl* :lookup-transform "/map" frame-id (ros::time 0)) :transform (send coords :copy-worldcoords))) ;; goal-coords in /map coordinates
      ;;
      (send goal :header :stamp tm)
      (send goal :goal :target_pose :header :stamp tm)
@@ -284,7 +291,8 @@
        (if (eq (send move-base-action :get-state) actionlib_msgs::GoalStatus::*succeeded*)
            (setq ret t)))
      (ros::ros-info "move-to : ~A" (if ret 'succeeded 'failed))
-
+     ;;
+     (setq map-goal-coords (send (send *tfl* :lookup-transform "/map" frame-id (ros::time 0)) :transform (send coords :copy-worldcoords))) ;; goal-coords in /map coordinates
      (when ret
        (let (diff tmp msec current-coords ret x y d)
 	 (dotimes (i 2)
