@@ -56,7 +56,7 @@
                              var))
 
          (ros::rate 10)
-         (while (and (ros::ok) (not (boundp var)) (< (incf i) 10))
+         (while (and (ros::ok) (not (boundp var)) (< (incf i) 50))
            (ros::spin-once)
            (ros::sleep))
          (ros::unsubscribe camera-info)
