@@ -195,13 +195,14 @@
 	  (clients (case arm
 		     (:rarm (list r-gripper-action))
 		     (:larm (list l-gripper-action))
-		     (:arms (list r-gripper-action l-gripper-action)))))
+		     (:arms (list r-gripper-action l-gripper-action))
+		     (t (ros::ros-warn "arm[~a] in :move-gripper is invalid type" arm)))))
      (dolist (client clients)
        (setq goal (instance pr2_controllers_msgs::Pr2GripperCommandActionGoal :init))
        (send goal :goal :command :position pos)
        (send goal :goal :command :max_effort effort)
        (send client :send-goal goal))
-     (if wait (mapcar #'(lambda(c)(send c :wait-for-result)) clients))
+     (if wait (send-all clients :wait-for-result))
      ))
   (:start-grasp
    (&optional (arm :arms) &key ((:gain g) 0.01))
@@ -222,7 +223,7 @@
 	     (if (send obj :parent) (send (send obj :parent) :dissoc obj))
 	     (send robot a :end-coords :assoc obj)))))
      (return-from :start-grasp nil))
-   (send self :state)
+   (send self :update-robot-state) ;; update state of 'robot' 
    (case arm
 	 (:larm (send robot :l_gripper_joint :joint-angle))
 	 (:rarm (send robot :r_gripper_joint :joint-angle))
