@@ -477,11 +477,7 @@
   (call-empty-service "/move_base_node/clear_costmaps")
   (call-empty-service "/move_base_node/clear_unknown_space"))
 
-(defun initialize-costmap ()
-  (ros::ros-warn "initialize-costmap is already removed")
-  (clear-costmap))
-
-(defun change-inflation-range (&optional (range 0.55) &key (type :local))
+(defun change-inflation-range (&optional (range 0.55))
   (let ((req (instance dynamic_reconfigure::ReconfigureRequest :init)))
     (send req :config :doubles
 	  (list (instance dynamic_reconfigure::DoubleParameter :init
