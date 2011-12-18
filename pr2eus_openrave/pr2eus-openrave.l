@@ -98,8 +98,8 @@
      ;; send to ri
      (send self :angle-vector-sequence (nreverse avs) (nreverse tms))
 
-     (if avs
-	 (list avs tms))
+     (if joint-trajectory
+	 (list avs tms) nil)
      ))
   (:call-openrave-move-to-hand-position
    (coords manip-name hand-frame-id)
