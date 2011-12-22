@@ -13,6 +13,7 @@
 (ros::roseus-add-msgs "move_base_msgs")
 (ros::roseus-add-msgs "nav_msgs")
 (ros::roseus-add-msgs "sound_play")
+(load "speak.l")
 
 (defmethod pr2-robot
   (:torque-vector
@@ -31,6 +32,8 @@
    (&rest args &key (type :default-controller)
           (move-base-action-name "move_base")
 		  &allow-other-keys)
+   ;;
+   (ros::advertise "j_robotsound" sound_play::SoundRequest 5)
    ;;
    (ros::subscribe "/base_odometry/odom" nav_msgs::Odometry
 		   #'send self :pr2-odom-callback)
