@@ -3,7 +3,7 @@
 ;;
 (require :pr2 "package://pr2eus/pr2.l")
 (require :pr2-utils "package://pr2eus/pr2-utils.l")
-(require :robot-interface "package://roseus/euslisp/robot-interface.l")
+(require :robot-interface "package://pr2eus/robot-interface.l")
 
 ;;;
 ;;; pr2 robot interface
