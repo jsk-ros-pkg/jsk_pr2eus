@@ -109,8 +109,11 @@
      (format nil "check jacobian for ~A~%" limb))))
 
 (deftest test-cameras
-  (assert (= (length *pr2-cameras-unstable*)
+  (unless (= (length *pr2-cameras-unstable*)
 	     (length *pr2-cameras-stable*))
+    (ros::ros-warn "strict check camera number unstable:~A stable:~A" (length *pr2-cameras-unstable*) (length *pr2-cameras-stable*)))
+  (assert (>= (length *pr2-cameras-unstable*)
+	      (length *pr2-cameras-stable*))
 	  "check camera number")
   (dolist (camera-stable *pr2-cameras-stable*)
     (let* ((camera-name (send camera-stable :name))
