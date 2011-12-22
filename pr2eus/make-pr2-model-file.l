@@ -42,11 +42,15 @@
                  "wide_stereo/right"
                  "l_forearm_cam"
                  "r_forearm_cam"
-                 "prosilica"))
+                 "prosilica"
+		 "camera/rgb"
+		 "camera/depth"
+		 ))
      (dolist (camera-var camera-vars)
        (let ((var (intern (substitute #\- #\/ (string-upcase camera-var))))
              (camera-info (format nil "~A/camera_info" camera-var))
              (camera-name (substitute #\- #\/ (string-downcase camera-var)))
+	     (frame-id)
 	     (i 0))
          (ros::subscribe camera-info sensor_msgs::CameraInfo
                          #'(lambda (msg)
@@ -62,11 +66,24 @@
 	     (progn
 	       (setq var (eval var))
 	       (push camera-var valid-camera-vars)
-	       (warning-message 2 "received ~A ~A ~A~%" camera-info var (send var :header :frame_id))
+	       (setq frame-id (send var :header :frame_id))
+	       (if (eq (elt frame-id 0) #\/) (setq frame-id (subseq frame-id 1)))
+	       (warning-message 2 "received ~A ~A ~A~%" camera-info var frame-id)
 	       (format f "  (:~A (&rest args)~%" camera-name)
-	       (format f "   (let ((c (get self :~A-model)))~%" camera-name)
+	       (format f "   (let* ((c (get self :~A-model))~%" camera-name)
+	       (when (equal frame-id "openni_depth_optical_frame")
+		 (format f "          (openni_camera (make-cascoords :coords (send (make-coords :pos (float-vector 22 40 150) :rpy (float-vector 0.15 0 -0.02)) :transform (send head_plate_frame :worldcoords) :world) :parent head_plate_frame :name 'openni_camera))~%")
+		 (format f "          (openni_depth_frame (make-cascoords :coords (send (make-coords :pos (float-vector 0 -20 0)) :transform (send openni_camera :worldcoords) :world) :parent openni_camera :name 'openni_depth_frame))~%")
+		 (format f "          (~A (make-cascoords :coords (send (make-coords :rpy (float-vector -pi/2 0 -pi/2)) :transform (send openni_depth_frame :worldcoords) :world) :parent openni_depth_frame :name ~s))~%" frame-id frame-id)
+		 )
+	       (when (equal frame-id "openni_rgb_optical_frame")
+		 (format f "          (openni_camera (make-cascoords :coords (send (make-coords :pos (float-vector 22 40 150) :rpy (float-vector 0.15 0 -0.02)) :transform (send head_plate_frame :worldcoords) :world) :parent head_plate_frame :name 'openni_camera))~%")
+		 (format f "          (openni_rgb_frame (make-cascoords :coords (send (make-coords :pos (float-vector 0 -40 0)) :transform (send openni_camera :worldcoords) :world) :parent openni_camera :name 'openni_rgb_frame))~%")
+		 (format f "          (~A (make-cascoords :coords (send (make-coords :rpy (float-vector -pi/2 0 -pi/2)) :transform (send openni_rgb_frame :worldcoords) :world) :parent openni_rgb_frame :name ~s))~%" frame-id frame-id)
+		 )
+	       (format f "         )~%")
 	       (format f "     (unless c~%")
-	       (format f "       (setq c (make-camera-from-ros-camera-info-aux ~A ~A ~A ~A))~%" (send var :width) (send var :height) (send var :p) (send var :header :frame_id))
+	       (format f "       (setq c (make-camera-from-ros-camera-info-aux ~A ~A ~A ~A))~%" (send var :width) (send var :height) (send var :p) frame-id)
 	       (format f "       (send c :name \"~A\")~%" camera-var)
 	       (format f "       (setf (get self :~A-model) c))~%" camera-name)
 	       (format f "     (forward-message-to c args)))~%"))
