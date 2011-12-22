@@ -16,4 +16,5 @@
   <depend package="nav_msgs"/>
   <depend package="dynamic_reconfigure"/>
 
+  <depend package="sound_play"/>
 </package>
