@@ -24,12 +24,23 @@
 	(rend (send *tfl* :lookup-transform "/base_footprint" "/r_gripper_tool_frame"
 		    (ros::time 0))))
     (send *pr2* :angle-vector (send *ri* :state :potentio-vector))
+    (dolist (link (send *pr2* :links))
+      (assert (> 10 (distance (send (send *tfl* :lookup-transform "/base_footprint" (string-downcase (send link :name)) (ros::time 0)) :worldpos)
+			      (send *pr2* (send link :name) :worldpos)))
+	      (format nil " ~A of model and one from tf are not same position" (send link :name)))
+    )
+
+
+    (assert (> 1 (distance (send *ri* :state :potentio-vector)
+			   (send *pr2* :angle-vector)))
+	    (format nil "angle-vector of model and one from joint-state are not same angle ~A ~A" (send *ri* :state :potentio-vector) (send *pr2* :angle-vector)))
+
     (assert (> 10 (distance (send lend :worldpos)
 			    (send *pr2* :larm :end-coords :worldpos)))
-	    "larm-end-coords of model and one from tf are not same position")
+	    (format nil "larm-end-coords of model and one from tf are not same position ~A ~A" (send lend :worldpos) (send *pr2* :larm :end-coords :worldpos)))
     (assert (> 10 (distance (send rend :worldpos)
 			    (send *pr2* :rarm :end-coords :worldpos)))
-	    "rarm-end-coords of model and one from tf are not same position")
+	    (format nil "rarm-end-coords of model and one from tf are not same position ~A ~A" (send rend :worldpos) (send *pr2* :rarm :end-coords :worldpos)))
     )
   )
 
