@@ -465,7 +465,7 @@
   \ ixx=\"1.0\" ixy=\"0.0\" ixz=\"0.0\" iyy=\"1.0\" iyz=\"0.0\" izz=\"1.0\"/>\n  \
   \  </inertial>\n    <visual>\n      <origin rpy=\"0 0 0\" xyz=\" 0 0 0 \"/>\n  \
   \    <geometry>\n        <mesh filename=\"package://turtlebot_description/meshes/kinect.dae\"\
-  />\n      </geometry>\n    </visual>\n    <collision>\n      <origin rpy=\"0 0 0\"\
+  />\n      </geometry>\n      <material name=\"Black\"/>\n    </visual>\n    <collision>\n      <origin rpy=\"0 0 0\"\
   \ xyz=\"0.0 0.0 0.0\"/>\n      <geometry>\n        <box size=\"0.0730 .2760 0.0720\"\
   />\n      </geometry>\n    </collision>\n  </link>\n\n  <!-- Camera package: double\
   \ stereo, prosilica -->\n  <joint name=\"sensor_mount_frame_joint\" type=\"fixed\"\
