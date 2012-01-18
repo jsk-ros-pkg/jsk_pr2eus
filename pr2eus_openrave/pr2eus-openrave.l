@@ -7,35 +7,6 @@
 (ros::advertise "openrave_marker_array" visualization_msgs::MarkerArray 100)
 
 ;; We set dae-list below because package://pr2eus/pr2.l do not include collada file path, waiting for its support. This is very temporary.
-(setq *arm-dae-list*
-      (list
-       "package://pr2_description/meshes/gripper_v0/gripper_palm.dae"
-       "package://pr2_description/meshes/gripper_v0/l_finger.dae"
-       "package://pr2_description/meshes/gripper_v0/l_finger.dae"
-       "package://pr2_description/meshes/gripper_v0/l_finger_tip.dae"
-       "package://pr2_description/meshes/gripper_v0/l_finger_tip.dae"
-       "package://pr2_description/meshes/forearm_v0/wrist_flex.dae"
-       "package://pr2_description/meshes/forearm_v0/forearm.dae"
-       "package://pr2_description/meshes/upper_arm_v0/upper_arm.dae"
-       "package://pr2_description/meshes/shoulder_v0/shoulder_lift.dae"))
-
-(defun mesh->marker-msg
-  (cds mesh_resource header
-       &key ((:color col) (float-vector 1 1 1)) ((:scale sc) 1000)
-       ((:id idx) 0) ((:mesh_use_embedded_materials use_embedded) t)
-       (alpha 1.0) ns lifetime)
-    (let* ((msg (instance visualization_msgs::Marker :init
-			  :type visualization_msgs::Marker::*MESH_RESOURCE*
-			  :header header :id idx)))
-      (send msg :mesh_resource mesh_resource)
-      (send msg :mesh_use_embedded_materials use_embedded)
-      (send msg :scale (ros::pos->tf-translation (float-vector sc sc sc)))
-      (send msg :color (vector->rgba col alpha))
-      (send msg :frame_locked t)
-      (send msg :pose (ros::coords->tf-pose cds))
-      (if ns (send msg :ns ns))
-      (if lifetime (send msg :lifetime (ros::time lifetime)))
-      msg))
 
 (defmethod pr2-interface
   (:service-call-joint-state
@@ -56,16 +27,17 @@
      (setq coords (send robot move-target :end-coords :copy-worldcoords))
      (send self :move-end-coords-plan coords :move-target move-target :use-torso use-torso)))
   (:move-end-coords-plan
-   (coords &key (move-target :larm) (use-torso t))
-   (let (joint-trajectory joint-trajectory-points joints avs tms (tm (ros::time -1)) robot-list (diff-sum 0) (diff-thre 100))
+   (coords &key (move-arm :larm) (use-torso t))
+   (let (joint-trajectory joint-trajectory-points joints avs tms (tm (ros::time -1)) link-coords-list (diff-sum 0) (diff-thre 100)
+			  (link-list (send robot :link-list (send robot move-arm :end-coords :parent) (car (send robot move-arm)))))
      ;; call openrave
-     (send self :show-goal-hand-coords coords move-target)
+     (send self :show-goal-hand-coords coords move-arm)
 
      (setq joint-trajectory
 	   (send self :call-openrave-move-to-hand-position
 		 coords
-		 (format nil "~A~A" (case move-target (:larm "leftarm") (:rarm "rightarm")) (if use-torso "_torso" ""))
-		 (case move-target (:larm "l_gripper_tool_frame") (:rarm "r_gripper_tool_frame"))))
+		 (format nil "~A~A" (case move-arm (:larm "leftarm") (:rarm "rightarm")) (if use-torso "_torso" ""))
+		 (case move-arm (:larm "l_gripper_tool_frame") (:rarm "r_gripper_tool_frame"))))
      ;; JointTrajectory to angle-vector
      (if joint-trajectory
 	 (setq joint-trajectory-points (send joint-trajectory :points)
@@ -81,18 +53,18 @@
 		    (send ajoint :joint-angle (* 1000 aposition)))))
 	       joints (coerce (send point :positions) cons))
        (push (send robot :angle-vector) avs)
+       ;;
        (when (cadr avs)
 	 (incf diff-sum (reduce #'+ (map float-vector #'(lambda(x) (abs x)) (v- (car avs) (cadr avs)))))
 	 (if (> diff-sum diff-thre)
-	     (progn (setq diff-sum 0)(push (send self :get-robot-list move-target) robot-list))))
+	     (progn (setq diff-sum 0) (push (send-all link-list :copy-worldcoords) link-coords-list))))
+       ;;
        (push (* (send (ros::time- (send point :time_from_start) tm) :to-sec) 1000) tms)
        (setq tm (send point :time_from_start))
        )
-     (push (send self :get-robot-list move-target) robot-list)
-     ;; send visualization_msgs to rviz ;;TODO adjust time to *ri* ?
-     (send self :show-mesh-traj-with-color *arm-dae-list* robot-list)
-
-
+     (push (send-all link-list :copy-worldcoords) link-coords-list)
+     ;; send visualization_msgs to rviz
+     (send self :show-mesh-traj-with-color (send-all (flatten (send-all link-list :bodies)) :name) link-coords-list)
 
      (send robot :angle-vector (car (last avs)))
      ;; send to ri
@@ -141,59 +113,31 @@
 
      (if res (send res :traj))))
 
-  (:show-goal-hand-coords ;;very temporary
-   (coords move-target)
-   (let (robot-list (hand-state (make-list 4)) (goal-hand-parts-list (make-list 5)))
-     (setq robot-list (send self :get-robot-list move-target))
-     (setf (elt hand-state 0) (send (elt robot-list 0) :transformation (elt robot-list 1)))
-     (setf (elt hand-state 1) (send (elt robot-list 0) :transformation (elt robot-list 2)))
-     (setf (elt hand-state 2) (send (elt robot-list 0) :transformation (elt robot-list 3)))
-     (setf (elt hand-state 3) (send (elt robot-list 0) :transformation (elt robot-list 4)))
-     (setf (elt goal-hand-parts-list 0) (send (send coords :copy-worldcoords) :translate (float-vector -180 0 0) :local))
-     (setf (elt goal-hand-parts-list 1) (send (send (elt goal-hand-parts-list 0) :copy-worldcoords) :transform (elt hand-state 0)))
-     (setf (elt goal-hand-parts-list 2) (send (send (elt goal-hand-parts-list 0) :copy-worldcoords) :transform (elt hand-state 1)))
-     (setf (elt goal-hand-parts-list 3) (send (send (elt goal-hand-parts-list 0) :copy-worldcoords) :transform (elt hand-state 2)))
-     (setf (elt goal-hand-parts-list 4) (send (send (elt goal-hand-parts-list 0) :copy-worldcoords) :transform (elt hand-state 3)))
-     (send self :show-mesh-traj-with-color (subseq *arm-dae-list* 0 5) (list goal-hand-parts-list) :lifetime 0 :color #f(1 0 0))))
+  (:show-goal-hand-coords
+   (coords move-arm)
+   (let ()
+     (send self :show-mesh-traj-with-color
+	   (send-all (flatten (send-all (send robot :gripper move-arm :links) :bodies)) :name)
+	   (send-all (send-all  (send robot :gripper move-arm :links) :copy-worldcoords) :transform (send robot move-arm :end-coords :transformation coords) :local)
+	   :lifetime 0 :color #f(1 0 0))
+     ))
 
-  (:get-robot-list ;;very temporary
-   (move-target)
-   (let ((robot-list (make-list (length *arm-dae-list*))))
-     (if (eq move-target :rarm)
-	 (progn
-	   (setf (elt robot-list 0) (send robot :r_gripper_palm_link :copy-worldcoords))
-	   (setf (elt robot-list 1) (send robot :r_gripper_l_finger_link :copy-worldcoords))
-	   (setf (elt robot-list 2) (send (send robot :r_gripper_r_finger_link :copy-worldcoords) :rotate pi :x))
-	   (setf (elt robot-list 3) (send robot :r_gripper_l_finger_tip_link :copy-worldcoords))
-	   (setf (elt robot-list 4) (send (send robot :r_gripper_r_finger_tip_link :copy-worldcoords) :rotate pi :x))
-	   (setf (elt robot-list 5) (send robot :r_wrist_flex_link :copy-worldcoords))
-	   (setf (elt robot-list 6) (send robot :r_forearm_link :copy-worldcoords))
-	   (setf (elt robot-list 7) (send robot :r_upper_arm_link :copy-worldcoords))
-	   (setf (elt robot-list 8) (send robot :r_shoulder_lift_link :copy-worldcoords)))
-       (progn
-	 (setf (elt robot-list 0) (send robot :l_gripper_palm_link :copy-worldcoords))
-	 (setf (elt robot-list 1) (send robot :l_gripper_l_finger_link :copy-worldcoords))
-	 (setf (elt robot-list 2) (send (send robot :l_gripper_r_finger_link :copy-worldcoords) :rotate pi :x))
-	 (setf (elt robot-list 3) (send robot :l_gripper_l_finger_tip_link :copy-worldcoords))
-	 (setf (elt robot-list 4) (send (send robot :l_gripper_r_finger_tip_link :copy-worldcoords) :rotate pi :x))
-	 (setf (elt robot-list 5) (send robot :l_wrist_flex_link :copy-worldcoords))
-	 (setf (elt robot-list 6) (send robot :l_forearm_link :copy-worldcoords))
-	 (setf (elt robot-list 7) (send robot :l_upper_arm_link :copy-worldcoords))
-	 (setf (elt robot-list 8) (send robot :l_shoulder_lift_link :copy-worldcoords))))
-    robot-list))
   (:show-mesh-traj-with-color
-   (arm-dae-list robot-list &key ((:lifetime lf) 20)
+   (link-dae-list link-coords-list &key ((:lifetime lf) 20)
 		 (ns "mesh_traj") ((:color col) #f(0.5 0.5 0.5)))
+   (print link-dae-list)
+   (print link-coords-list)
    (let ((msg (instance visualization_msgs::MarkerArray :init))
 	 (header (instance std_msgs::header :init
 			   :stamp (ros::time-now) :frame_id "base_footprint"))
-	 (l (length robot-list)) markers-list alpha-list)
+	 (l (length link-coords-list)) markers-list alpha-list)
      (dotimes (i l)
        (push (+ (/ (/ (1+ i) 2.0) l) 0.5) alpha-list))
      (dotimes (i l)
        (let (markers)
 	 (mapcar #'(lambda(x y) (push (mesh->marker-msg x y header :mesh_use_embedded_materials nil :color col :alpha (elt alpha-list i)) markers))
-		 (elt robot-list i) arm-dae-list)
+		 (elt link-coords-list i) link-dae-list)
+	 (print markers)
 	 (mapcar #'(lambda(x) (send x :lifetime (ros::time lf)) (send x :ns ns)) markers)
 	 (push markers markers-list)))
      (setq markers-list (flatten markers-list))

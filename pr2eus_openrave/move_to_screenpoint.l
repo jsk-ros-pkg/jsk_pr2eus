@@ -28,7 +28,7 @@
       (objects (list *pr2* box)))
     (setq ret (send *ri* :move-end-coords-plan
 		    (send (send p :copy-worldcoords) :translate #f(-10 0 0) :local)
-		    :move-target :rarm :use-torso t))
+		    :move-arm :rarm :use-torso t))
     (ros::ros-info "move-end-coords-plan -> ~A~%" ret)
     (if (and *exit-on-fail* (null ret)) (exit 1))
     (send *ri* :wait-interpolation)

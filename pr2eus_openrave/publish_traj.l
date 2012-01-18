@@ -5,8 +5,8 @@
   (unless (boundp '*pr2*) (pr2))
   (unless (boundp '*ri*) (setq *ri* (instance pr2-interface :init)))
   (objects (list *pr2*))
-  (ros::advertise "openrave_marker_array" visualization_msgs::MarkerArray 10)
-  (setq *arm-dae-list*
+  (ros::advertise "openrave_marker_array" visualization_msgs::MarkerArray 100)
+  (setq *arm-dae-list* ;; this is not good at all
 	(list
 	 "package://pr2_description/meshes/gripper_v0/gripper_palm.dae"
 	 "package://pr2_description/meshes/gripper_v0/l_finger.dae"
@@ -24,9 +24,9 @@
    (send *pr2* :angle-vector (send *ri* :state :potentio-vector))
    (push (GetPointList (send *pr2* arm :end-coords)) *point-list*)
    (push (GetLineList (send *pr2* arm :end-coords)) *line-list*)
-   (push (GetRobotList) *robot-list*)
+   (push (GetRobotList :arm arm) *robot-list*)
    (send *irtviewer* :draw-objects) (x::window-main-one)
-   (unix::usleep (* 1000 800)) (warn "."))
+   (unix::usleep (* 1000 1500)) (warn "."))
   (nreverse *point-list*) (nreverse *line-list*) (nreverse *robot-list*)
   (format t "
 (show-lines-lists-with-color-and-spheres *line-list* *point-list*)
@@ -50,15 +50,25 @@
       (setq child (send child :parent)))
     pair-list))
 
-(defun GetRobotList () ;;very temporary
+(defun GetRobotList (&key (arm :rarm)) ;; very temporary
   (let ((robot-list (make-list (length *arm-dae-list*))))
-    (setf (elt robot-list 0) (send *pr2* :r_gripper_palm_link :copy-worldcoords))
-    (setf (elt robot-list 1) (send *pr2* :r_gripper_r_finger_link :copy-worldcoords))
-    (setf (elt robot-list 2) (send (send *pr2* :r_gripper_l_finger_link :copy-worldcoords) :rotate pi :x))
-    (setf (elt robot-list 3) (send *pr2* :r_wrist_flex_link :copy-worldcoords))
-    (setf (elt robot-list 4) (send *pr2* :r_forearm_link :copy-worldcoords))
-    (setf (elt robot-list 5) (send *pr2* :r_upper_arm_link :copy-worldcoords))
-    (setf (elt robot-list 6) (send *pr2* :r_shoulder_lift_link :copy-worldcoords))
+    (if (eq arm :rarm)
+	(progn
+	  (setf (elt robot-list 0) (send *pr2* :r_gripper_palm_link :copy-worldcoords))
+	  (setf (elt robot-list 1) (send *pr2* :r_gripper_r_finger_link :copy-worldcoords))
+	  (setf (elt robot-list 2) (send (send *pr2* :r_gripper_l_finger_link :copy-worldcoords) :rotate pi :x))
+	  (setf (elt robot-list 3) (send *pr2* :r_wrist_flex_link :copy-worldcoords))
+	  (setf (elt robot-list 4) (send *pr2* :r_forearm_link :copy-worldcoords))
+	  (setf (elt robot-list 5) (send *pr2* :r_upper_arm_link :copy-worldcoords))
+	  (setf (elt robot-list 6) (send *pr2* :r_shoulder_lift_link :copy-worldcoords)))
+	(progn
+	  (setf (elt robot-list 0) (send *pr2* :l_gripper_palm_link :copy-worldcoords))
+	  (setf (elt robot-list 1) (send *pr2* :l_gripper_r_finger_link :copy-worldcoords))
+	  (setf (elt robot-list 2) (send (send *pr2* :l_gripper_l_finger_link :copy-worldcoords) :rotate pi :x))
+	  (setf (elt robot-list 3) (send *pr2* :l_wrist_flex_link :copy-worldcoords))
+	  (setf (elt robot-list 4) (send *pr2* :l_forearm_link :copy-worldcoords))
+	  (setf (elt robot-list 5) (send *pr2* :l_upper_arm_link :copy-worldcoords))
+	  (setf (elt robot-list 6) (send *pr2* :l_shoulder_lift_link :copy-worldcoords))))
     robot-list))
 
 (defun show-sphere-sample
@@ -91,7 +101,7 @@
 
 
 (defun show-lines-lists-with-color-and-spheres
-  (point-list sphere-list &key ((:lifetime lf) 20) (ns "lines_and_spheres")
+  (point-list sphere-list &key ((:lifetime lf) 10) (ns "lines_and_spheres")
 	      ((:color col) #f(0.5 0.5 1)) ((:scale sc) 20) (alpha 0.5))
   (let ((msg (instance visualization_msgs::MarkerArray :init))
 	(header (instance std_msgs::header :init
@@ -99,7 +109,8 @@
 	(l (length point-list)) markers-list color-list alpha-list)
     ;; lines
     (dotimes (i l)
-      (push (+ (/ (/ i 2.0) l) 0.5) alpha-list)
+      ;;      (push (+ (/ (/ i 2.0) l) 0.5) alpha-list)
+      (push (/ (/ i 2.0) l) alpha-list)
       (if (< i (/ l 2.0)) ;; graduation from blue to red
 	  (push (float-vector (* (/ (* i 1.0) l) 2.0) 0 1) color-list)
 	(push (float-vector 1 0 (* (/ (- l (* i 1.0)) l) 2.0)) color-list)))
@@ -153,14 +164,15 @@
     ))
 
 (defun show-mesh-traj-with-color
-  (arm-dae-list robot-list &key ((:lifetime lf) 20)
-		(ns "mesh_traj") ((:color col) #f(0.5 0.5 0.5)))
+  (arm-dae-list robot-list &key ((:lifetime lf) 10)
+		(ns "mesh_traj") ((:color col) (float-vector 0.1 0.1 0.1)))
   (let ((msg (instance visualization_msgs::MarkerArray :init))
 	(header (instance std_msgs::header :init
 			  :stamp (ros::time-now) :frame_id "base_footprint"))
 	(l (length robot-list)) markers-list alpha-list)
     (dotimes (i l)
-      (push (+ (/ (/ i 2.0) l) 0.5) alpha-list))
+      (push (/ (/ i 1.5) l) alpha-list))
+    ;;      (push (+ (/ (/ i 2.0) l) 0.5) alpha-list))
     (nreverse alpha-list)
     (dotimes (i l)
       (let (markers)
@@ -204,3 +216,22 @@
 (show-mesh-traj-with-color-with-line)
 ")
 
+(defun test1 ()
+  (setq *a* (copy-object *line-list*))
+  (setq *b* (copy-object *robot-list*))
+  )
+
+(defun test2 ()
+  (setq *c* (copy-object *line-list*))
+  (setq *d* (copy-object *robot-list*))
+  )
+
+(defun test3 ()
+  (show-lines-lists-with-color-and-spheres *a* nil)
+  (show-mesh-traj-with-color *arm-dae-list* *b*)
+  )
+
+(defun test4 ()
+  (show-lines-lists-with-color-and-spheres *c* nil)
+  (show-mesh-traj-with-color *arm-dae-list* *d*)
+  )
