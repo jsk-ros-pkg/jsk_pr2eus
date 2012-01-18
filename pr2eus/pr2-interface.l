@@ -86,7 +86,7 @@
       (send-super* :state args))
      ))
   (:publish-joint-state () ;; overwrite for pr2
-   (send-super :publish-joint-state (append (send robot :joint-list) (send robot :larm :joint-list) (send robot :rarm :joint-list))))
+   (send-super :publish-joint-state (append (send robot :joint-list) (send robot :larm :gripper :joint-list) (send robot :rarm :gripper :joint-list))))
   ;;
   (:wait-interpolation ;; overwrite for pr2
    ()
