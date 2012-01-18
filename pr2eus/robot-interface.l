@@ -56,10 +56,10 @@
    self)
   ;;
   (:publish-joint-state ;; for simulation mode (joint-action-enable is nil)
-   ()
+   (&optional (joint-list (send robot :joint-list)))
    (let ((msg (instance sensor_msgs::JointState :init)) names positions velocities efforts)
      (send msg :header :stamp (ros::time-now))
-     (dolist (j (send robot :joint-list))
+     (dolist (j joint-list)
        (push (string-downcase (symbol-name (send j :name))) names)
        (push (cond ((derivedp j rotational-joint)
 		    (deg2rad (send j :joint-angle)))

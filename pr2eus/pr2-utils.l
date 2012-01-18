@@ -97,6 +97,16 @@
 	(list (send self :r_gripper_palm_link)
 	      (send self :r_gripper_l_finger_link) (send self :r_gripper_r_finger_link)
 	      (send self :r_gripper_l_finger_tip_link) (send self :r_gripper_r_finger_tip_link)))))
+    ((memq :joint-list args)
+     (case limb
+       (:larm (list (send self :l_gripper_l_finger_joint)
+		    (send self :l_gripper_l_finger_tip_joint)
+		    (send self :l_gripper_r_finger_joint)
+		    (send self :l_gripper_r_finger_tip_joint)))
+       (:rarm (list (send self :r_gripper_l_finger_joint)
+		    (send self :r_gripper_l_finger_tip_joint)
+		    (send self :r_gripper_r_finger_joint)
+		    (send self :r_gripper_r_finger_tip_joint)))))
     ((memq :joint-angle args)
      (if (null (cdr args))
          (case limb
