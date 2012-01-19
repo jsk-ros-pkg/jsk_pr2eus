@@ -1,6 +1,11 @@
 (load "unittest.l")
-(init-unit-test)
+(load "package://pr2eus/make-pr2-model-file")
+(ros::roseus "make-pr2-modle-file")
+(make-pr2-model-file :output-directory "/tmp")
+(load "/tmp/pr2.l")
 (load "package://pr2eus/pr2-interface.l")
+
+(init-unit-test)
 
 ;; test for pr2-interface
 ;;  . read topics which is subscribed by pr2-interface
