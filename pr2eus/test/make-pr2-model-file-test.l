@@ -35,10 +35,10 @@
 		      (format nil "check link name ~A ~A" (send link-unstable :name) (send link-stable :name)))
 	      (assert
 	       (= (norm (send (send link-unstable :worldcoords) :difference-position (send link-stable :worldcoords))) 0.0)
-	       (format nil "check link position ~A ~A" (send link-unstable :name) (send link-stable :name)))
+	       (format nil "check link position ~A ~A" link-unstable link-stable))
 	      (assert
 	       (= (norm (send (send link-unstable :worldcoords) :difference-rotation (send link-stable :worldcoords))) 0.0)
-	       (format nil "check link orientation ~A ~A" (send link-unstable :name) (send link-stable :name))))
+	       (format nil "check link orientation ~A ~A" link-unstable link-stable)))
 	  (send *pr2-unstable* :links) (send *pr2-stable* :links))
   )
 
@@ -123,10 +123,16 @@
       (when camera-unstable
 	(assert (= (norm (send camera-unstable :difference-position
 			     camera-stable)) 0.0)
-		(format nil "check camera position for ~A" camera-name))
+		(format nil "check camera position for ~A ~A ~A ~A" camera-name
+			camera-unstable camera-stable
+			(norm (send camera-unstable :difference-position
+				    camera-stable))))
 	(assert (= (norm (send camera-unstable :difference-rotation
 			       camera-stable)) 0.0)
-		(format nil "check camera rotation for ~A" camera-name))
+		(format nil "check camera rotation for ~A ~A ~A ~A" camera-name
+			camera-unstable camera-stable
+			(norm (send camera-unstable :difference-rotation
+				    camera-stable))))
 	(assert (= (send camera-unstable :width)
 		   (send camera-stable :width))
 		(format nil "check camera width for ~A" camera-name))
@@ -138,12 +144,22 @@
 		(format nil "check camera fovy for ~A" camera-name))
 	(assert (= (norm (v- (send camera-unstable :view-direction)
 			     (send camera-stable :view-direction))) 0.0)
-		(format nil "check camera view-direction for ~A" camera-name))
+		(format nil "check camera view-direction for ~A ~A ~A ~A" camera-name
+			(send camera-unstable :view-direction)
+			(send camera-stable :view-direction)
+			(norm (v- (send camera-unstable :view-direction)
+				  (send camera-stable :view-direction)))))
 	(assert (= (norm
 		    (array-entity
 		     (m- (send camera-unstable :projection)
 			 (send camera-stable :projection)))) 0.0)
-		(format nil "check camera projection for ~A" camera-name))
+		(format nil "check camera projection for ~A ~A ~A ~A" camera-name
+			(send camera-unstable :projection)
+			(send camera-stable :projection)
+			(norm
+			 (array-entity
+			  (m- (send camera-unstable :projection)
+			      (send camera-stable :projection))))))
 	)))
   )
 
