@@ -104,7 +104,7 @@
      (format f "           (forward-message-to (car (send self :cameras)) args))))~%")
      (format f "  ) ;; defmethod ~A-robot~%" robot)
      ) ;; with-open-file
-    (warning-message 1 "copy model file from ~A to ~A.l~%" fname_lisp robot)
+    (warning-message 1 "copy model file from ~A to ~A/~A.l~%" fname_lisp output-directory robot)
     (unix::system (format nil "mv ~A ~A/~A.l" fname_lisp output-directory robot))
     ))
 
