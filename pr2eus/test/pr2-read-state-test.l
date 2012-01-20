@@ -72,6 +72,22 @@
   (assert (send *ri* :state :worldcoords))
   )
 
+#|
+(deftest pr2-link-coords-test ()
+  (ros::spin-once)
+  (send *pr2* :angle-vector (send *ri* :state :potentio-vector))
+  (dolist (m (send *pr2* :methods))
+    (when (substringp "_LINK" (string m))
+    (let* ((frame-id (string-downcase (string m)))
+	   (c (send *pr2* m))
+	   (p (send *tfl* :lookup-transform "/base_footprint" frame-id (ros::time 0))))
+      (assert (eps= (norm (send p :difference-position c)) 0.0 3.0)
+	      (format nil "check ~A : ~A ~A, diff ~A" frame-id p c (norm (send p :difference-position c))))
+      (assert (eps= (norm (send p :difference-rotation c)) 0.0 3.0)
+	      (format nil "check ~A : ~A ~A, diff ~A" frame-id p c (norm (send p :difference-rotation c))))
+      ))))
+|#
+
 (deftest pr2-camera-coords-test ()
   (ros::spin-once)
   (send *pr2* :angle-vector (send *ri* :state :potentio-vector))
