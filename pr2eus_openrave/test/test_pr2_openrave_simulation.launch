@@ -2,6 +2,6 @@
   <include file="$(find pr2eus_openrave)/launch/pr2_openrave_simulation.launch" />
   <node type="rviz" pkg="rviz" name="rviz_pr2_openrave"
 	args="--sync -d $(find pr2eus_openrave)/test/test_pr2eus_openrave.vcg" />
-  <test type="pr2_openrave_simulation.py" pkg="pr2eus_openrave"
-	test-name="pr2_openrave_simulation" />
+  <!--test type="pr2_openrave_simulation.py" pkg="pr2eus_openrave"
+  test-name="pr2_openrave_simulation" /-->
 </launch>

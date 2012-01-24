@@ -6,11 +6,13 @@
 (defun init-settings ()
   (unless (boundp '*pr2*) (pr2))
   (unless (boundp '*ri*)
-      (setq *ri* (instance pr2-interface :init)))
+    (setq *ri* (instance pr2-interface :init)))
   (unless *simulation*
       (objects (list *pr2*)))
   (ros::subscribe "ray_coords" geometry_msgs::PoseStamped #'pose-cb)
+  (ros::subscribe "change_pose_pr2" std_msgs::String #'change-cb)
   (setq *begin* (ros::time-now))
+  (setq *lock* nil)
   )
 
 (defun pose-cb (msg)
@@ -18,8 +20,11 @@
 	(htime (send msg :header :stamp))
 	(p (ros::tf-pose->coords (send msg :pose)))
 	ret)
-    (cond ((> 0 (send (ros::time- htime *begin*) :to-sec))
-	   (return-from pose-cb nil)))
+    (if (or *lock* (> 0 (send (ros::time- htime *begin*) :to-sec)))
+	(progn
+	  (ros::ros-warn "return-from pose-cb because of lock or time problem")
+	  (return-from pose-cb nil)))
+    (setq *lock* t)
     (if *simulation*
 	(send *ri* :publish-joint-state))
     (ros::ros-info "subscribed~A" p)
@@ -27,11 +32,23 @@
     (unless *simulation*
       (objects (list *pr2* box)))
     (setq ret (send *ri* :move-end-coords-plan
-		    (send (send p :copy-worldcoords) :translate #f(-10 0 0) :local)
-		    :move-arm :rarm :use-torso t))
+		    (send p :copy-worldcoords) :move-arm :rarm :use-torso t))
     (ros::ros-info "move-end-coords-plan -> ~A~%" ret)
     (if (and *exit-on-fail* (null ret)) (exit 1))
     (send *ri* :wait-interpolation)
+    (setq *lock* nil)
+    ))
+
+(defun change-cb(msg)
+  (let ((data (read-from-string (send msg :data))))
+    (case data
+      ('reset-pose
+       (ros::ros-warn "reset-pose")
+       (send *pr2* :reset-pose)
+       (send *ri* :angle-vector (send *pr2* :angle-vector))
+       (if *simulation*
+	   (send *ri* :publish-joint-state))
+      ))
     ))
 
 (defun execute-main ()
