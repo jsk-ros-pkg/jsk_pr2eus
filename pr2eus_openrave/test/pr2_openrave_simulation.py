@@ -21,6 +21,9 @@ class TestPr2EusOpenrave(unittest.TestCase):
                                    orientation=geometry_msgs.msg.Quaternion(0.0 ,0.707 ,0.0, 0.707))
                         ]
         time.sleep(10)
+        msg = std_msgs.msg.String()
+        msg.data = "reset-pose"
+        pub2.publish(msg)
 
         try:
             for pose in target_poses:
