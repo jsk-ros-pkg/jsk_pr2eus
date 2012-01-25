@@ -1,0 +1,35 @@
+Background\ ColorR=0
+Background\ ColorG=0
+Background\ ColorB=0
+Fixed\ Frame=/base_link
+Target\ Frame=<Fixed Frame>
+Grid.Alpha=0.5
+Grid.Cell\ Size=1
+Grid.ColorR=0.5
+Grid.ColorG=0.5
+Grid.ColorB=0.5
+Grid.Enabled=1
+Grid.Line\ Style=0
+Grid.Line\ Width=0.03
+Grid.Normal\ Cell\ Count=0
+Grid.OffsetX=0
+Grid.OffsetY=0
+Grid.OffsetZ=0
+Grid.Plane=0
+Grid.Plane\ Cell\ Count=10
+Grid.Reference\ Frame=<Fixed Frame>
+MarkerArray.Enabled=1
+MarkerArray.Marker\ Array\ Topic=/openrave_marker_array
+Tool\ 2D\ Nav\ GoalTopic=move
+Tool\ 2D\ Pose\ EstimateTopic=initialpose
+Camera\ Type=rviz::XYOrbitViewController
+Camera\ Config=1.011 4.87356 24.5009 1.24258 1.35303e-05 -6.87167
+Property\ Grid\ State=selection=;expanded=.Global Options,MarkerArray.Enabled.MarkerArray.Namespaces;scrollpos=0,0;splitterpos=150,301;ispageselected=1
+[Display0]
+Name=Grid
+Package=rviz
+ClassName=rviz::GridDisplay
+[Display1]
+Name=MarkerArray
+Package=rviz
+ClassName=rviz::MarkerArrayDisplay
