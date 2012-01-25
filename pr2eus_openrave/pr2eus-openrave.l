@@ -26,12 +26,13 @@
      (send self :move-end-coords-plan coords :move-target move-target :use-torso use-torso)))
   (:move-end-coords-plan
    (coords &key (move-arm :larm) (use-torso t))
+   ;; for fast result view
+   (send self :show-goal-hand-coords (send coords :copy-worldcoords) move-arm)
+
    (let* (joint-trajectory joint-trajectory-points joints avs tms (tm (ros::time -1)) link-coords-list (diff-sum 0) (diff-thre 50)
      (gripper-list (send robot :gripper move-arm :links))
      (link-list (send robot :link-list (send robot move-arm :end-coords :parent) (car (send robot move-arm))))
      (all-list (append link-list gripper-list)))
-     ;; call openrave
-     (send self :show-goal-hand-coords coords move-arm)
 
      (setq joint-trajectory
 	   (send self :call-openrave-move-to-hand-position
@@ -53,12 +54,12 @@
 		    (send ajoint :joint-angle (* 1000 aposition)))))
 	       joints (coerce (send point :positions) cons))
        (push (send robot :angle-vector) avs)
-       ;;
+
        (when (cadr avs)
 	 (incf diff-sum (reduce #'+ (map float-vector #'(lambda(x) (abs x)) (v- (car avs) (cadr avs)))))
 	 (if (> diff-sum diff-thre)
 	     (progn (setq diff-sum 0) (push (send-all all-list :copy-worldcoords) link-coords-list))))
-       ;;
+
        (push (* (send (ros::time- (send point :time_from_start) tm) :to-sec) 1000) tms)
        (setq tm (send point :time_from_start))
        )
@@ -115,18 +116,18 @@
 
      (if res (send res :traj))))
 
-  (:show-goal-hand-coords;;
+  (:show-goal-hand-coords
    (coords move-arm)
    (let ()
      (send self :show-mesh-traj-with-color
 	   (flatten (send-all (send robot :gripper move-arm :links) :bodies :name))
-	   (send-all (send-all  (send robot :gripper move-arm :links) :copy-worldcoords) :transform (send robot move-arm :end-coords :transformation coords) :local)
-	   :lifetime 0 :color #f(1 0 0))
+	   (list (send-all (send-all  (send robot :gripper move-arm :links) :copy-worldcoords) :transform (send robot move-arm :end-coords :transformation coords) :local))
+	   :lifetime 15 :color #f(1 0 1) :ns "hand_traj")
      ))
 
   (:show-mesh-traj-with-color
    (link-dae-list link-coords-list &key ((:lifetime lf) 20)
-		 (ns "mesh_traj") ((:color col) #f(0.5 0.5 0.5)))
+		 (ns "robot_traj") ((:color col) #f(0.5 0.5 0.5)))
    (let ((msg (instance visualization_msgs::MarkerArray :init))
 	 (header (instance std_msgs::header :init
 			   :stamp (ros::time-now) :frame_id "base_footprint"))
@@ -147,5 +148,6 @@
   )
 
 
-;;; (send *ri* :move-end-coords-plan (make-coords :pos #f(600 -100 1200)) :move-arm :rarm :use-torso t)
+;; (send *ri* :move-end-coords-plan (make-coords :pos #f(600 -100 1200) :rpy (float-vector pi/2 0 0)) :move-arm :rarm :use-torso t)
+;; (send *ri* :move-end-coords-plan (make-coords :pos #f(600 -100 1200) :rpy (float-vector 0 0 pi/2)) :move-arm :rarm :use-torso t)
 ;;; (send *ri* :angle-vector-motion-plan (send *pr2* :angle-vector) 5000 :move-arm :rarm)
