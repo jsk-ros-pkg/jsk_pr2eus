@@ -81,12 +81,6 @@
      ))
   (:call-openrave-move-to-hand-position
    (coords manip-name hand-frame-id)
-   (unless coords
-     (ros::ros-warn "armplanning-srvcall: no target coords is specified")
-     (return-from :call-openrave-move-to-hand-position nil))
-   (unless manip-name
-     (ros::ros-warn "armplanning-srvcall: no manip-name is specified")
-     (return-from :call-openrave-move-to-hand-position nil))
    (let ((req (instance orrosplanning::MoveToHandPositionRequest :init))
 	 (hand-goal (ros::coords->tf-pose-stamped coords "base_footprint"))
 	 res (mux-req (instance topic_tools::MuxSelectRequest :init)))
@@ -119,18 +113,29 @@
 
      (if res (send res :traj))))
 
-  (:show-goal-hand-coords
+  (:show-goal-hand-coords ;;temporally
    (coords move-arm)
-   (let (gripper-list)
-     (mapcar #'(lambda(x) (if (and (find-method x :bodies) (flatten (send x :bodies :name))) (push x gripper-list))) (send (send (send robot move-arm :end-coords) :parent) :descendants))
-     ;; (send self :show-mesh-traj-with-color
-     ;; 	   (flatten (send-all (send robot :gripper move-arm :links) :bodies :name))
-     ;; 	   (list (send-all (send-all  (send robot :gripper move-arm :links) :copy-worldcoords) :transform (send robot move-arm :end-coords :transformation coords) :local))
-     ;; 	   :lifetime 15 :color #f(1 0 1) :ns "hand_traj")
+   (print coords)
+   (let* (;;gripper-list
+	  ;; (diff-coords (send robot move-arm :end-coords :transformation coords))
+	  ;; (tmp (send-all (send-all (send robot :gripper move-arm :links) :copy-worldcoords) :transform (send diff-coords :copy-worldcoords) :local)))
+	  (tmp (mapcar #'(lambda (gripper-link)
+			   (send (send coords :copy-worldcoords) :transform
+				 (send (send robot move-arm :end-coords) :transformation gripper-link)
+				 :local))
+		       (send robot :gripper move-arm :links))))
+     ;;(mapcar #'(lambda(x) (if (and (find-method x :bodies) (flatten (send x :bodies :name))) (push x gripper-list))) (send (send (send robot move-arm :end-coords) :parent) :descendants))
+     (setf (elt tmp 2) (send (send (elt tmp 2) :copy-worldcoords) :rotate pi :x))
+     (setf (elt tmp 4) (send (send (elt tmp 4) :copy-worldcoords) :rotate pi :x))
+     (pprint tmp)
      (send self :show-mesh-traj-with-color
-	   (flatten (send-all gripper-list :bodies :name))
-	   (list (send-all (send-all (flatten (send-all gripper-list :bodies :copy-worldcoords)) :transform (send robot move-arm :end-coords :transformation coords) :local) :copy-worldcoords))
-	   :lifetime 15 :color #f(1 0 1) :ns "hand_traj")
+     	   (flatten (send-all (send robot :gripper move-arm :links) :bodies :name))
+	   (list tmp)
+     	   :lifetime 15 :color #f(1 0 1) :ns "hand_traj")
+     ;; (send self :show-mesh-traj-with-color
+     ;; 	   (flatten (send-all gripper-list :bodies :name))
+     ;; 	   (list (send-all (send-all (flatten (send-all gripper-list :bodies :copy-worldcoords)) :transform (send robot move-arm :end-coords :transformation coords) :local) :copy-worldcoords))
+     ;; 	   :lifetime 15 :color #f(1 0 1) :ns "hand_traj")
      ))
   (:show-mesh-traj-with-color
    (link-dae-list link-coords-list &key ((:lifetime lf) 20)
@@ -156,5 +161,4 @@
 
 
 ;; (send *ri* :move-end-coords-plan (make-coords :pos #f(600 -100 1200) :rpy (float-vector pi/2 0 0)) :move-arm :rarm :use-torso t)
-;; (send *ri* :move-end-coords-plan (make-coords :pos #f(600 -100 1200) :rpy (float-vector 0 0 pi/2)) :move-arm :rarm :use-torso t)
-;;; (send *ri* :angle-vector-motion-plan (send *pr2* :angle-vector) 5000 :move-arm :rarm)
+;; (send *ri* :move-end-coords-plan (make-coords :pos #f(600 -100 1000) :rpy (float-vector 0 0 pi/2)) :move-arm :rarm :use-torso t)
