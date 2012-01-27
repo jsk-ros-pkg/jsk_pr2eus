@@ -25,7 +25,7 @@
      (setq coords (send robot move-target :end-coords :copy-worldcoords))
      (send self :move-end-coords-plan coords :move-target move-target :use-torso use-torso)))
   (:move-end-coords-plan
-   (coords &key (move-arm :larm) (use-torso t))
+   (coords &key (move-arm :larm) (use-torso t) ((:lifetime lf) 20))
    ;; for fast result view
    (send self :show-goal-hand-coords (send coords :copy-worldcoords) move-arm)
    (let* (joint-trajectory joint-trajectory-points joints avs tms (tm (ros::time -1)) link-coords-list (diff-sum 0) (diff-thre 50) gripper-list
@@ -70,7 +70,7 @@
      ;;     (send self :show-mesh-traj-with-color (send-all (flatten (send-all link-list :bodies)) :name) link-coords-list)
 
      (send self :show-mesh-traj-with-color (append (send-all (flatten (send-all link-list :bodies)) :name) (flatten (send-all gripper-list :bodies :name)))
-	   link-coords-list)
+	   link-coords-list :lifetime lf)
 
      (send robot :angle-vector (car (last avs)))
      ;; send to *ri*
@@ -131,7 +131,7 @@
      (send self :show-mesh-traj-with-color
      	   (flatten (send-all (send robot :gripper move-arm :links) :bodies :name))
 	   (list tmp)
-     	   :lifetime 15 :color #f(1 0 1) :ns "hand_traj")
+     	   :lifetime 10 :color #f(1 0 1) :ns "hand_traj")
      ;; (send self :show-mesh-traj-with-color
      ;; 	   (flatten (send-all gripper-list :bodies :name))
      ;; 	   (list (send-all (send-all (flatten (send-all gripper-list :bodies :copy-worldcoords)) :transform (send robot move-arm :end-coords :transformation coords) :local) :copy-worldcoords))

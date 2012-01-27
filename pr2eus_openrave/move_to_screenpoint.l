@@ -1,14 +1,14 @@
 #!/usr/bin/env roseus
 (load "package://pr2eus_openrave/pr2eus-openrave.l")
-(setq *simulation* nil)
 (setq *exit-on-fail* nil)
 
 (defun init-settings ()
   (unless (boundp '*pr2*) (pr2))
   (unless (boundp '*ri*)
     (setq *ri* (instance pr2-interface :init)))
-  (unless *simulation*
+  (unless (and x::*display* (> x::*display* 0))
       (objects (list *pr2*)))
+  (pr2-tuckarm-pose :larm)
   (ros::subscribe "ray_coords" geometry_msgs::PoseStamped #'pose-cb)
   (ros::subscribe "change_pose_pr2" std_msgs::String #'change-cb)
   (setq *begin* (ros::time-now))
@@ -25,14 +25,12 @@
 	  (ros::ros-warn "return-from pose-cb because of lock or time problem")
 	  (return-from pose-cb nil)))
     (setq *lock* t)
-    (if *simulation*
-	(send *ri* :publish-joint-state))
     (ros::ros-info "subscribed~A" p)
     (send box :transform p)
-    (unless *simulation*
+    (unless (and x::*display* (> x::*display* 0))
       (objects (list *pr2* box)))
     (setq ret (send *ri* :move-end-coords-plan
-		    (send p :copy-worldcoords) :move-arm :rarm :use-torso t))
+		    (send p :copy-worldcoords) :move-arm :rarm :use-torso t :lifetime 10))p
     (ros::ros-info "move-end-coords-plan -> ~A~%" ret)
     (if (and *exit-on-fail* (null ret)) (exit 1))
     (send *ri* :wait-interpolation)
@@ -45,10 +43,16 @@
       ('reset-pose
        (ros::ros-warn "reset-pose")
        (send *pr2* :reset-pose)
-       (send *ri* :angle-vector (send *pr2* :angle-vector))
-       (if *simulation*
-	   (send *ri* :publish-joint-state))
-      ))
+       (send *ri* :angle-vector (send *pr2* :angle-vector)))
+      ('tuck-arm-r
+       (ros::ros-warn "tuckarm-pose")
+       (pr2-tuckarm-pose :rarm)
+       (send *ri* :publish-joint-state))
+      ('tuck-arm-l
+       (ros::ros-warn "tuckarm-pose")
+       (pr2-tuckarm-pose :larm)
+       (send *ri* :publish-joint-state))
+      )
     ))
 
 (defun execute-main ()

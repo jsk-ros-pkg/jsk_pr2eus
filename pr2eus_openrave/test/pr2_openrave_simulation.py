@@ -7,7 +7,6 @@ import std_msgs.msg
 
 class TestPr2EusOpenrave(unittest.TestCase):
     def test_ray_coords(self):
-
         rospy.init_node('pr2_openrave_simulation_node')
         rospy.wait_for_service('/MoveToHandPosition')
         pub1 = rospy.Publisher('ray_coords', geometry_msgs.msg.PoseStamped)
@@ -20,10 +19,7 @@ class TestPr2EusOpenrave(unittest.TestCase):
             geometry_msgs.msg.Pose(position=geometry_msgs.msg.Point(0.591, 0.079,0.985),
                                    orientation=geometry_msgs.msg.Quaternion(0.0 ,0.707 ,0.0, 0.707))
                         ]
-        time.sleep(10)
-        msg = std_msgs.msg.String()
-        msg.data = "reset-pose"
-        pub2.publish(msg)
+        time.sleep(15)
 
         try:
             for pose in target_poses:
@@ -34,12 +30,13 @@ class TestPr2EusOpenrave(unittest.TestCase):
                 print "sending...",msg
                 pub1.publish(msg)
                 print "wait for 20 secs"
-                time.sleep(20)
+                time.sleep(15)
 
                 msg = std_msgs.msg.String()
-                msg.data = "reset-pose"
+                msg.data = "tuck-arm-r"
                 pub2.publish(msg)
                 print "resetting pose."
+                time.sleep(3)
 
         finally:
             rospy.loginfo('shutting down')

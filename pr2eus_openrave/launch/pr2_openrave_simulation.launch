@@ -13,6 +13,5 @@
 	args="--request-for-joint_states='service'"/>
   <node name="pr2eus_openrave_eus" pkg="roseus" type="roseus" output="screen"
   	args='$(find pr2eus_openrave)/move_to_screenpoint.l
-  	      "(setq *simulation* t *exit-on-fail* t)" "(execute-main)" ' />
-<!--     TODO:update collision_map from euslisp -->
+  	      "(setq *exit-on-fail* t)" "(execute-main)" ' />
 </launch>
