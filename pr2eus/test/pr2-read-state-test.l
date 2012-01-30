@@ -69,7 +69,8 @@
 
 (deftest pr2-calc-worldcoords-test ()
   (ros::spin-once)
-  (assert (send *ri* :state :worldcoords))
+  (assert (send *ri* :state :worldcoords)
+	  "failed to get robot position from /world frame")
   )
 
 #|
