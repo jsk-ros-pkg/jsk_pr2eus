@@ -8,9 +8,15 @@ import std_msgs.msg
 class TestPr2EusOpenrave(unittest.TestCase):
     def test_ray_coords(self):
         rospy.init_node('pr2_openrave_simulation_node')
+
         rospy.wait_for_service('/MoveToHandPosition')
+
         pub1 = rospy.Publisher('ray_coords', geometry_msgs.msg.PoseStamped)
         pub2 = rospy.Publisher('change_pose_pr2', std_msgs.msg.String)
+
+        while pub1.get_num_connections() < 1 :
+            print "waiting"
+            time.sleep(1)
 
         target_poses = [
             geometry_msgs.msg.Pose(position=geometry_msgs.msg.Point(0.600, -0.100,1.000),

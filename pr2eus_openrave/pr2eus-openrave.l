@@ -6,6 +6,16 @@
 
 (ros::advertise "openrave_marker_array" visualization_msgs::MarkerArray 100)
 
+(defun remove-marker ()
+  (let*	((header (instance std_msgs::header :init
+			   :stamp (ros::time-now) :frame_id "base_footprint"))
+	 (msg (instance visualization_msgs::Marker :init
+			:type visualization_msgs::Marker::*MESH_RESOURCE*
+			:header header :id 0)))
+    (send msg :action visualization_msgs::Marker::*DELETE*)
+    (ros::publish "openrave_marker_array" msg)
+    ))
+
 (defmethod pr2-interface
   (:service-call-joint-state
    ()
@@ -27,11 +37,15 @@
   (:move-end-coords-plan
    (coords &key (move-arm :larm) (use-torso t) ((:lifetime lf) 20))
    ;; for fast result view
+
+
    (send self :show-goal-hand-coords (send coords :copy-worldcoords) move-arm)
    (let* (joint-trajectory joint-trajectory-points joints avs tms (tm (ros::time -1)) link-coords-list (diff-sum 0) (diff-thre 50) gripper-list
-			   (link-list (send robot :link-list (send robot move-arm :end-coords :parent) (car (send robot move-arm)))))
+			   (dae-link-list
+			    (send self :find-descendants-dae-links (send robot move-arm :root-link))))
      ;;(gripper-list (send robot :gripper move-arm :links))
-     (mapcar #'(lambda(x) (if (and (find-method x :bodies) (flatten (send x :bodies :name))) (push x gripper-list))) (send (send (send robot move-arm :end-coords) :parent) :descendants))
+     ;;(mapcar #'(lambda(x) (if (and (find-method x :bodies) (flatten (send-all (send x :bodies) :name))) (push x gripper-list))) (send (send (send robot move-arm :end-coords) :parent) :descendants))
+     (mapcar #'(lambda(x) (if (and (find-method x :bodies) (flatten (send-all (send x :bodies) :name))) (push x gripper-list))) (send robot :gripper move-arm :links))
      (setq gripper-list (flatten gripper-list))
 
      (setq joint-trajectory
@@ -58,18 +72,20 @@
 	 (incf diff-sum (reduce #'+ (map float-vector #'(lambda(x) (abs x)) (v- (car avs) (cadr avs)))))
 	 (if (> diff-sum diff-thre)
 	     (progn (setq diff-sum 0)
-		    (push (append (send-all link-list :copy-worldcoords)
-				  (flatten (send-all gripper-list :bodies :copy-worldcoords))) link-coords-list))))
+		    (push (append (send-all (flatten (send-all dae-link-list :bodies)) :copy-worldcoords)
+				  (send-all (flatten (send-all gripper-list :bodies)) :copy-worldcoords)) link-coords-list))))
        (push (* (send (ros::time- (send point :time_from_start) tm) :to-sec) 1000) tms)
        (setq tm (send point :time_from_start))
        )
-     (push (append (send-all link-list :copy-worldcoords)
-		   (flatten (send-all gripper-list :bodies :copy-worldcoords)))
+     (push (append (send-all (flatten (send-all dae-link-list :bodies)) :copy-worldcoords)
+		   (send-all (flatten (send-all gripper-list :bodies)) :copy-worldcoords))
 	   link-coords-list)
      ;; send visualization_msgs to rviz
      ;;     (send self :show-mesh-traj-with-color (send-all (flatten (send-all link-list :bodies)) :name) link-coords-list)
 
-     (send self :show-mesh-traj-with-color (append (send-all (flatten (send-all link-list :bodies)) :name) (flatten (send-all gripper-list :bodies :name)))
+     (send self :show-mesh-traj-with-color (append
+					    (send-all (flatten (send-all dae-link-list :bodies)) :name)
+					    (send-all (flatten (send-all gripper-list :bodies)) :name))
 	   link-coords-list :lifetime lf)
 
      (send robot :angle-vector (car (last avs)))
@@ -127,7 +143,7 @@
      ;;(mapcar #'(lambda(x) (if (and (find-method x :bodies) (flatten (send x :bodies :name))) (push x gripper-list))) (send (send (send robot move-arm :end-coords) :parent) :descendants))
      (setf (elt tmp 2) (send (send (elt tmp 2) :copy-worldcoords) :rotate pi :x))
      (setf (elt tmp 4) (send (send (elt tmp 4) :copy-worldcoords) :rotate pi :x))
-     (pprint tmp)
+     ;;(pprint tmp)
      (send self :show-mesh-traj-with-color
      	   (flatten (send-all (send robot :gripper move-arm :links) :bodies :name))
 	   (list tmp)
@@ -137,6 +153,11 @@
      ;; 	   (list (send-all (send-all (flatten (send-all gripper-list :bodies :copy-worldcoords)) :transform (send robot move-arm :end-coords :transformation coords) :local) :copy-worldcoords))
      ;; 	   :lifetime 15 :color #f(1 0 1) :ns "hand_traj")
      ))
+  (:find-descendants-dae-links
+   (l)
+   (unless l (return-from :find-descendants-dae-links nil))
+   (append (list l)
+	   (mapcan #'(lambda (x) (send self :find-descendants-dae-links x)) (send l :child-links))))
   (:show-mesh-traj-with-color
    (link-dae-list link-coords-list &key ((:lifetime lf) 20)
 		 (ns "robot_traj") ((:color col) #f(0.5 0.5 0.5)))
@@ -160,5 +181,5 @@
   )
 
 
-;; (send *ri* :move-end-coords-plan (make-coords :pos #f(600 -100 1200) :rpy (float-vector pi/2 0 0)) :move-arm :rarm :use-torso t)
+;; (send *ri* :move-end-coords-plan (make-coords :pos #f(600 -100 1200) :rpy (float-vector pi/2 0 0)) :move-arm :rarm :use-torso t) 
 ;; (send *ri* :move-end-coords-plan (make-coords :pos #f(600 -100 1000) :rpy (float-vector 0 0 pi/2)) :move-arm :rarm :use-torso t)
