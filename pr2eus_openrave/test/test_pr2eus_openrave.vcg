@@ -3,6 +3,14 @@ Background\ ColorG=0
 Background\ ColorB=0
 Fixed\ Frame=/base_link
 Target\ Frame=<Fixed Frame>
+CollisionMap.Alpha=1
+CollisionMap.ColorR=0.1
+CollisionMap.ColorG=1
+CollisionMap.ColorB=0
+CollisionMap.Enabled=1
+CollisionMap.Override\ Color=0
+CollisionMap.Render\ Operation=0
+CollisionMap.Topic=/collision_map_occ
 Grid.Alpha=0.5
 Grid.Cell\ Size=1
 Grid.ColorR=0.5
@@ -20,8 +28,6 @@ Grid.Plane\ Cell\ Count=10
 Grid.Reference\ Frame=<Fixed Frame>
 MarkerArray.Enabled=1
 MarkerArray.Marker\ Array\ Topic=/openrave_marker_array
-MarkerArray.hand_traj=1
-MarkerArray.robot_traj=1
 Robot\ Model.Alpha=1
 Robot\ Model.Collision\ Enabled=0
 Robot\ Model.Enabled=1
@@ -169,7 +175,7 @@ Tool\ 2D\ Nav\ GoalTopic=move
 Tool\ 2D\ Pose\ EstimateTopic=initialpose
 Camera\ Type=rviz::XYOrbitViewController
 Camera\ Config=1.346 3.70356 2.98831 0.456939 1.31131e-05 0.0791044
-Property\ Grid\ State=selection=Robot Model.Enabled;expanded=.Global Options,MarkerArray.Enabled.MarkerArray.Namespaces;scrollpos=0,0;splitterpos=176,368;ispageselected=1
+Property\ Grid\ State=selection=;expanded=.Global Options,MarkerArray.Enabled.MarkerArray.Namespaces,CollisionMap.Enabled.CollisionMap.StatusTopStatus;scrollpos=0,0;splitterpos=184,368;ispageselected=1
 [Display0]
 Name=Grid
 Package=rviz
@@ -182,3 +188,7 @@ ClassName=rviz::MarkerArrayDisplay
 Name=Robot Model
 Package=rviz
 ClassName=rviz::RobotModelDisplay
+[Display3]
+Name=CollisionMap
+Package=mapping_rviz_plugin
+ClassName=mapping_rviz_plugin::CollisionMapDisplay
