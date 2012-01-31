@@ -6,14 +6,15 @@
 
 (ros::advertise "openrave_marker_array" visualization_msgs::MarkerArray 100)
 
-(defun remove-marker ()
-  (let*	((header (instance std_msgs::header :init
-			   :stamp (ros::time-now) :frame_id "base_footprint"))
-	 (msg (instance visualization_msgs::Marker :init
-			:type visualization_msgs::Marker::*MESH_RESOURCE*
-			:header header :id 0)))
+
+(defun remove-marker (id)
+  (let*	((header (instance std_msgs::header :init :stamp (ros::time-now) :frame_id "base_footprint")) (ns "robot_traj")
+	 (msg (instance visualization_msgs::Marker :init :header header :ns ns))
+	 (msgarray (instance visualization_msgs::MarkerArray :init)))
+    (send msg :id id)
     (send msg :action visualization_msgs::Marker::*DELETE*)
-    (ros::publish "openrave_marker_array" msg)
+    (send msgarray :markers (list msg))
+    (ros::publish "openrave_marker_array" msgarray)
     ))
 
 (defmethod pr2-interface
@@ -37,9 +38,8 @@
   (:move-end-coords-plan
    (coords &key (move-arm :larm) (use-torso t) ((:lifetime lf) 20))
    ;; for fast result view
-
-
    (send self :show-goal-hand-coords (send coords :copy-worldcoords) move-arm)
+
    (let* (joint-trajectory joint-trajectory-points joints avs tms (tm (ros::time -1)) link-coords-list (diff-sum 0) (diff-thre 50) gripper-list
 			   (dae-link-list
 			    (send self :find-descendants-dae-links (send robot move-arm :root-link))))
@@ -86,7 +86,7 @@
      (send self :show-mesh-traj-with-color (append
 					    (send-all (flatten (send-all dae-link-list :bodies)) :name)
 					    (send-all (flatten (send-all gripper-list :bodies)) :name))
-	   link-coords-list :lifetime lf)
+	   link-coords-list :lifetime 0)
 
      (send robot :angle-vector (car (last avs)))
      ;; send to *ri*
@@ -147,7 +147,7 @@
      (send self :show-mesh-traj-with-color
      	   (flatten (send-all (send robot :gripper move-arm :links) :bodies :name))
 	   (list tmp)
-     	   :lifetime 10 :color #f(1 0 1) :ns "hand_traj")
+     	   :lifetime 0 :color #f(1 0 1) :ns "hand_traj")
      ;; (send self :show-mesh-traj-with-color
      ;; 	   (flatten (send-all gripper-list :bodies :name))
      ;; 	   (list (send-all (send-all (flatten (send-all gripper-list :bodies :copy-worldcoords)) :transform (send robot move-arm :end-coords :transformation coords) :local) :copy-worldcoords))

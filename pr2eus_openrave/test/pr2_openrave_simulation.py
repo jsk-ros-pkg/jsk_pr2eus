@@ -13,7 +13,7 @@ class TestPr2EusOpenrave(unittest.TestCase):
 
         pub1 = rospy.Publisher('ray_coords', geometry_msgs.msg.PoseStamped)
         pub2 = rospy.Publisher('change_pose_pr2', std_msgs.msg.String)
-
+ 
         while pub1.get_num_connections() < 1 :
             print "waiting"
             time.sleep(1)
@@ -25,8 +25,6 @@ class TestPr2EusOpenrave(unittest.TestCase):
             geometry_msgs.msg.Pose(position=geometry_msgs.msg.Point(0.591, 0.079,0.985),
                                    orientation=geometry_msgs.msg.Quaternion(0.0 ,0.707 ,0.0, 0.707))
                         ]
-        time.sleep(15)
-
         try:
             for pose in target_poses:
                 msg = geometry_msgs.msg.PoseStamped()
@@ -36,7 +34,12 @@ class TestPr2EusOpenrave(unittest.TestCase):
                 print "sending...",msg
                 pub1.publish(msg)
                 print "wait for 20 secs"
-                time.sleep(15)
+                time.sleep(20)
+
+                msg = std_msgs.msg.String()
+                msg.data = "stop-visualize"
+                pub2.publish(msg)
+                print "removing visualization."
 
                 msg = std_msgs.msg.String()
                 msg.data = "tuck-arm-r"

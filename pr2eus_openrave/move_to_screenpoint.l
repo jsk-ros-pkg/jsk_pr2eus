@@ -25,6 +25,8 @@
 	  (ros::ros-warn "return-from pose-cb because of lock or time problem")
 	  (return-from pose-cb nil)))
     (setq *lock* t)
+    (dotimes (i 200)
+      (remove-marker i))
     (send *ri* :publish-joint-state)
     (ros::ros-info "subscribed~A" p)
     (send box :transform p)
@@ -41,6 +43,9 @@
 (defun change-cb(msg)
   (let ((data (read-from-string (send msg :data))))
     (case data
+      ('stop-visualize
+       (dotimes (i 200)
+	 (remove-marker i)))
       ('reset-pose
        (ros::ros-warn "reset-pose")
        (send *pr2* :reset-pose)
