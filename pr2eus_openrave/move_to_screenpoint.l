@@ -25,12 +25,13 @@
 	  (ros::ros-warn "return-from pose-cb because of lock or time problem")
 	  (return-from pose-cb nil)))
     (setq *lock* t)
+    (send *ri* :publish-joint-state)
     (ros::ros-info "subscribed~A" p)
     (send box :transform p)
     (unless (and x::*display* (> x::*display* 0))
       (objects (list *pr2* box)))
     (setq ret (send *ri* :move-end-coords-plan
-		    (send p :copy-worldcoords) :move-arm :rarm :use-torso t :lifetime 10))p
+		    (send p :copy-worldcoords) :move-arm :rarm :use-torso t :lifetime 10))
     (ros::ros-info "move-end-coords-plan -> ~A~%" ret)
     (if (and *exit-on-fail* (null ret)) (exit 1))
     (send *ri* :wait-interpolation)
