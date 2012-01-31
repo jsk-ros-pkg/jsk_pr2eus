@@ -38,7 +38,10 @@
 	       (format nil "check link position ~A ~A" link-unstable link-stable))
 	      (assert
 	       (= (norm (send (send link-unstable :worldcoords) :difference-rotation (send link-stable :worldcoords))) 0.0)
-	       (format nil "check link orientation ~A ~A" link-unstable link-stable)))
+	       (format nil "check link orientation ~A ~A" link-unstable link-stable))
+	      (assert
+	       (= (send link-unstable :weight) (send link-stable :weight))
+	       (format nil "check link weight ~A ~A" link-unstable link-stable)))
 	  (send *pr2-unstable* :links) (send *pr2-stable* :links))
   )
 
