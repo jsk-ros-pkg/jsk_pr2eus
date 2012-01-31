@@ -25,7 +25,7 @@
 	  (ros::ros-warn "return-from pose-cb because of lock or time problem")
 	  (return-from pose-cb nil)))
     (setq *lock* t)
-    (dotimes (i 200)
+    (dotimes (i 500)
       (remove-marker i))
     (send *ri* :publish-joint-state)
     (ros::ros-info "subscribed~A" p)
@@ -37,6 +37,7 @@
     (ros::ros-info "move-end-coords-plan -> ~A~%" ret)
     (if (and *exit-on-fail* (null ret)) (exit 1))
     (send *ri* :wait-interpolation)
+    (send *ri* :publish-joint-state)
     (setq *lock* nil)
     ))
 
@@ -44,7 +45,8 @@
   (let ((data (read-from-string (send msg :data))))
     (case data
       ('stop-visualize
-       (dotimes (i 200)
+       (ros::ros-warn "remove-marker")
+       (dotimes (i 500)
 	 (remove-marker i)))
       ('reset-pose
        (ros::ros-warn "reset-pose")

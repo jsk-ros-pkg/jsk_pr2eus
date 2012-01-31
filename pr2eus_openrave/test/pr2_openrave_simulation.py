@@ -36,16 +36,17 @@ class TestPr2EusOpenrave(unittest.TestCase):
                 print "wait for 20 secs"
                 time.sleep(20)
 
-                msg = std_msgs.msg.String()
-                msg.data = "stop-visualize"
-                pub2.publish(msg)
+                stopmsg = std_msgs.msg.String()
+                stopmsg.data = "stop-visualize"
+                pub2.publish(stopmsg)
                 print "removing visualization."
+                time.sleep(1)
 
-                msg = std_msgs.msg.String()
-                msg.data = "tuck-arm-r"
-                pub2.publish(msg)
+                tuckmsg = std_msgs.msg.String()
+                tuckmsg.data = "tuck-arm-r"
+                pub2.publish(tuckmsg)
                 print "resetting pose."
-                time.sleep(3)
+                time.sleep(1)
 
         finally:
             rospy.loginfo('shutting down')
