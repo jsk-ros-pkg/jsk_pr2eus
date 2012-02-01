@@ -11,8 +11,8 @@
   (pr2-tuckarm-pose :larm)
   (ros::subscribe "ray_coords" geometry_msgs::PoseStamped #'pose-cb)
   (ros::subscribe "change_pose_pr2" std_msgs::String #'change-cb)
-  (setq *begin* (ros::time-now))
-  (setq *lock* nil)
+;;  (setq *begin* (ros::time-now))
+;;  (setq *lock* nil)
   )
 
 (defun pose-cb (msg)
@@ -20,11 +20,11 @@
 	(htime (send msg :header :stamp))
 	(p (ros::tf-pose->coords (send msg :pose)))
 	ret)
-    (if (or *lock* (> 0 (send (ros::time- htime *begin*) :to-sec)))
-	(progn
-	  (ros::ros-warn "return-from pose-cb because of lock or time problem")
-	  (return-from pose-cb nil)))
-    (setq *lock* t)
+    ;; (if (or *lock* (> 0 (send (ros::time- htime *begin*) :to-sec)))
+    ;; 	(progn
+    ;; 	  (ros::ros-warn "return-from pose-cb because of lock or time problem")
+    ;; 	  (return-from pose-cb nil)))
+;;    (setq *lock* t)
     (dotimes (i 500)
       (remove-marker i))
     (send *ri* :publish-joint-state)
@@ -41,7 +41,7 @@
     (if (and *exit-on-fail* (null ret)) (exit 1))
     (send *ri* :wait-interpolation)
     (send *ri* :publish-joint-state)
-    (setq *lock* nil)
+;;    (setq *lock* nil)
     ))
 
 (defun change-cb(msg)
@@ -72,6 +72,7 @@
   (while (ros::ok)
     (ros::spin-once)
     (if (and x::*display* (> x::*display* 0)) (x::window-main-one))
+    (send *ri* :publish-joint-state)
     (ros::sleep)
     ))
 

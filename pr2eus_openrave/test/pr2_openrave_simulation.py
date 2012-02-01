@@ -31,10 +31,8 @@ class TestPr2EusOpenrave(unittest.TestCase):
                 msg.header.stamp = rospy.Time.now()
                 msg.header.frame_id = "/base_link"
                 msg.pose = pose
-                print "sending...",msg
                 pub1.publish(msg)
-                print "wait for 20 secs"
-                time.sleep(20)
+                time.sleep(30)
 
                 stopmsg = std_msgs.msg.String()
                 stopmsg.data = "stop-visualize"
@@ -43,7 +41,7 @@ class TestPr2EusOpenrave(unittest.TestCase):
                 time.sleep(1)
 
                 tuckmsg = std_msgs.msg.String()
-                tuckmsg.data = "tuck-arm-r"
+                tuckmsg.data = "tuck-arm-l"
                 pub2.publish(tuckmsg)
                 print "resetting pose."
                 time.sleep(1)

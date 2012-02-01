@@ -182,4 +182,5 @@
 
 
 ;; (send *ri* :move-end-coords-plan (make-coords :pos #f(600 -100 1200) :rpy (float-vector pi/2 0 0)) :move-arm :rarm :use-torso t) 
+;; (send *ri* :move-end-coords-plan (make-coords :pos #f(870 -125 900) :rpy (float-vector pi/2 0 0)) :move-arm :rarm :use-torso t) ;;sink
 ;; (send *ri* :move-end-coords-plan (make-coords :pos #f(600 -100 1000) :rpy (float-vector 0 0 pi/2)) :move-arm :rarm :use-torso t)
