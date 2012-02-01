@@ -3,6 +3,15 @@
   <node type="rviz" pkg="rviz" name="rviz_pr2_openrave"
 	args="--sync -d $(find pr2eus_openrave)/test/test_pr2eus_openrave.vcg" 
 	launch-prefix='glc-capture --start --out=$(find pr2eus_openrave)/build/rviz_pr2_openrave.glc' />
+
+  <sphinxdoc><![CDATA[
+roseus + openrave example.
+
+.. image:: build/rviz_pr2_openrave.mp4
+  :width: 400
+
+  ]]></sphinxdoc>
+
   <test type="pr2_openrave_simulation.py" pkg="pr2eus_openrave"
 	test-name="pr2_openrave_simulation" time-limit="300"/>
   <!-- we assume test code is invoked in alphabet order of test-name -->
