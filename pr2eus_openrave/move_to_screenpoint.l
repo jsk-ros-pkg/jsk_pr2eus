@@ -32,6 +32,9 @@
     (send box :transform p)
     (unless (and x::*display* (> x::*display* 0))
       (objects (list *pr2* box)))
+    (send *pr2* :angle-vector (send *ri* :state :potentio-vector))
+    (send *pr2* :head :look-at (send (send p :copy-worldcoords) :worldpos))
+    (send *ri* :angle-vector (send *pr2* :angle-vector))
     (setq ret (send *ri* :move-end-coords-plan
 		    (send p :copy-worldcoords) :move-arm :rarm :use-torso t :lifetime 10))
     (ros::ros-info "move-end-coords-plan -> ~A~%" ret)
