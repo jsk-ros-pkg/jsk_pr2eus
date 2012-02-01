@@ -1,14 +1,15 @@
 
 # -*- coding: utf-8 -*-
+import roslib; roslib.load_manifest('jsk_tools')
 import sys, os
 
-extensions = ['sphinx.ext.autodoc', 'sphinx.ext.intersphinx', 'sphinx.ext.todo', 'sphinx.ext.ifconfig']
+extensions = ['sphinx.ext.autodoc', 'sphinx.ext.intersphinx', 'sphinx.ext.todo', 'sphinx.ext.ifconfig', 'jsk_tools.shellblock_directive']
 templates_path = ['.templates']
 source_suffix = '.rst'
 #source_encoding = 'utf-8'
 master_doc = 'index'
-project = u'roseus_tutorials'
-copyright = u'2011, Kei Okada, Tsukasa Ito, Manabu Saito'
+project = u'pr2eus_openrave'
+copyright = u'2011, Chen Cheng'
 
 version = '1.0'
 release = '1.0'
@@ -31,7 +32,7 @@ html_theme = 'sphinxdoc'
 #html_logo = None
 #html_favicon = None
 html_static_path = ['.static']
-#html_last_updated_fmt = '%b %d, %Y'
+html_last_updated_fmt = '%H:%M:%S %b %d, %Y'
 #html_use_smartypants = True
 #html_sidebars = {}
 #html_additional_pages = {}
@@ -43,6 +44,6 @@ html_static_path = ['.static']
 #html_show_copyright = True
 #html_use_opensearch = ''
 #html_file_suffix = None
-htmlhelp_basename = 'roseus_tutorialsdoc'
+htmlhelp_basename = 'pr2eus_openravedoc'
 
 intersphinx_mapping = {'http://docs.python.org/': None}
