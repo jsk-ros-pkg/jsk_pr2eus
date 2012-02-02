@@ -152,10 +152,10 @@
 			(send camera-stable :view-direction)
 			(norm (v- (send camera-unstable :view-direction)
 				  (send camera-stable :view-direction)))))
-	(assert (= (norm
+	(assert (eps= (norm
 		    (array-entity
 		     (m- (send camera-unstable :projection)
-			 (send camera-stable :projection)))) 0.0)
+			 (send camera-stable :projection)))) 0.0 0.01)
 		(format nil "check camera projection for ~A ~A ~A ~A" camera-name
 			(send camera-unstable :projection)
 			(send camera-stable :projection)
