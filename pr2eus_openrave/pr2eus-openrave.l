@@ -78,7 +78,7 @@
      ;;     (send self :show-mesh-traj-with-color (send-all (flatten (send-all link-list :bodies)) :name) link-coords-list)
 
      (send self :show-mesh-traj-with-color
-	   (send-all (flatten (send-all dae-link-list :bodies)) :name)
+	   (flatten (send-all dae-link-list :bodies))
 	   link-coords-list :lifetime 0)
 
      (send robot :angle-vector (car (last avs)))
@@ -133,8 +133,7 @@
 			     :local))
 		   gripper-bodies)))
      (send self :show-mesh-traj-with-color
-     	   (send-all gripper-bodies :name)
-	   (list gripper-coords)
+     	   gripper-bodies (list gripper-coords)
      	   :lifetime 0 :color #f(1 0 1) :ns "hand_traj")
      ))
   (:find-descendants-dae-links
@@ -143,7 +142,7 @@
    (append (list l)
 	   (mapcan #'(lambda (x) (send self :find-descendants-dae-links x)) (send l :child-links))))
   (:show-mesh-traj-with-color
-   (link-dae-list link-coords-list &key ((:lifetime lf) 20)
+   (link-body-list link-coords-list &key ((:lifetime lf) 20)
 		 (ns "robot_traj") ((:color col) #f(0.5 0.5 0.5)))
    (let ((msg (instance visualization_msgs::MarkerArray :init))
 	 (header (instance std_msgs::header :init
@@ -152,10 +151,27 @@
      (dotimes (i l)
        (push (+ (/ (/ (1+ i) 2.0) l) 0.5) alpha-list))
      (dotimes (i l)
-       (let (markers)
-	 (mapcar #'(lambda(x y) (push (mesh->marker-msg x y header :mesh_use_embedded_materials nil :color col :alpha (elt alpha-list i)) markers))
-		 (elt link-coords-list i) link-dae-list)
-	 (mapcar #'(lambda(x) (send x :lifetime (ros::time lf)) (send x :ns ns)) markers)
+       (let (mrk markers)
+	 (mapcar #'(lambda (abody acoords)
+		     (cond ((send abody :name)
+			    (setq mrk (mesh->marker-msg
+				       acoords
+				       (send abody :name)
+				       header
+				       :mesh_use_embedded_materials nil :color col :alpha (elt alpha-list i))))
+			   (t
+			    (setq mrk (object->marker-msg
+				       abody
+				       header
+				       :coords acoords
+				       :color col
+				       :alpha (elt alpha-list i)
+				       ))))
+		     (send mrk :lifetime (ros::time lf))
+		     (send mrk :ns ns)
+		     (push mrk markers))
+		 link-body-list
+		 (elt link-coords-list i))
 	 (push markers markers-list)))
      (setq markers-list (flatten markers-list))
      (dotimes (x (length markers-list)) (send (elt markers-list x) :id x))
