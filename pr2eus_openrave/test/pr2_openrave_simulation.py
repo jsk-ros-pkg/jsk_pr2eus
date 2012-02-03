@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 import roslib; roslib.load_manifest('pr2eus_openrave')
-import rospy,roslaunch
-import os,time,unittest
+import rospy,roslaunch,tf
+import os,time,unittest,numpy
 import geometry_msgs.msg
 import std_msgs.msg
 
 class TestPr2EusOpenrave(unittest.TestCase):
     def test_ray_coords(self):
         rospy.init_node('pr2_openrave_simulation_node')
+        self.tf = tf.TransformListener();
 
         rospy.wait_for_service('/MoveToHandPosition')
 
@@ -33,6 +34,18 @@ class TestPr2EusOpenrave(unittest.TestCase):
                 msg.pose = pose
                 pub1.publish(msg)
                 time.sleep(30)
+
+                # check if reached to the goal
+                (trans,rot) = self.tf.lookupTransform("/base_link","/r_gripper_tool_frame",rospy.Time(0))
+                #
+                print "original goal",pose
+                print "openrave goal",trans,rot
+                diff_pose = numpy.linalg.norm(numpy.array(trans)-numpy.array((pose.position.x,pose.position.y,pose.position.z)))
+                diff_rot = numpy.linalg.norm(numpy.array(rot)-numpy.array((pose.orientation.x,pose.orientation.y,pose.orientation.z,pose.orientation.w)))
+                print "diff pose",diff_pose
+                print "diff rot",diff_rot
+                assert  diff_pose < 1.0, "check openrave goal pose"+str(pose)+","+str(trans)
+                assert diff_rot < 1.5, "check openrave goal rot"+str(pose)+","+str(rot)
 
                 stopmsg = std_msgs.msg.String()
                 stopmsg.data = "stop-visualize"
