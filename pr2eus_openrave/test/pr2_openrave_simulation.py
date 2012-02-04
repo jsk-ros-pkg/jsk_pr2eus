@@ -57,7 +57,7 @@ class TestPr2EusOpenrave(unittest.TestCase):
                 tuckmsg.data = "tuck-arm-l"
                 pub2.publish(tuckmsg)
                 print "resetting pose."
-                time.sleep(1)
+                time.sleep(4)
 
         finally:
             rospy.loginfo('shutting down')
