@@ -36,7 +36,7 @@ class TestPr2EusOpenrave(unittest.TestCase):
                 time.sleep(20) # need to wait until /ray_coords finished
 
                 # check if reached to the goal
-                tm = self.tf.getLatestCommonTime("/base_link","/r_gripper_tool_fram")
+                tm = self.tf.getLatestCommonTime("/base_link","/r_gripper_tool_frame")
                 (trans,rot) = self.tf.lookupTransform("/base_link","/r_gripper_tool_frame",tm)
                 #
                 print "original goal",pose
