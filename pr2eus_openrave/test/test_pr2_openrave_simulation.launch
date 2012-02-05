@@ -1,7 +1,7 @@
 <launch>
   <include file="$(find pr2eus_openrave)/launch/pr2_openrave_simulation.launch" />
   <node type="rviz" pkg="rviz" name="rviz_pr2_openrave"
-	args="--sync -d $(find pr2eus_openrave)/test/test_pr2eus_openrave.vcg" 
+	args="--sync -d $(find pr2eus_openrave)/test/test_pr2eus_openrave.vcg"
 	launch-prefix='glc-capture --start --out=$(find pr2eus_openrave)/build/rviz_pr2_openrave.glc' />
 
   <sphinxdoc><![CDATA[
@@ -18,7 +18,7 @@ roseus + openrave example.
   <test type="glc_encode.sh" pkg="jsk_tools" test-name="z_pr2_openrave_encode" args="$(find pr2eus_openrave)/build/rviz_pr2_openrave.glc" time-limit="1000"/>
 
   <node pkg="rosbag" type="play" name="rosbag_play_collision_map"
-  	args="$(find pr2eus_openrave)/test/collision_map.bag -l --clock" />
+  	args="$(find pr2eus_openrave)/test/collision_map.bag -l --clock -d 5"/>
   <!-- <node pkg="tf" type="static_transform_publisher" name="head_to_kinect"
        args="0.022 0.04 0.15 0 -0.02 0 /head_plate_frame /openni_camera 100"/>
        <include file="$(find openni_camera)/launch/kinect_frames.launch"/> -->

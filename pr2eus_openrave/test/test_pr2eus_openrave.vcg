@@ -56,34 +56,6 @@ Point\ Cloud2..IntensityMin\ ColorG=0
 Point\ Cloud2..IntensityMin\ ColorB=0
 Point\ Cloud2..IntensityMin\ Intensity=0
 Point\ Cloud2..IntensityUse\ full\ RGB\ spectrum=1
-Point\ Cloud22.Alpha=1
-Point\ Cloud22.Billboard\ Size=0.01
-Point\ Cloud22.Color\ Transformer=Intensity
-Point\ Cloud22.Decay\ Time=0
-Point\ Cloud22.Enabled=1
-Point\ Cloud22.Position\ Transformer=XYZ
-Point\ Cloud22.Selectable=1
-Point\ Cloud22.Style=1
-Point\ Cloud22.Topic=/tilt_laser_cloud2
-Point\ Cloud22..AxisAutocompute\ Value\ Bounds=1
-Point\ Cloud22..AxisAxis=2
-Point\ Cloud22..AxisMax\ Value=10
-Point\ Cloud22..AxisMin\ Value=-10
-Point\ Cloud22..AxisUse\ Fixed\ Frame=1
-Point\ Cloud22..Flat\ ColorColorR=1
-Point\ Cloud22..Flat\ ColorColorG=1
-Point\ Cloud22..Flat\ ColorColorB=1
-Point\ Cloud22..IntensityAutocompute\ Intensity\ Bounds=1
-Point\ Cloud22..IntensityChannel\ Name=intensity
-Point\ Cloud22..IntensityMax\ ColorR=1
-Point\ Cloud22..IntensityMax\ ColorG=1
-Point\ Cloud22..IntensityMax\ ColorB=1
-Point\ Cloud22..IntensityMax\ Intensity=4096
-Point\ Cloud22..IntensityMin\ ColorR=0
-Point\ Cloud22..IntensityMin\ ColorG=0
-Point\ Cloud22..IntensityMin\ ColorB=0
-Point\ Cloud22..IntensityMin\ Intensity=0
-Point\ Cloud22..IntensityUse\ full\ RGB\ spectrum=0
 Robot\ Model.Alpha=1
 Robot\ Model.Collision\ Enabled=0
 Robot\ Model.Enabled=1
@@ -231,7 +203,7 @@ Tool\ 2D\ Nav\ GoalTopic=move
 Tool\ 2D\ Pose\ EstimateTopic=initialpose
 Camera\ Type=rviz::XYOrbitViewController
 Camera\ Config=1.166 3.00856 3.27567 0.432165 1.29939e-05 -0.410807
-Property\ Grid\ State=selection=;expanded=.Global Options,MarkerArray.Enabled.MarkerArray.Namespaces,CollisionMap.Enabled.CollisionMap.StatusTopStatus;scrollpos=0,0;splitterpos=190,380;ispageselected=1
+Property\ Grid\ State=selection=;expanded=.Global Options,MarkerArray.Enabled.MarkerArray.Namespaces,CollisionMap.Enabled.CollisionMap.StatusTopStatus;scrollpos=0,0;splitterpos=150,301;ispageselected=1
 [Display0]
 Name=Grid
 Package=rviz
@@ -250,9 +222,5 @@ Package=mapping_rviz_plugin
 ClassName=mapping_rviz_plugin::CollisionMapDisplay
 [Display4]
 Name=Point Cloud2
-Package=rviz
-ClassName=rviz::PointCloud2Display
-[Display5]
-Name=Point Cloud22
 Package=rviz
 ClassName=rviz::PointCloud2Display
