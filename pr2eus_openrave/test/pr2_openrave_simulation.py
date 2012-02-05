@@ -26,6 +26,7 @@ class TestPr2EusOpenrave(unittest.TestCase):
             geometry_msgs.msg.Pose(position=geometry_msgs.msg.Point(0.591, 0.079,0.985),
                                    orientation=geometry_msgs.msg.Quaternion(0.0 ,0.707 ,0.0, 0.707))
                         ]
+        time.sleep(5)
         try:
             for pose in target_poses:
                 msg = geometry_msgs.msg.PoseStamped()
