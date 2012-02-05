@@ -33,10 +33,11 @@ class TestPr2EusOpenrave(unittest.TestCase):
                 msg.header.frame_id = "/base_link"
                 msg.pose = pose
                 pub1.publish(msg)
-                time.sleep(30)
+                time.sleep(20) # need to wait until /ray_coords finished
 
                 # check if reached to the goal
-                (trans,rot) = self.tf.lookupTransform("/base_link","/r_gripper_tool_frame",rospy.Time(0))
+                tm = self.tf.getLatestCommonTime("/base_link","/r_gripper_tool_fram")
+                (trans,rot) = self.tf.lookupTransform("/base_link","/r_gripper_tool_frame",tm)
                 #
                 print "original goal",pose
                 print "openrave goal",trans,rot
