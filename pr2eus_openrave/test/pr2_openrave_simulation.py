@@ -34,7 +34,7 @@ class TestPr2EusOpenrave(unittest.TestCase):
                 msg.header.frame_id = "/base_link"
                 msg.pose = pose
                 pub1.publish(msg)
-                time.sleep(15) # need to wait until /ray_coords finished
+                time.sleep(30) # need to wait until /ray_coords finished
 
                 # check if reached to the goal
                 #tm = self.tf.getLatestCommonTime("/base_link","/r_gripper_tool_frame")
