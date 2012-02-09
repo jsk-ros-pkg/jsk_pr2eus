@@ -28,11 +28,13 @@ Grid.Plane\ Cell\ Count=10
 Grid.Reference\ Frame=<Fixed Frame>
 MarkerArray.Enabled=1
 MarkerArray.Marker\ Array\ Topic=/openrave_marker_array
+MarkerArray.hand_traj=1
+MarkerArray.robot_traj=1
 Point\ Cloud2.Alpha=1
 Point\ Cloud2.Billboard\ Size=0.01
 Point\ Cloud2.Color\ Transformer=RGB8
 Point\ Cloud2.Decay\ Time=0
-Point\ Cloud2.Enabled=1
+Point\ Cloud2.Enabled=0
 Point\ Cloud2.Position\ Transformer=XYZ
 Point\ Cloud2.Selectable=1
 Point\ Cloud2.Style=1
@@ -201,9 +203,9 @@ Robot\:\ Robot\ Model\ Link\ wide_stereo_linkShow\ Axes=0
 Robot\:\ Robot\ Model\ Link\ wide_stereo_linkShow\ Trail=0
 Tool\ 2D\ Nav\ GoalTopic=move
 Tool\ 2D\ Pose\ EstimateTopic=initialpose
-Camera\ Type=rviz::XYOrbitViewController
-Camera\ Config=1.166 3.00856 3.27567 0.432165 1.29939e-05 -0.410807
-Property\ Grid\ State=selection=;expanded=.Global Options,MarkerArray.Enabled.MarkerArray.Namespaces,CollisionMap.Enabled.CollisionMap.StatusTopStatus;scrollpos=0,0;splitterpos=150,301;ispageselected=1
+Camera\ Type=rviz::OrbitViewController
+Camera\ Config=1.276 0.178557 2.21092 0.136184 0.698077 -0.689099
+Property\ Grid\ State=selection=Point Cloud2.Enabled;expanded=.Global Options,MarkerArray.Enabled.MarkerArray.Namespaces,CollisionMap.Enabled.CollisionMap.StatusTopStatus,Point Cloud2.Enabled.Point Cloud2.StatusTopStatus;scrollpos=0,0;splitterpos=150,301;ispageselected=1
 [Display0]
 Name=Grid
 Package=rviz

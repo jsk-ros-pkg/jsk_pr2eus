@@ -1,8 +1,10 @@
 <launch>
-  <include file="$(find pr2eus_openrave)/launch/pr2_openrave_simulation.launch" />
+  <include file="$(find pr2eus_openrave)/launch/pr2_openrave_simulation.launch" >
+    <arg name="COLLISION_MAP_WAIT_TIME" default="12"/>
+  </include>
   <node type="rviz" pkg="rviz" name="rviz_pr2_openrave"
-	args="--sync -d $(find pr2eus_openrave)/test/test_pr2eus_openrave.vcg"
-	launch-prefix='glc-capture --start --out=$(find pr2eus_openrave)/build/rviz_pr2_openrave.glc' />
+  	args="--sync -d $(find pr2eus_openrave)/test/test_pr2eus_openrave.vcg"
+  	launch-prefix='glc-capture --start --out=$(find pr2eus_openrave)/build/rviz_pr2_openrave.glc' />
 
   <sphinxdoc><![CDATA[
 roseus + openrave example.
@@ -19,7 +21,7 @@ roseus + openrave example.
   <test type="glc_encode.sh" pkg="jsk_tools" test-name="z_pr2_openrave_encode" args="$(find pr2eus_openrave)/build/rviz_pr2_openrave.glc" time-limit="1000"/>
   <param name="use_sim_time" value="true"/>
   <node pkg="rosbag" type="play" name="rosbag_play_collision_map"
-  	args="$(find pr2eus_openrave)/test/collision_map.bag --clock -d 5"/>
+	args="$(find pr2eus_openrave)/test/collision_map.bag --clock -d 5"/>
   <node pkg="tf" type="static_transform_publisher" name="base_to_kinect"
 	args="0.130 0.016 1.338 -1.977 0.000 -1.487 /base_link /openni_rgb_optical_frame 100"/>
 

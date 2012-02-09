@@ -1,5 +1,9 @@
 #!/usr/bin/env roseus
 (ros::roseus "test_pr2eus_openrave")
+
+(load "unittest.l")
+(init-unit-test)
+
 (load "package://pr2eus_openrave/pr2eus-openrave.l")
 (setq *exit-on-fail* t)
 
@@ -15,12 +19,11 @@
 
 (setq *test-coords*
       (list
-       (make-coords :pos (float-vector 600 -100 1200) :rpy (float-vector pi/2 0 0))
-       (make-coords :pos (float-vector 870 -125 900) :rpy (float-vector pi/2 0 0))
-       (make-coords :pos (float-vector 600 -100 1000) :rpy (float-vector 0 0 pi/2))
+       (make-coords :pos (float-vector 700 100 1100) :rpy (float-vector pi/2 0 0))
+       (make-coords :pos (float-vector 750 -100 1400) :rpy (float-vector 0 0 pi/2))
        ))
 
-(defun execute-main ()
+(deftest execute-main ()
   (init-settings)
   (ros::wait-for-service "/MoveToHandPosition" -1)
 
@@ -43,5 +46,7 @@
       ))
   )
 
+(run-all-tests)
+(exit)
 
-(execute-main)
+;;(execute-main)
