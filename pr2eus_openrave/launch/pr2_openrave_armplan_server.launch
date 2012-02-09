@@ -1,10 +1,16 @@
 <launch>
+  <sphinxdoc><![CDATA[
+  This launch file is expected to be used inside Local PC.
+
+  Unlike pr2_openrave_armplan.launch, machine tag including localhost and c1 is already set. Nodes: laser_assembler, pr2_laser_snapshotter
+  and collision_map_self_occ_node will be launched inside PR2, a Node: armplanning_openrave.py will be launched inside Local PC.
+
+  ]]></sphinxdoc>
   <machine name="localhost" address="localhost" ros-root="$(env ROS_ROOT)"
   	   ros-package-path="$(env ROS_PACKAGE_PATH)"/>
   <machine name="c1" address="pr1012" ros-root="$(env ROS_ROOT)"
   	   ros-package-path="$(env ROS_PACKAGE_PATH)"/>
-  <!--  By removing mapframe='' , you do not have to transform the target coords of
-  MoveToHandposition to tf from base_footprnt, we just want to reduce the traffic of tf.  -->
+  <!--  By removing mapframe='' , you do not have to transform the target coords of MoveToHandposition to tf from base_footprnt, we just want to reduce the traffic of tf.  -->
   <node pkg="orrosplanning" type="armplanning_openrave.py" machine="localhost"
 	args="--collision_map=/collision_map_mux --mapframe=''
 	      --wait-for-collisionmap=30 --request-for-joint_states='service'"

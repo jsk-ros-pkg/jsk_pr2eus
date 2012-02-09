@@ -1,9 +1,9 @@
 <launch>
-  <!--
-      usage:
-      rostopic pub "ray_coords" geometry_msgs/PoseStamped '{header: {stamp: now, frame_id: base_link}, pose: {position: [0.8, 0.0, 0.7]}}' -1
-  -->
-  <param name="use_sim_time" value="true"/>
+  <sphinxdoc><![CDATA[
+  This launch file is used for simulation.
+
+  Please check test/test_pr2_openrave_simulation.launch
+  ]]></sphinxdoc>
   <param name="robot_description"
 	 textfile="$(find pr2_mechanism_model)/pr2.urdf" />
   <node name="robot_state_publisher" pkg="robot_state_publisher"
@@ -13,7 +13,10 @@
 	args="--request-for-joint_states='topic'
 	      --collision_map=/collision_map_occ_throttle
 	      --wait-for-collisionmap=10 --use-simulation='true'"/>
-  <node name="pr2eus_openrave_eus" pkg="roseus" type="roseus" output="screen"
-  	args='$(find pr2eus_openrave)/move_to_screenpoint.l
-  	      "(setq *exit-on-fail* t)" "(execute-main)" ' />
+  <!--
+       <node name="pr2eus_openrave_eus" pkg="roseus" type="roseus"
+       output="screen" args='$(find pr2eus_openrave)/move_to_screenpoint.l
+       "(setq *exit-on-fail* t)" "(execute-main)" ' /> 
+       usage: rostopic pub "ray_coords" geometry_msgs/PoseStamped '{header: {stamp: now, frame_id: base_link}, pose: {position: [0.8, 0.0, 0.7]}}' -1
+  -->
 </launch>
