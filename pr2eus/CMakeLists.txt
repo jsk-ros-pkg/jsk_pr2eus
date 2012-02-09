@@ -25,7 +25,13 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 ADD_CUSTOM_COMMAND(
   OUTPUT ${CMAKE_SOURCE_DIR}/pr2.l
   COMMAND rosrun roseus roseus `rospack find pr2eus`/make-pr2-model-file.l           "\"(ros::roseus" "\\\"make-pr2-model-file\\\")\"" "\"(make-pr2-model-file" ":output-directory" "(ros::rospack-find" "\\\"pr2eus\\\"))\"" )
-ADD_CUSTOM_TARGET(pr2model ALL DEPENDS ${CMAKE_SOURCE_DIR}/pr2.l)
+execute_process(COMMAND rosparam get /robot_description ERROR_VARIABLE _roscore_output RESULT_VARIABLE _roscore_failed)
+if(_roscore_failed)
+  message("[pr2eus] /robot_description is required for make pr2.l model file")
+  message("[pr2eus] ${_roscore_output}")
+elseif(_roscore_failed)
+  ADD_CUSTOM_TARGET(pr2model ALL DEPENDS ${CMAKE_SOURCE_DIR}/pr2.l)
+endif(_roscore_failed)
 
 
 #uncomment if you have defined messages
