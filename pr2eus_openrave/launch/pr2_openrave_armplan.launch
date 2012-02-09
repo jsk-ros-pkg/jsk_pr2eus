@@ -1,9 +1,11 @@
 <launch>
   <sphinxdoc><![CDATA[
-  This launch file is expected to be used inside PR2.
 
-  Nodes: laser_assembler, pr2_laser_snapshotter and collision_map_self_occ_node are used to publish Topic: 'collision_map_occ'.
-  A Node: armplanning_openrave.py is used to bridge Openrave and ROS.
+This launch file is expected to be used inside PR2.
+
+- Nodes: laser_assembler, pr2_laser_snapshotter and collision_map_self_occ_node are used to publish Topic: 'collision_map_occ'.
+
+- A Node: armplanning_openrave.py is used to bridge Openrave and ROS.
 
 .. image:: launch/images/pr2eus_openrave_sample.png
   :width: 400
