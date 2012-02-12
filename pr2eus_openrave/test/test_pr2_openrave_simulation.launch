@@ -9,7 +9,7 @@
   <sphinxdoc><![CDATA[
 roseus + openrave example.
 
-.. image:: build/rviz_pr2_openrave.gif
+.. video:: build/rviz_pr2_openrave
   :width: 400
 
   ]]></sphinxdoc>
