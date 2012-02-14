@@ -17,7 +17,7 @@
     (ros::publish "openrave_marker_array" msgarray)
     ))
 
-(defmethod pr2-interface
+(defmethod robot-interface
   (:service-call-joint-state
    ()
    (let ((req (instance orrosplanning::SetJointStateRequest :init)) res)
@@ -37,8 +37,7 @@
      (send self :move-end-coords-plan coords :move-target move-target :use-torso use-torso)))
   (:move-end-coords-plan
    (coords &key (move-arm :larm) (use-torso t) ((:lifetime lf) 20)
-	   (manip-name (if (derivedp (*ri* . robot) pr2-robot) (case move-arm (:larm "l_gripper_tool_frame") (:rarm "r_gripper_tool_frame"))))
-	   )
+	   (manip-name (if (derivedp (*ri* . robot) pr2-robot) (case move-arm (:larm "l_gripper_tool_frame") (:rarm "r_gripper_tool_frame")) "")) )
    ;; for fast result view
    (send self :show-goal-hand-coords (send coords :copy-worldcoords) move-arm)
 
