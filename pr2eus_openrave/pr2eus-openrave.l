@@ -36,7 +36,9 @@
      (setq coords (send robot move-target :end-coords :copy-worldcoords))
      (send self :move-end-coords-plan coords :move-target move-target :use-torso use-torso)))
   (:move-end-coords-plan
-   (coords &key (move-arm :larm) (use-torso t) ((:lifetime lf) 20))
+   (coords &key (move-arm :larm) (use-torso t) ((:lifetime lf) 20)
+	   (manip-name (if (derivedp (*ri* . robot) pr2-robot) (case move-arm (:larm "l_gripper_tool_frame") (:rarm "r_gripper_tool_frame"))))
+	   )
    ;; for fast result view
    (send self :show-goal-hand-coords (send coords :copy-worldcoords) move-arm)
 
@@ -47,7 +49,9 @@
 	   (send self :call-openrave-move-to-hand-position
 		 coords
 		 (format nil "~A~A" (case move-arm (:larm "leftarm") (:rarm "rightarm")) (if use-torso "_torso" ""))
-		 (case move-arm (:larm "l_gripper_tool_frame") (:rarm "r_gripper_tool_frame"))))
+		 manip-name
+;;		 (case move-arm (:larm "l_gripper_tool_frame") (:rarm "r_gripper_tool_frame"))
+		 ))
      ;; JointTrajectory to angle-vector
      (if joint-trajectory
 	 (setq joint-trajectory-points (send joint-trajectory :points)
@@ -182,5 +186,4 @@
 
 
 ;; (send *ri* :move-end-coords-plan (make-coords :pos #f(600 -100 1200) :rpy (float-vector pi/2 0 0)) :move-arm :rarm :use-torso t) 
-;; (send *ri* :move-end-coords-plan (make-coords :pos #f(870 -125 900) :rpy (float-vector pi/2 0 0)) :move-arm :rarm :use-torso t) ;;sink
 ;; (send *ri* :move-end-coords-plan (make-coords :pos #f(600 -100 1000) :rpy (float-vector 0 0 pi/2)) :move-arm :rarm :use-torso t)
