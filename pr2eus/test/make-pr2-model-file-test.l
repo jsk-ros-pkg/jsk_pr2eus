@@ -8,11 +8,11 @@
 
 (when (not (boundp '*pr2-unstable*))
   (load "/tmp/pr2.l")
-  (setq *pr2-unstable* (instance pr2-robot :init))
+  (setq *pr2-unstable* (pr2))
   (setq *pr2-cameras-unstable* (send *pr2-unstable* :cameras)))
 (when (not (boundp '*pr2-stable*))
   (load "package://pr2eus/pr2.l")
-  (setq *pr2-stable* (instance pr2-robot :init))
+  (setq *pr2-stable* (pr2))
   (setq *pr2-cameras-stable* (send *pr2-stable* :cameras)))
 
 (deftest test-angle-vector
