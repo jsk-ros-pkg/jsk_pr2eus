@@ -130,7 +130,7 @@
      (format f "  (:camera (&rest args)~%")
      (format f "    (cond ((integerp (car args))~%")
      (format f "           (forward-message-to (elt (send self :cameras) (car args)) (cdr args)))~%")
-     (format f "          ((stringp (car args)) ;; this is obsoluted~%")
+     (format f "          ((stringp (car args)) ;; this is obsoleted~%")
      (format f "           (forward-message-to (send self (intern (string-upcase (substitute #\\\- #\\\/ (car args))) \"KEYWORD\")) (cdr args)))~%")
      (format f "          ((keywordp (car args))~%")
      (format f "           (send* self args))~%")
