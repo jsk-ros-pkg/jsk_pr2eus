@@ -120,7 +120,7 @@
 	  "check camera number")
   (dolist (camera-stable *pr2-cameras-stable*)
     (let* ((camera-name (send camera-stable :name))
-	   (camera-unstable (find camera-name *pr2-cameras-unstable* :key #'(lambda (x) (send x :name)) :test #'string=)))
+	   (camera-unstable (find camera-name *pr2-cameras-unstable* :key #'(lambda (x) (send x :name)) :test #'(lambda (a b) (string-equal (string a) (string b))))))
       (assert camera-unstable
 	      (format nil "check camera ~A" camera-name))
       (when camera-unstable
