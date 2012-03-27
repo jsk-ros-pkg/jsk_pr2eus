@@ -10,7 +10,7 @@
      (if (> (elt v 1) 0) :larm :rarm)))
   (:inverse-kinematics
    (target-coords &rest args &key (link-list) (move-arm)
-                  (use-torso t) (move-target)
+                  (use-torso t) (move-target) (stop 300)
                   (use-base nil) (start-coords (send self :copy-worldcoords))
                   &allow-other-keys)
    (let (weight union-link-list torso-id base-weight diff-pos-rot)
@@ -63,7 +63,7 @@
         (send-super* :inverse-kinematics target-coords
                      :rthre (deg2rad 5)
                      :thre 10
-                     :stop 300
+                     :stop stop
                      :weight (concatenate float-vector (float-vector use-base use-base use-base) weight)
                      :link-list (car ll) ;; link-list
                      :move-target move-target
@@ -72,7 +72,7 @@
        (send-super* :inverse-kinematics target-coords
                     :rthre (deg2rad 5)
                     :thre 10
-                    :stop 300
+                    :stop stop
                     :weight weight
                     :link-list link-list
                     :move-target move-target
