@@ -60,7 +60,10 @@
    (let ((msg (instance sensor_msgs::JointState :init)) names positions velocities efforts)
      (send msg :header :stamp (ros::time-now))
      (dolist (j joint-list)
-       (push (string-downcase (symbol-name (send j :name))) names)
+       (cond ((stringp (send j :name))
+	      (push (send j :name) names))
+	     (t
+	      (push (string-downcase (symbol-name (send j :name))) names)))
        (push (cond ((derivedp j rotational-joint)
 		    (deg2rad (send j :joint-angle)))
 		   (t
@@ -298,7 +301,7 @@
     (list
      (cons :controller "fullbody_controller/joint_trajectory_action")
      (cons :action-type pr2_controllers_msgs::JointTrajectoryAction)
-     (cons :joint-names (mapcar #'(lambda (n) (symbol-name n)) (send-all (send robot :joint-list) :name))))))
+     (cons :joint-names (mapcar #'(lambda (n) (if (symbolp n) (symbol-name n) n)) (send-all (send robot :joint-list) :name))))))
   ;;
   (:sub-angle-vector (v0 v1)
    (let ((ret (v- v0 v1))
