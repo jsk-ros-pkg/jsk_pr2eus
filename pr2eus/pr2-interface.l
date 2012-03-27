@@ -108,6 +108,7 @@
    (list
 	(list
 	 (cons :controller "l_arm_controller/joint_trajectory_action")
+	 (cons :controller-ns "l_arm_controller")
 	 (cons :action-type pr2_controllers_msgs::JointTrajectoryAction)
 	 (cons :joint-names (list "l_shoulder_pan_joint"
 							  "l_shoulder_lift_joint" "l_upper_arm_roll_joint"
@@ -118,6 +119,7 @@
    (list
 	(list
 	 (cons :controller "r_arm_controller/joint_trajectory_action")
+	 (cons :controller-ns "r_arm_controller")
 	 (cons :action-type pr2_controllers_msgs::JointTrajectoryAction)
 	 (cons :joint-names (list "r_shoulder_pan_joint"
 							  "r_shoulder_lift_joint" "r_upper_arm_roll_joint"
@@ -128,6 +130,7 @@
    (list
 	(list
 	 (cons :controller "head_traj_controller/joint_trajectory_action")
+	 (cons :controller-ns "head_traj_controller")
 	 (cons :action-type pr2_controllers_msgs::JointTrajectoryAction)
 	 (cons :joint-names (list "head_pan_joint" "head_tilt_joint")))))
   (:torso-controller
@@ -135,6 +138,7 @@
    (list
 	(list
 	 (cons :controller "torso_controller/joint_trajectory_action")
+	 (cons :controller-ns "torso_controller")
 	 (cons :action-type pr2_controllers_msgs::JointTrajectoryAction)
 	 (cons :joint-names (list "torso_lift_joint")))))
   (:default-controller
@@ -149,6 +153,7 @@
    (list
     (list
      (cons :controller "midbody_controller/joint_trajectory_action")
+     (cons :controller-ns "midbody_controller")
      (cons :action-type pr2_controllers_msgs::JointTrajectoryAction)
      (cons :joint-names (list "l_shoulder_pan_joint"
 			      "l_shoulder_lift_joint" "l_upper_arm_roll_joint"
@@ -165,6 +170,7 @@
    (list
     (list
      (cons :controller "fullbody_controller/joint_trajectory_action")
+     (cons :controller-ns "fullbody_controller")
      (cons :action-type pr2_controllers_msgs::JointTrajectoryAction)
      (cons :joint-names (list "l_shoulder_pan_joint"
 			      "l_shoulder_lift_joint" "l_upper_arm_roll_joint"

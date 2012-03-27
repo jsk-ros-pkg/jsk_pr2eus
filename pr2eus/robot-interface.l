@@ -42,6 +42,14 @@
        (ros::ros-warn "~A is not respond, ~A-interface is disabled" action (send robot :name) )
        (return)))
    ;;
+   (dolist (param (send self controller-type))
+     (let* ((controller-ns (cdr (assoc :controller-ns param)))
+	    (key (intern (string-upcase controller-ns) *keyword-package*)))
+       (ros::subscribe (format nil "~a/state" controller-ns)
+		       pr2_controllers_msgs::JointTrajectoryControllerState
+		       #'send self :set-robot-state1 key)
+     ))
+   ;;
    (unless joint-action-enable
      (let ((old-viewer user::*viewer*))
        (when (and x::*display* (> x::*display* 0))
@@ -185,6 +193,28 @@
    (unless joint-action-enable (return-from :wait-interpolation nil))
    (send-all controller-actions :wait-for-result))
   ;;
+  (:reference-vector
+   (&key ((:controller-actions ca) controller-actions)
+	 ((:controller-type ct) controller-type))
+   (let* ((joint-list (send robot :joint-list))
+	  (av (instantiate float-vector (length joint-list))))
+     (dolist (param (send self controller-type))
+       (let* ((ctrl (cdr (assoc :controller-ns param)))
+	      (key (intern (string-upcase ctrl) *keyword-package*))
+	      (msg (send self :state key))
+	      jn jangle jpos j)
+	 (if (not msg)
+	     (return-from :reference-vector nil))
+	 (dotimes (idx (length (send msg :joint_names)))
+	   (setq jname (intern (string-upcase (elt (send msg :joint_names) idx)) *keyword-package*))
+	   (setq jangle (elt (send msg :desired :positions) idx))
+	   (setq jpos (position jname (send-all joint-list :name)))
+	   (setq j (elt joint-list jpos))
+	   (setf (elt av jpos)
+		 (cond ((derivedp j linear-joint)     (* jangle 1000))
+		       ((derivedp j rotational-joint) (rad2deg jangle))))
+	   )))
+     av ))
   ;;
   (:send-ros-controller
    (action joint-names starttime trajpoints)
@@ -287,6 +317,12 @@
      (:torque-vector
       (send self :update-robot-state)
       (send robot :torque-vector))
+     (:reference-vector
+      (send self :reference-vector))
+     (:error-vector
+      (let ((reference (send self :state :reference-vector))
+	    (actual    (send self :state :potentio-vector)))
+	(if (and reference actual) (v- reference actual))))
      (:worldcoords
       (send *tfl* :lookup-transform (or (cadr args) "/map") "/base_footprint" (ros::time)))
      (t
@@ -300,6 +336,7 @@
    (list
     (list
      (cons :controller "fullbody_controller/joint_trajectory_action")
+     (cons :controller-ns "fullbody_controller")
      (cons :action-type pr2_controllers_msgs::JointTrajectoryAction)
      (cons :joint-names (mapcar #'(lambda (n) (if (symbolp n) (symbol-name n) n)) (send-all (send robot :joint-list) :name))))))
   ;;
