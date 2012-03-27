@@ -78,13 +78,6 @@
                     :move-target move-target
                     args))
        )))
-  (:limb
-   (limb method &rest args)
-   (case method
-     (:gripper
-      (send* self :gripper limb args))
-     (t
-      (send-super* :limb limb method args))))
   (:gripper
    (limb &rest args)
    (cond
@@ -126,7 +119,9 @@
             (send self :r_gripper_r_finger_joint :joint-angle a/2)
             (send self :r_gripper_l_finger_tip_joint :joint-angle a/2)
             (send self :r_gripper_r_finger_tip_joint :joint-angle a/2)))
-         (* a/2 2))))))
+         (* a/2 2))))
+    (t (send-super* :gripper limb args))
+    ))
   (:init-ending ()
    ;; from pr2 manual(http://pr2support.willowgarage.com/wiki/PR2%20Manual/Chapter8#Forces_and_Torques)
    ;; set velocity and torque max
