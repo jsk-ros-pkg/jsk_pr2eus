@@ -186,7 +186,7 @@
   (:controller-angle-vector
    (av tm type)
    (send self :angle-vector av tm
-		 :controller-actions (mapcar #'(lambda (param) (find (cdr (assoc :controller param)) controller-actions :key #'(lambda (x) (send x :name)) :test #'string=)) (send self type))
+		 :controller-actions (mapcar #'(lambda (param) (find (cdr (assoc :controller-action param)) controller-actions :key #'(lambda (x) (send x :name)) :test #'string=)) (send self type))
 		 :controller-type type))
   (:larm-angle-vector (av tm)
    (send self :controller-angle-vector av tm :larm-controller))
