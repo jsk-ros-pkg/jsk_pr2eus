@@ -242,10 +242,10 @@
   (:update-robot-state
    ()
    (let (joint-names positions velocities efforts)
+     (ros::spin-once)
      ;; (unless joint-action-enable
      ;;   (return-from :update-robot-state (send robot :angle-vector)))
      (unless robot-state (return-from :update-robot-state))
-     (ros::spin-once)
      (setq joint-names (cdr (assoc :name robot-state))
 	   positions (cdr (assoc :position robot-state))
 	   velocities (cdr (assoc :velocity robot-state))
