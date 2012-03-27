@@ -52,7 +52,7 @@
 	  "check number of joint")
 
   (mapcar #'(lambda (joint-unstable joint-stable)
-	      (assert (eq (send joint-unstable :name) (send joint-stable :name))
+	      (assert (string-equal (send joint-unstable :name) (send joint-stable :name))
 		      (format nil "check joint name ~A ~A" (send joint-unstable :name) (send joint-stable :name)))
 	      ;;
 
