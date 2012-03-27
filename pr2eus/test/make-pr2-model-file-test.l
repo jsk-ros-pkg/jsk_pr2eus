@@ -1,4 +1,4 @@
-(load "unittest.l")
+(require :unittest "lib/llib/unittest.l")
 
 (load "package://pr2eus/make-pr2-model-file")
 (ros::roseus "make-pr2-modle-file")
