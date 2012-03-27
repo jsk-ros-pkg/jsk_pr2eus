@@ -29,9 +29,9 @@
    (setq controller-type type)
    (mapcar
     #'(lambda (param)
-	(let* ((controller (cdr (assoc :controller param)))
+	(let* ((controller-action (cdr (assoc :controller-action param)))
 	       (action-type (cdr (assoc :action-type param)))
-	       (action (instance ros::simple-action-client :init controller action-type)))
+	       (action (instance ros::simple-action-client :init controller-action action-type)))
 	  (push action controller-actions)))
     (send self controller-type))
    (nreverse controller-actions)
@@ -43,9 +43,9 @@
        (return)))
    ;;
    (dolist (param (send self controller-type))
-     (let* ((controller-ns (cdr (assoc :controller-ns param)))
-	    (key (intern (string-upcase controller-ns) *keyword-package*)))
-       (ros::subscribe (format nil "~a/state" controller-ns)
+     (let* ((controller-state (cdr (assoc :controller-state param)))
+	    (key (intern (string-upcase controller-state) *keyword-package*)))
+       (ros::subscribe controller-state
 		       pr2_controllers_msgs::JointTrajectoryControllerState
 		       #'send self :set-robot-state1 key)
      ))
@@ -194,21 +194,31 @@
    (send-all controller-actions :wait-for-result))
   ;;
   (:reference-vector
-   (&key ((:controller-actions ca) controller-actions)
+   ()
+   (send self :state-vector :desired))
+  (:potentio-vector
+   () ;; not use this method, -> use update-robot-state and :state :potentio-vector
+   (send self :state-vector :actual))
+  (:error-vector
+   ()
+   (send self :state-vector :error))
+  (:state-vector
+   (type &key ((:controller-actions ca) controller-actions)
 	 ((:controller-type ct) controller-type))
    (let* ((joint-list (send robot :joint-list))
 	  (av (instantiate float-vector (length joint-list))))
      (dolist (param (send self controller-type))
-       (let* ((ctrl (cdr (assoc :controller-ns param)))
+       (let* ((ctrl (cdr (assoc :controller-state param)))
 	      (key (intern (string-upcase ctrl) *keyword-package*))
 	      (msg (send self :state key))
 	      jn jangle jpos j)
+	 (print msg)
 	 (if (not msg)
-	     (return-from :reference-vector nil))
+	     (return-from :state-vector nil))
 	 (dotimes (idx (length (send msg :joint_names)))
-	   (setq jname (intern (string-upcase (elt (send msg :joint_names) idx)) *keyword-package*))
-	   (setq jangle (elt (send msg :desired :positions) idx))
-	   (setq jpos (position jname (send-all joint-list :name)))
+	   (setq jname (elt (send msg :joint_names) idx))
+	   (setq jangle (elt (send msg type :positions) idx))
+	   (setq jpos (position jname (send-all joint-list :name) :test #'string=))
 	   (setq j (elt joint-list jpos))
 	   (setf (elt av jpos)
 		 (cond ((derivedp j linear-joint)     (* jangle 1000))
@@ -320,9 +330,7 @@
      (:reference-vector
       (send self :reference-vector))
      (:error-vector
-      (let ((reference (send self :state :reference-vector))
-	    (actual    (send self :state :potentio-vector)))
-	(if (and reference actual) (v- reference actual))))
+      (send self :error-vector))
      (:worldcoords
       (send *tfl* :lookup-transform (or (cadr args) "/map") "/base_footprint" (ros::time)))
      (t
@@ -335,8 +343,8 @@
    ()
    (list
     (list
-     (cons :controller "fullbody_controller/joint_trajectory_action")
-     (cons :controller-ns "fullbody_controller")
+     (cons :controller-action "fullbody_controller/joint_trajectory_action")
+     (cons :controller-state "fullbody_controller/state")
      (cons :action-type pr2_controllers_msgs::JointTrajectoryAction)
      (cons :joint-names (mapcar #'(lambda (n) (if (symbolp n) (symbol-name n) n)) (send-all (send robot :joint-list) :name))))))
   ;;
