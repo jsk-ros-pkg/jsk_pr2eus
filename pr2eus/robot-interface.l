@@ -12,7 +12,7 @@
 
 (defclass robot-interface
   :super propertied-object
-  :slots (robot objects robot-state joint-action-enable
+  :slots (robot objects robot-state joint-action-enable warningp
 		controller-type controller-actions
 		viewer))
 
@@ -229,6 +229,9 @@
   (:send-ros-controller
    (action joint-names starttime trajpoints)
    (unless joint-action-enable (return-from :send-ros-controller nil))
+   (if (and warningp
+	    (yes-or-no-p (format nil "~C[3~CmAre you sure to move the real robot? (~A) ~C[0m" #x1b 49 (send action :name) #x1b)))
+       (return-from :send-ros-controller nil))
    (let* ((goal (send action :make-goal-instance))
 	  (goal-points nil)
 	  (st (ros::time+ (ros::time-now) (ros::time starttime)))
@@ -369,6 +372,8 @@
 	      (mapcar #'(lambda (o) (setf (get o :GL-DISPLAYLIST-ID) nil)) (x::draw-things objects))
 	      (if viewer (send viewer :objects (append (list robot) objects))))
 	    objects)
+  (:joint-action-enable (&optional (e :dummy)) (if (not (eq e :dummy)) (setq joint-action-enable e)) joint-action-enable)
+  (:warningp (&optional (w :dummy)) (if (not (eq w :dummy)) (setq warningp w)) warningp)
   ) ;; ros-interface
 
 
