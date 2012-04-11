@@ -12,6 +12,12 @@
    (target-coords &rest args &key (link-list) (move-arm)
                   (use-torso t) (move-target) (stop 300)
                   (use-base nil) (start-coords (send self :copy-worldcoords))
+                  (thre (cond
+                         ((atom target-coords) 10)
+                         (t (make-list (length target-coords) :initial-element 10))))
+                  (rthre (cond
+                         ((atom target-coords) (deg2rad 5))
+                         (t (make-list (length target-coords) :initial-element (deg2rad 5)))))
                   &allow-other-keys)
    (let (weight union-link-list torso-id base-weight diff-pos-rot)
      ;;
@@ -24,7 +30,7 @@
      ;; 2;do nothing, since move-arm is used to set link-list and move-target
      ;; 3;set move-coords and link-list from move-arm
      ;; 4;set link-list from move-arm and move-target
-     (unless move-arm
+     (unless (or move-arm (consp target-coords)) ;; move-arm cannot be used if target-coords is cons
        (setq move-arm (send self :select-target-arm target-coords)))
      (unless move-target
        (setq move-target (send self move-arm :end-coords)))
@@ -61,8 +67,8 @@
                             (rad2deg (elt diff-pos-rot 5))))
         (if (eq use-base t) (setq use-base 0.1))
         (send-super* :inverse-kinematics target-coords
-                     :rthre (deg2rad 5)
-                     :thre 10
+                     :rthre rthre
+                     :thre thre
                      :stop stop
                      :weight (concatenate float-vector (float-vector use-base use-base use-base) weight)
                      :link-list (car ll) ;; link-list
@@ -70,8 +76,8 @@
                     args)))
       (t
        (send-super* :inverse-kinematics target-coords
-                    :rthre (deg2rad 5)
-                    :thre 10
+                    :rthre rthre
+                    :thre thre
                     :stop stop
                     :weight weight
                     :link-list link-list
