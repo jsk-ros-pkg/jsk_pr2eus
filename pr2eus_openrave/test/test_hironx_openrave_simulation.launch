@@ -1,0 +1,5 @@
+<launch>
+  <include file="$(find pr2eus_openrave)/launch/hironx_openrave_armplan.launch" >
+    <arg name="test" value="true"/>
+  </include>
+</launch>
