@@ -32,6 +32,7 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 rosbuild_check_for_display(disp)
 if(disp)
   rosbuild_add_rostest(test/test_pr2_openrave_simulation.launch)
+  rosbuild_add_rostest(test/test_hironx_openrave_simulation.launch)
 endif(disp)
 
 

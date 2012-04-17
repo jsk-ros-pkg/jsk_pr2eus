@@ -2,4 +2,12 @@
   <include file="$(find pr2eus_openrave)/launch/hironx_openrave_armplan.launch" >
     <arg name="test" value="true"/>
   </include>
+
+  <sphinxdoc><![CDATA[
+roseus + openrave example for Kawada Hiro Robot
+
+.. video:: build/rviz_hironx_openrave
+  :width: 400
+
+  ]]></sphinxdoc>
 </launch>
