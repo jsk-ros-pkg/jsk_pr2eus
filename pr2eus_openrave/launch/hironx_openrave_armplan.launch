@@ -14,7 +14,7 @@
     <arg name="option" default="--use-simulation='true'"/>
     <arg name="robot" value="$(find collada_robots)/data/robots/kawada-hironx.dae"/>
     <arg name="robot_name" default="hironx"/>
-    <arg name="eusmodel_fname" default="$(find hrpsys_ros_bridge)/models/kawada-hironx.l"/>
+    <arg name="eusmodel_fname" default="$(find pr2eus_openrave)/test/kawada-hironx.l"/>
   </include>
 
 </launch>
