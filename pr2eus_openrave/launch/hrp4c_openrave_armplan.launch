@@ -1,10 +1,10 @@
 <launch>
-  <arg name="COLLISION_MAP_WAIT_TIME" default="12"/>
   <arg name="test" default="false" />
-  <node name="static_tf_publisher" pkg="tf"
+
+  <node name="base_foot_print_to_waist" pkg="tf"
         type="static_transform_publisher"
         args="0 0 0.9 0 0 0 /base_footprint /BODY 50"/>
-  <node name="static_tf_publisher2" pkg="tf"
+  <node name="base_link_to_base_footprint" pkg="tf"
         type="static_transform_publisher"
         args="0 0 0 0 0 0 /base_link /base_footprint 50"/>
 
