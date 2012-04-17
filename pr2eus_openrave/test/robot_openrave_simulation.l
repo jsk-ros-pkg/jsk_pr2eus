@@ -27,7 +27,7 @@
 (setq *test-coords*
       (cond
        ((string= *robot-name* "hironx")
-        (list (make-coords :pos (float-vector 500 -300 1000))))
+        (list (make-coords :pos (float-vector 500 -300 1300))))
        ((string= *robot-name* "hrp4c")
         (list (make-coords :pos (float-vector 500 -300 900))))
        ((string= *robot-name* "pr2")
@@ -41,9 +41,7 @@
 
   (cond
    ((string= *robot-name* "pr2") (pr2-tuckarm-pose :larm))
-   ((string= *robot-name* "hironx") (dolist (j (send *robot* :joint-list)) (send j :joint-angle 0)))
    (t (send *robot* :reset-pose)))
-  (send *ri* :angle-vector (send *robot* :angle-vector) 1000)
   ;;test
   (dolist (p *test-coords*)
     (let (ret)
