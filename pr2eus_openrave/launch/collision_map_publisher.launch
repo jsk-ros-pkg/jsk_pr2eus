@@ -1,0 +1,33 @@
+<launch>
+  <machine name="localhost" address="localhost" ros-root="$(env ROS_ROOT)"
+  	   ros-package-path="$(env ROS_PACKAGE_PATH)"/>
+  <arg name="machine_name" default="localhost"/>
+  <arg name="cloud_sources" default="$(find pr2_arm_navigation_tutorials)/config/collision_map_sources.yaml"/>
+
+  <!-- make point cloud snapshots into collision maps -->
+  <node pkg="collision_map" type="collision_map_self_occ_node" machine="$(arg machine_name)"
+        name="collision_map_self_occ_node" respawn="true" output="screen">
+    <!-- The default padding to be added for the body parts the robot can see -->
+    <param name="self_see_default_padding" type="double" value="0.04"/>
+    <!-- The default scaling to be added for the body parts the robot  can see -->
+    <param name="self_see_default_scale" type="double" value="1.0" />
+    <!-- if someone asks for a stable map, publish the static map on
+         the dynamic map topic and no longer publish dynamic maps -->
+    <param name="publish_static_over_dynamic_map" type="bool" value="true" />
+    <param name="fixed_frame" type="string" value="base_footprint" />
+    <!-- define a box of size 2x3x4 around (1.1,  0, 0) in the robot frame -->
+    <param name="robot_frame" type="string" value="base_footprint" />
+    <param name="origin_x" type="double" value="1.1" />
+    <param name="origin_y" type="double" value="0.0" />
+    <param name="origin_z" type="double" value="0.0" />
+    
+    <param name="dimension_x" type="double" value="1.5" />
+    <param name="dimension_y" type="double" value="2.0" />
+    <param name="dimension_z" type="double" value="2.0" />
+
+    <!-- set the resolution (1.0 cm) -->
+    <param name="resolution" type="double" value="0.01" />
+    <!-- cloud sources -->
+    <rosparam command="load" file="$(arg cloud_sources)" />
+  </node>
+</launch>

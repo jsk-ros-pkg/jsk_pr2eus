@@ -1,0 +1,21 @@
+<launch>
+  <arg name="COLLISION_MAP_WAIT_TIME" default="12"/>
+  <arg name="test" default="false" />
+  <node name="static_tf_publisher" pkg="tf"
+        type="static_transform_publisher"
+        args="0 0 0.9 0 0 0 /base_footprint /BODY 50"/>
+  <node name="static_tf_publisher2" pkg="tf"
+        type="static_transform_publisher"
+        args="0 0 0 0 0 0 /base_link /base_footprint 50"/>
+
+  <include file="$(find pr2eus_openrave)/launch/openrave_armplan.launch">
+    <arg name="test" value="$(arg test)"/>
+    <arg name="collision_map_time" value="1"/>
+    <arg name="option" default="--use-simulation='true'"/>
+    <arg name="robot" value="$(find hrpsys_ros_bridge)/models/HRP4C.dae"/>
+    <arg name="robot_name" default="hrp4"/>
+    <arg name="eusmodel_fname" default="$(find hrpsys_ros_bridge)/models/hrp4c.l"/>
+  </include>
+
+
+</launch>

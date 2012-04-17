@@ -1,0 +1,21 @@
+<launch>
+  <arg name="COLLISION_MAP_WAIT_TIME" default="12"/>
+  <arg name="test" default="false" />
+
+  <node name="base_foot_print_to_waist" pkg="tf"
+        type="static_transform_publisher"
+        args="0 0 0.7 0 0 0 /base_footprint /WAIST 100"/>
+  <node name="base_link_to_base_footprint" pkg="tf"
+        type="static_transform_publisher"
+        args="0 0 0 0 0 0 /base_link /base_footprint 100"/>
+
+  <include file="$(find pr2eus_openrave)/launch/openrave_armplan.launch">
+    <arg name="test" value="$(arg test)"/>
+    <arg name="collision_map_time" value="5"/>
+    <arg name="option" default="--use-simulation='true'"/>
+    <arg name="robot" value="$(find collada_robots)/data/robots/kawada-hironx.dae"/>
+    <arg name="robot_name" default="hironx"/>
+    <arg name="eusmodel_fname" default="$(find hrpsys_ros_bridge)/models/kawada-hironx.l"/>
+  </include>
+
+</launch>

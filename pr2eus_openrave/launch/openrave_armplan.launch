@@ -1,0 +1,46 @@
+<launch>
+  <arg name="test" default="false" />
+  <arg name="robot_name" default="pr2"/>
+  <arg name="eusmodel_fname" default="$(find pr2eus)/pr2.l"/>
+  <arg name="robot" default="$(find collada_robots)/data/robots/pr2-beta-static.dae"/>
+  <arg name="collision_map" default="/collision_map_occ_throttle"/>
+  <arg name="collision_map_time" default="1"/>
+  <arg name="option" default=""/>
+
+<!-- $(find pr2eus_openrave)/test/hrp4c.robot.xml -->
+  <node name="openrave_armplan" pkg="orrosplanning" type="armplanning_openrave.py" output="screen"
+	args="--scene=$(arg robot)
+	      --collision_map=$(arg collision_map)
+	      --wait-for-collisionmap=$(arg collision_map_time)
+	      --request-for-joint_states='service'
+	      $(arg option)"
+	/>
+
+  <!-- test code -->
+  <group if="$(arg test)" >
+    <param name="robot_description" textfile="$(arg robot)" />
+    <node name="robot_state_publisher" pkg="robot_state_publisher"
+          type="state_publisher"/>
+    <node type="rviz" pkg="rviz" name="rviz_$(arg robot_name)_openrave"
+          args="--sync -d $(find pr2eus_openrave)/test/test_pr2eus_openrave.vcg"
+          launch-prefix='glc-capture --start --out=$(find pr2eus_openrave)/build/rviz_$(arg robot_name)_openrave.glc' />
+    <param name="/use_sim_time" value="true"/>
+    <node pkg="rosbag" type="play" name="rosbag_play_collision_map"
+          args="$(find pr2eus_openrave)/test/collision_map.bag --clock -d 5 -s 20"/>
+    <node pkg="tf" type="static_transform_publisher" name="base_to_kinect"
+          args="0.130 0.016 1.338 -1.977 0.000 -1.487 /base_link /openni_rgb_optical_frame 100"/>
+  </group>
+  
+  <noinclude file="$(find pr2eus_openrave)/launch/collision_map_publisher.launch"/>
+
+  <test name="pr2eus_openrave_eus" pkg="roseus" type="roseus"
+	args="$(find pr2eus_openrave)/test/robot_openrave_simulation.l"
+	test-name="$(arg robot_name)_openrave_simulation" time-limit="1000">
+    <param name="robot_name" value="$(arg robot_name)"/>
+    <param name="eusmodel_fname" value="$(arg eusmodel_fname)"/>
+    <!-- <param name="if_fname" value="$(arg if_fname)"/> -->
+  </test>
+  <!-- we assume test code is invoked in alphabet order of test-name -->
+  <notest type="glc_encode.sh" pkg="jsk_tools" test-name="z_$(arg robot_name)_openrave_encode" args="$(find pr2eus_openrave)/build/rviz_$(arg robot_name)_openrave.glc" time-limit="1000"/>
+
+</launch>
