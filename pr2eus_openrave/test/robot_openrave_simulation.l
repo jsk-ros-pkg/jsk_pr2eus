@@ -41,7 +41,7 @@
 
   (cond
    ((string= *robot-name* "pr2") (pr2-tuckarm-pose :larm))
-   (t (send *robot* :reset-pose)))
+   ((find-method *robot* :reset-pose) (send *robot* :reset-pose)))
   ;;test
   (dolist (p *test-coords*)
     (let (ret)
