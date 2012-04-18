@@ -31,7 +31,7 @@
 	  "check number of link"
 	  )
   (mapcar #'(lambda (link-unstable link-stable)
-	      (assert (eq (send link-unstable :name) (send link-stable :name))
+	      (assert (equal (send link-unstable :name) (send link-stable :name))
 		      (format nil "check link name ~A ~A" (send link-unstable :name) (send link-stable :name)))
 	      (assert
 	       (= (norm (send (send link-unstable :worldcoords) :difference-position (send link-stable :worldcoords))) 0.0)
