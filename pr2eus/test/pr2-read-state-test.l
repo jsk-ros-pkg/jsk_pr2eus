@@ -31,7 +31,7 @@
     (send *pr2* :angle-vector (send *ri* :state :potentio-vector))
     (dolist (link (send *pr2* :links))
       (assert (> 10 (distance (send (send *tfl* :lookup-transform "/base_footprint" (string-downcase (send link :name)) (ros::time 0)) :worldpos)
-			      (send *pr2* (send link :name) :worldpos)))
+			      (send (send *pr2* :link (send link :name)) :worldpos)))
 	      (format nil " ~A of model and one from tf are not same position" (send link :name)))
     )
 
