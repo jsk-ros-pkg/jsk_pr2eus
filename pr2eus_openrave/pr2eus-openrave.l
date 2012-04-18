@@ -149,7 +149,7 @@
 		 (ns "robot_traj") ((:color col) #f(0.5 0.5 0.5)))
    (let ((msg (instance visualization_msgs::MarkerArray :init))
 	 (header (instance std_msgs::header :init
-			   :stamp (ros::time-now) :frame_id "base_footprint"))
+			   :stamp (ros::time-now) :frame_id (send (car (send robot :links)) :name)))
 	 (l (length link-coords-list)) markers-list alpha-list)
      (dotimes (i l)
        (push (+ (/ (/ (1+ i) 2.0) l) 0.5) alpha-list))
