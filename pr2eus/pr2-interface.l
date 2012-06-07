@@ -21,39 +21,43 @@
    (if args (ros::ros-warn "pr2 torque-vector does not have parameters"))
    (coerce (send-all (send self :joint-list) :joint-torque) float-vector)))
 
-
 (defclass pr2-interface
   :super robot-interface
   :slots (r-gripper-action l-gripper-action
-			   move-base-action move-base-trajectory-action
-			   finger-pressure-origin))
+                           move-base-action move-base-trajectory-action
+                           finger-pressure-origin))
 (defmethod pr2-interface
   (:init
    (&rest args &key (type :default-controller)
-          (move-base-action-name "move_base")
-		  &allow-other-keys)
+          (move-base-action-name "move_base") &allow-other-keys)
+   (send-super :init :robot pr2-robot :type type
+               :groupname "pr2_interface")
    ;;
    (ros::advertise "j_robotsound" sound_play::SoundRequest 5)
    ;;
    (ros::subscribe "/base_odometry/odom" nav_msgs::Odometry
-		   #'send self :pr2-odom-callback)
+                   #'send self :pr2-odom-callback :groupname groupname)
    (ros::subscribe "/pressure/r_gripper_motor" pr2_msgs::PressureState
-		   #'send self :pr2-fingertip-callback :rarm-pressure)
+                   #'send self :pr2-fingertip-callback :rarm-pressure :groupname groupname)
    (ros::subscribe "/pressure/l_gripper_motor" pr2_msgs::PressureState
-		   #'send self :pr2-fingertip-callback :larm-pressure)
+                   #'send self :pr2-fingertip-callback :larm-pressure :groupname groupname)
    ;;
    (setq r-gripper-action (instance ros::simple-action-client :init
-				    "/r_gripper_controller/gripper_action"
-                    pr2_controllers_msgs::Pr2GripperCommandAction))
+                                    "/r_gripper_controller/gripper_action"
+                                    pr2_controllers_msgs::Pr2GripperCommandAction
+                                    :groupname groupname))
    (setq l-gripper-action (instance ros::simple-action-client :init
-				    "/l_gripper_controller/gripper_action"
-                    pr2_controllers_msgs::Pr2GripperCommandAction))
+                                    "/l_gripper_controller/gripper_action"
+                                    pr2_controllers_msgs::Pr2GripperCommandAction
+                                    :groupname groupname))
    (setq move-base-action (instance ros::simple-action-client :init
-                    move-base-action-name move_base_msgs::MoveBaseAction))
+                                    move-base-action-name move_base_msgs::MoveBaseAction
+                                    :groupname groupname))
    (setq move-base-trajectory-action
-	 (instance ros::simple-action-client :init
-		   "/base_controller/joint_trajectory_action"
-		   pr2_controllers_msgs::JointTrajectoryAction))
+         (instance ros::simple-action-client :init
+                   "/base_controller/joint_trajectory_action"
+                   pr2_controllers_msgs::JointTrajectoryAction
+                   :groupname groupname))
 
    ;; wait for pr2-action server (except move_base)
    (setq joint-action-enable t)
@@ -62,9 +66,7 @@
        (setq joint-action-enable nil)
        (ros::ros-warn "~A is not respond, pr2-interface is disabled" action)
        (return)))
-
-   (send-super :init :robot pr2-robot :type type)
-   )
+   t)
   ;;
   (:pr2-odom-callback
    (msg)
@@ -255,7 +257,7 @@
      (send self :set-robot-state1 arm pressure)))
   (:reset-fingertip
    ()
-   (ros::spin-once)
+   (send self :spin-once)
    (setq finger-pressure-origin
 	 (mapcar #'(lambda(k)(cons k (copy-seq (send self :state k))))
 		 '(:rarm-pressure :larm-pressure))))
@@ -378,7 +380,7 @@
      ))
   (:move-trajectory
    (x y d &optional (msec 1000) &key (stop t)) ;; [m/sec] [m/sec] [rad/sec]
-   (ros::spin-once)
+   (send self :spin-once)
    (let ((sec (/ msec 1000.0))
 	 (odom-pos (scale 0.001 (send (send self :state :odom :pose) :pos)))
 	 (odom-angle (elt (car (send (send self :state :odom :pose) :rpy-angle)) 0))

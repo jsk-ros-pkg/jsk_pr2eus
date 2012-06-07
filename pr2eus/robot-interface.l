@@ -13,25 +13,29 @@
 (defclass robot-interface
   :super propertied-object
   :slots (robot objects robot-state joint-action-enable warningp
-		controller-type controller-actions
+                nodehandlename controller-type controller-actions
 		viewer))
 
 (defmethod robot-interface
   (:init
-   (&rest args &key ((:robot r)) ((:objects objs)) (type :default-controller) &allow-other-keys)
+   (&rest args &key ((:robot r)) ((:objects objs)) (type :default-controller)
+          ((:groupname nh) "robot_multi_queue") &allow-other-keys)
    (setq joint-action-enable t)
    (setq robot (instance r :init))
+   (setq groupname nh)
+   (ros::create-nodehandle groupname)
    ;;
    (defvar *tfl* (instance ros::transform-listener :init))
    (ros::subscribe "/joint_states" sensor_msgs::JointState
-		   #'send self :ros-state-callback)
+                   #'send self :ros-state-callback :groupname groupname)
 
    (setq controller-type type)
    (mapcar
     #'(lambda (param)
 	(let* ((controller-action (cdr (assoc :controller-action param)))
 	       (action-type (cdr (assoc :action-type param)))
-	       (action (instance ros::simple-action-client :init controller-action action-type)))
+	       (action (instance ros::simple-action-client :init controller-action action-type
+                                 :groupname groupname)))
 	  (push action controller-actions)))
     (send self controller-type))
    (nreverse controller-actions)
@@ -46,8 +50,8 @@
      (let* ((controller-state (cdr (assoc :controller-state param)))
 	    (key (intern (string-upcase controller-state) *keyword-package*)))
        (ros::subscribe controller-state
-		       pr2_controllers_msgs::JointTrajectoryControllerState
-		       #'send self :set-robot-state1 key)
+                       pr2_controllers_msgs::JointTrajectoryControllerState
+                       #'send self :set-robot-state1 key :groupname groupname)
      ))
    ;;
    (unless joint-action-enable
@@ -122,7 +126,7 @@
    av)
   (:angle-vector-sequence
    (avs &optional (tms (list 3000)))
-   (ros::spin-once) ;; for :state :potentio-vector
+   (send self :spin-once) ;; for :state :potentio-vector
    (let ((st 0) (traj-points nil)
          (av-prev (send self :state :potentio-vector)) av av-next
          (offset (instantiate float-vector (length (send robot :angle-vector))))
@@ -270,7 +274,7 @@
 			 :time_from_start (ros::time duration))
 	       goal-points)
 	 ))
-     (ros::spin-once)
+     (send self :spin-once)
      (send goal :goal :trajectory :points goal-points)
      (send action :send-goal goal)
      ))
@@ -288,7 +292,7 @@
   (:update-robot-state
    ()
    (let (joint-names positions velocities efforts)
-     (ros::spin-once)
+     (send self :spin-once)
      ;; (unless joint-action-enable
      ;;   (return-from :update-robot-state (send robot :angle-vector)))
      (unless robot-state (return-from :update-robot-state))
@@ -374,6 +378,7 @@
 	    objects)
   (:joint-action-enable (&optional (e :dummy)) (if (not (eq e :dummy)) (setq joint-action-enable e)) joint-action-enable)
   (:warningp (&optional (w :dummy)) (if (not (eq w :dummy)) (setq warningp w)) warningp)
+  (:spin-once () (ros::spin-once groupname))
   ) ;; ros-interface
 
 
