@@ -415,7 +415,7 @@
 ;;;;;
 ;;;;; utility functions pr2 robot
 ;;;;;
-(defun setup-for-pr2 (&optional (viewer))
+(defun setup-for-pr2 (&optional (create-viewer))
   ;; env
   (unless (boundp '*pr2*) (pr2))
   (unless (boundp '*ri*) (setq *ri* (instance pr2-interface :init)))
@@ -426,7 +426,7 @@
   (send *pr2* :angle-vector (send *ri* :state :potentio-vector))
   ;;(send *pr2* :move-to (send *ri* :state :worldcoords) :world)
 
-  (when viewer (objects (list *pr2*)))
+  (when create-viewer (objects (list *pr2*)))
   )
 
 ;; (list larm-v rarm-v)
