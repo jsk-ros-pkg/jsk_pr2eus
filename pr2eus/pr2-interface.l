@@ -415,6 +415,19 @@
 ;;;;;
 ;;;;; utility functions pr2 robot
 ;;;;;
+(defun setup-for-pr2 (&optional (viewer))
+  ;; env
+  (unless (boundp '*pr2*) (pr2))
+  (unless (boundp '*ri*) (setq *ri* (instance pr2-interface :init)))
+
+  (ros::spin-once)
+  (send *ri* :spin-once)
+
+  (send *pr2* :angle-vector (send *ri* :state :potentio-vector))
+  ;;(send *pr2* :move-to (send *ri* :state :worldcoords) :world)
+
+  (when viewer (objects (list *pr2*)))
+  )
 
 ;; (list larm-v rarm-v)
 (defconstant *pr2-tuckarm-pose-rarm-free* (list #f( 5 70  105  -90 -70   -6  -20)
