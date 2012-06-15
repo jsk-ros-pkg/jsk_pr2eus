@@ -418,6 +418,7 @@
 (defun setup-for-pr2 (&optional (create-viewer))
   ;; env
   (unless (boundp '*pr2*) (pr2))
+  (unless (ros::ok) (ros::roseus "pr2_eus_interface"))
   (unless (boundp '*ri*) (setq *ri* (instance pr2-interface :init)))
 
   (ros::spin-once)
