@@ -334,17 +334,18 @@
      (:torque-vector
       (send self :update-robot-state)
       (send robot :torque-vector))
-     (:reference-vector
-      (send self :reference-vector))
-     (:error-vector
-      (send self :error-vector))
      (:worldcoords
       (send *tfl* :lookup-transform (or (cadr args) "/map") "/base_footprint" (ros::time)))
+     (
+      (send self (car (remove-if-not #'(lambda (x) (substringp "-VECTOR" (string x))) (send self :methods)))))
      (t
-      (let ((cur robot-state))
-	(dolist (key args cur)
-	  (setq cur (cdr (assoc key cur))))))
-     ))
+      (let ((mm (find (car args) (remove-if-not #'(lambda (x) (substringp "-VECTOR" (string x))) (send self :methods)))))
+        (if mm ;; if xx-vector method exists
+            (send self mm)
+          (let ((cur robot-state))
+            (dolist (key args cur)
+              (setq cur (cdr (assoc key cur))))))
+        ))))
   ;;
   (:default-controller
    ()
