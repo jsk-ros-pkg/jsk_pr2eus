@@ -14,7 +14,7 @@
   :super propertied-object
   :slots (robot objects robot-state joint-action-enable warningp
                 nodehandlename controller-type controller-actions
-		viewer))
+		viewer groupname))
 
 (defmethod robot-interface
   (:init
