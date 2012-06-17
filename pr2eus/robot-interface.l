@@ -336,8 +336,6 @@
       (send robot :torque-vector))
      (:worldcoords
       (send *tfl* :lookup-transform (or (cadr args) "/map") "/base_footprint" (ros::time)))
-     (
-      (send self (car (remove-if-not #'(lambda (x) (substringp "-VECTOR" (string x))) (send self :methods)))))
      (t
       (let ((mm (find (car args) (remove-if-not #'(lambda (x) (substringp "-VECTOR" (string x))) (send self :methods)))))
         (if mm ;; if xx-vector method exists
