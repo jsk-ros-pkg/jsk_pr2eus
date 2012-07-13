@@ -16,7 +16,7 @@ roseus + openrave example.
 
   <test name="pr2eus_openrave_eus" pkg="roseus" type="roseus"
 	args="$(find pr2eus_openrave)/test/pr2_openrave_simulation.l"
-	test-name="pr2_openrave_simulation" time-limit="1000"/>
+	test-name="pr2_openrave_simulation" time-limit="2000"/>
   <!-- we assume test code is invoked in alphabet order of test-name -->
   <test type="glc_encode.sh" pkg="jsk_tools" test-name="z_pr2_openrave_encode" args="$(find pr2eus_openrave)/build/rviz_pr2_openrave.glc" time-limit="1500"/>
   <param name="use_sim_time" value="true"/>
