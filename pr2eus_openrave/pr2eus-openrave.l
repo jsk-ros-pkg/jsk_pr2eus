@@ -30,14 +30,24 @@
        (ros::ros-warn "SetJointState did not respond"))
      res))
   (:angle-vector-motion-plan
-   (av &key (move-target :larm) (use-torso t))
-   (let (coords)
+   (av &key (move-arm :larm) (use-torso t)
+       ((:diff-sum diff-sum) 0) ((:diff-thre diff-thre) 50) ((:speed-scale speed-scale) 1.0))
+   (let (coords joint-trajectory (av-rad av))
      (send robot :angle-vector av)
-     (setq coords (send robot move-target :end-coords :copy-worldcoords))
-     (send self :move-end-coords-plan coords :move-target move-target :use-torso use-torso)))
+     (setq coords (send robot move-arm :end-coords :copy-worldcoords))
+     (send self :show-goal-hand-coords (send coords :copy-worldcoords) move-arm)
+     (dotimes (i (length av-rad)) (setf (elt av-rad i) (deg2rad (elt av-rad i))))
+     (setq joint-trajectory
+	   (send self :call-openrave-move-manipulator
+		 av-rad
+		 (format nil "~A~A" (case move-arm (:larm "leftarm") (:rarm "rightarm")) (if use-torso "_torso" ""))
+		 ))
+     (send self :joint-trajectory-to-angle-vector-list move-arm joint-trajectory :diff-sum diff-sum :diff-thre diff-thre :speed-scale speed-scale)
+     ))
   (:move-end-coords-plan
    (coords &key (move-arm :larm) (use-torso t) ((:lifetime lf) 20)
-	   (manip-name (if (derivedp (*ri* . robot) pr2-robot) (case move-arm (:larm "l_gripper_tool_frame") (:rarm "r_gripper_tool_frame")) "")) )
+	   ((:diff-sum diff-sum) 0) ((:diff-thre diff-thre) 50) ((:speed-scale speed-scale) 1.0)
+	   (manip-name (if (derivedp (*ri* . robot) pr2-robot) (case move-arm (:larm "l_gripper_tool_frame") (:rarm "r_gripper_tool_frame")) "")) (speed-scale 1.0))
    ;; for fast result view
    (send self :show-goal-hand-coords (send coords :copy-worldcoords) move-arm)
 
@@ -49,10 +59,10 @@
 		 manip-name
 ;;		 (case move-arm (:larm "l_gripper_tool_frame") (:rarm "r_gripper_tool_frame"))
 		 ))
-     (send self :joint-trajectory-to-angle-vector-list move-arm joint-trajectory)
+     (send self :joint-trajectory-to-angle-vector-list move-arm joint-trajectory :diff-sum diff-sum :diff-thre diff-thre :speed-scale speed-scale)
      ))
-  (:joint-trajectory-to-angle-vector-list (move-arm joint-trajectory)
-   (let* (joint-trajectory-points joints avs tms  (tm (ros::time -1)) link-coords-list (diff-sum 0) (diff-thre 50)
+  (:joint-trajectory-to-angle-vector-list (move-arm joint-trajectory &key ((:diff-sum diff-sum) 0) ((:diff-thre diff-thre) 50) ((:speed-scale speed-scale) 1.0))
+   (let* (joint-trajectory-points joints avs tms  (tm (ros::time -1)) link-coords-list
 			   (dae-link-list
 			    (send self :find-descendants-dae-links (send robot move-arm :root-link))))
      ;; JointTrajectory to angle-vector
@@ -76,7 +86,7 @@
 	     (progn (setq diff-sum 0)
 		    (push (send-all (flatten (send-all dae-link-list :bodies)) :copy-worldcoords)
 			  link-coords-list))))
-       (push (* (send (ros::time- (send point :time_from_start) tm) :to-sec) 1000) tms)
+       (push (* (send (ros::time- (send point :time_from_start) tm) :to-sec) 1000 speed-scale) tms)
        (setq tm (send point :time_from_start))
        )
      (push (send-all (flatten (send-all dae-link-list :bodies)) :copy-worldcoords)
@@ -127,6 +137,21 @@
        (send mux-req :topic "collision_map_none")
        (ros::service-call "collision_map_mux/select" mux-req))
 
+     (if res (send res :traj))))
+
+  (:call-openrave-move-manipulator
+   (av manip-name)
+   (let ((req (instance orrosplanning::MoveManipulatorRequest :init)) res)
+     (ros::ros-info "angle-vector ~A" av)
+     (ros::ros-info "manip-name   ~A" manip-name)
+     (send req :manip_name manip-name)
+     (send req :manip_goal av)
+     (send self :service-call-joint-state)
+     (if (and
+	  (ros::service-exists "MoveManipulator")
+	  (ros::wait-for-service "MoveManipulator" 30))
+	 (setq res (ros::service-call "MoveManipulator" req))
+       (ros::ros-warn "MoveManipulator did not respond"))
      (if res (send res :traj))))
 
   (:show-goal-hand-coords ;;temporally
