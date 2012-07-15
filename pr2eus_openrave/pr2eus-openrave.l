@@ -41,9 +41,7 @@
    ;; for fast result view
    (send self :show-goal-hand-coords (send coords :copy-worldcoords) move-arm)
 
-   (let* (joint-trajectory joint-trajectory-points joints avs tms (tm (ros::time -1)) link-coords-list (diff-sum 0) (diff-thre 50)
-			   (dae-link-list
-			    (send self :find-descendants-dae-links (send robot move-arm :root-link))))
+   (let* (joint-trajectory)
      (setq joint-trajectory
 	   (send self :call-openrave-move-to-hand-position
 		 coords
@@ -51,6 +49,12 @@
 		 manip-name
 ;;		 (case move-arm (:larm "l_gripper_tool_frame") (:rarm "r_gripper_tool_frame"))
 		 ))
+     (send self :joint-trajectory-to-angle-vector-list move-arm joint-trajectory)
+     ))
+  (:joint-trajectory-to-angle-vector-list (move-arm joint-trajectory)
+   (let* (joint-trajectory-points joints avs tms  (tm (ros::time -1)) link-coords-list (diff-sum 0) (diff-thre 50)
+			   (dae-link-list
+			    (send self :find-descendants-dae-links (send robot move-arm :root-link))))
      ;; JointTrajectory to angle-vector
      (if joint-trajectory
 	 (setq joint-trajectory-points (send joint-trajectory :points)
