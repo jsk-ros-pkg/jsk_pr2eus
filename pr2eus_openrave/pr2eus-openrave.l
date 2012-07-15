@@ -47,7 +47,7 @@
   (:move-end-coords-plan
    (coords &key (move-arm :larm) (use-torso t) ((:lifetime lf) 20)
 	   ((:diff-sum diff-sum) 0) ((:diff-thre diff-thre) 50) ((:speed-scale speed-scale) 1.0)
-	   (manip-name (if (derivedp (*ri* . robot) pr2-robot) (case move-arm (:larm "l_gripper_tool_frame") (:rarm "r_gripper_tool_frame")) "")) (speed-scale 1.0))
+	   (manip-name (if (derivedp (*ri* . robot) pr2-robot) (case move-arm (:larm "l_gripper_tool_frame") (:rarm "r_gripper_tool_frame")) "")))
    ;; for fast result view
    (send self :show-goal-hand-coords (send coords :copy-worldcoords) move-arm)
 
