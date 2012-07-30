@@ -90,7 +90,12 @@
      ;; pr2 specific openni frames
      (format f "   ;; openni frame definition, this data is taken from jsk_pr2_startup kinect_head_launch ~%")
      (format f "#|~%")
-     (dolist (name (list "head_to_kinect_rgb" "kinect_base_link" "kinect_base_link1" "kinect_base_link2" "kinect_base_link2"))
+     (dolist (name (list "head_to_kinect_rgb"
+                         "kinect_base_link"
+                         ;;"kinect_base_link1"
+                         "kinect_base_link2"
+                         ;;"kinect_base_link3"
+                         ))
        (let ((command (format nil "roslaunch --args ~A jsk_pr2_startup kinect_head.launch" name)))
 	 (format f "$ ~A~%" command)
 	 (format f "~A~%" (read-line (piped-fork command )))))
