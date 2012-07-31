@@ -90,15 +90,7 @@
      ;; pr2 specific openni frames
      (format f "   ;; openni frame definition, this data is taken from jsk_pr2_startup kinect_head_launch ~%")
      (format f "#|~%")
-     (dolist (name (list "head_to_kinect_rgb"
-                         "kinect_base_link"
-                         ;;"kinect_base_link1"
-                         "kinect_base_link2"
-                         ;;"kinect_base_link3"
-                         ))
-       (let ((command (format nil "roslaunch --args ~A jsk_pr2_startup kinect_head.launch" name)))
-	 (format f "$ ~A~%" command)
-	 (format f "~A~%" (read-line (piped-fork command )))))
+     (format f " get frame coordinates data from pr1012:/etc/ros/electric/urdf/robot.xml~%")
      (format f "|#~%")
      (format f "   (setq openni_camera (make-cascoords :coords (send (make-coords :pos (float-vector 22 40 150) :rpy (float-vector 0 -0.02 0)) :transform (send head_plate_frame :worldcoords) :world) :parent head_plate_frame :name :openni_camera))~%")
      (format f "   (setq openni_depth_frame (make-cascoords :coords (send (make-coords :pos (float-vector 0 -20 0)) :transform (send openni_camera :worldcoords) :world) :parent openni_camera :name :openni_depth_frame))~%")
