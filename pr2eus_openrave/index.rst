@@ -219,8 +219,7 @@ test_hironx_openrave_simulation.launch
 
 roseus + openrave example for Kawada Hiro Robot
 
-.. video:: build/rviz_hironx_openrave
-  :url: http://jenkins.jsk.imi.i.u-tokyo.ac.jp:8080/job/agentsystem-test/lastSuccessfulBuild/artifact/pr2eus_openrave-example/_images/rviz_hironx_openrave
+.. video:: $JENKINS_URL/job/$JOB_NAME/lastSuccessfulBuild/artifact/doc/$JOB_NAME/html/_images//rviz_hironx_openrave
   :width: 400
 
   
@@ -254,8 +253,7 @@ test_pr2_openrave_simulation.launch
 
 roseus + openrave example.
 
-.. video:: build/rviz_pr2_openrave
-  :url: http://jenkins.jsk.imi.i.u-tokyo.ac.jp:8080/job/agentsystem-test/lastSuccessfulBuild/artifact/pr2eus_openrave-example/_images/rviz_pr2_openrave
+.. video:: $JENKINS_URL/job/$JOB_NAME/lastSuccessfulBuild/artifact/doc/$JOB_NAME/html/_images//rviz_pr2_openrave
   :width: 400
 
   
