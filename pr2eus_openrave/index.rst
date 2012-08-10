@@ -219,7 +219,7 @@ test_hironx_openrave_simulation.launch
 
 roseus + openrave example for Kawada Hiro Robot
 
-.. video:: http://jenkins.jsk.imi.i.u-tokyo.ac.jp:8080//job/jsk-ros-pkg-electric/lastSuccessfulBuild/artifact/doc/jsk-ros-pkg-electric/html/_images/rviz_hironx_openrave
+.. video:: http://jenkins.jsk.imi.i.u-tokyo.ac.jp:8080//job/jsk-ros-pkg-electric/lastSuccessfulBuild/artifact/doc/pr2eus_openrave/html/_images/rviz_hironx_openrave
   :width: 400
 
   
@@ -253,7 +253,7 @@ test_pr2_openrave_simulation.launch
 
 roseus + openrave example.
 
-.. video:: http://jenkins.jsk.imi.i.u-tokyo.ac.jp:8080//job/jsk-ros-pkg-electric/lastSuccessfulBuild/artifact/doc/jsk-ros-pkg-electric/html/_images/rviz_pr2_openrave
+.. video:: http://jenkins.jsk.imi.i.u-tokyo.ac.jp:8080//job/jsk-ros-pkg-electric/lastSuccessfulBuild/artifact/doc/pr2eus_openrave/html/_images/rviz_pr2_openrave
   :width: 400
 
   
