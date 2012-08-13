@@ -357,6 +357,7 @@
      ))
   (:go-pos-unsafe
    (x y &optional (d 0)) ;; [m] [m] [degree]
+   (ros::ros-info "go-pos-unsafe (x y d) = (~A ~A ~A)" x y d)
    (unless joint-action-enable
      (let ((orig-coords (send robot :copy-worldcoords))
 	   (coords (send robot :copy-worldcoords)))
@@ -373,10 +374,25 @@
      ;; 80% of maxrad = 0.5[rad/sec]
      (setq msec (* 1000 (max (/ (norm (float-vector x y)) (* maxvel 0.8))
 			     (/ (abs (deg2rad d)) (* maxrad 0.8)))))
+     (setq msec (max msec 1000))
      (setq step (/ 1000.0 msec))
-     (setq goal (send self :move-trajectory (* x step) (* y step) (* (deg2rad d) step) msec :stop t))
-     (send move-base-trajectory-action :send-goal goal)
-     (send move-base-trajectory-action :wait-for-result)
+     (while (or (> (sqrt (+ (* x x) (* y y)))  0.03) (> d 3)) ;; 3 cm and 3deg
+       (setq goal (send self :move-trajectory (* x step) (* y step) (* (deg2rad d) step) msec :stop t))
+       (send move-base-trajectory-action :send-goal goal)
+       (send move-base-trajectory-action :wait-for-result)
+       (send self :spin-once)
+       (send self :spin-once)
+       (let ((goal-position (send (elt (send goal :goal :trajectory :points) 1) :positions)) ;; goal
+             (odom-pos (scale 0.001 (send (send self :state :odom :pose) :pos)))
+             (odom-angle (elt (car (send (send self :state :odom :pose) :rpy-angle)) 0))
+             diff-position v)
+         (setq diff-position (v- goal-position (v+ odom-pos (float-vector 0 0 odom-angle))))
+         (setq v (v- (rotate-vector (float-vector (elt diff-position 0) (elt diff-position 1) 0) (- odom-angle) :z)
+                     (float-vector 0 0 odom-angle)))
+         (setq x (elt v 0) y (elt v 1) d (rad2deg (elt diff-position 2)))
+         (ros::ros-info "                diff-pos ~A ~A, diff-angle ~A" x y d)
+         ) ;; let
+       ) ;; dotimes
      ))
   (:move-trajectory
    (x y d &optional (msec 1000) &key (stop t)) ;; [m/sec] [m/sec] [rad/sec]
@@ -400,6 +416,11 @@
      (if stop
 	 (send pt2 :velocities (float-vector 0 0 0)) ;; To stop just
        (send pt2 :velocities (rotate-vector (float-vector x y d) odom-angle :z)))
+
+     (ros::ros-info "move-trajectory (x y d msec) = (~A ~A ~A ~A)" (* sec x) (* sec y) (* sec d) msec)
+     (ros::ros-info "                odom-pos ~A, odom-angle ~A" odom-pos odom-angle)
+     (ros::ros-info "                pt1 ~A" (send pt1 :positions))
+     (ros::ros-info "                pt2 ~A" (send pt2 :positions))
      ;;
      (send msg :header :stamp (ros::time-now))
      (send msg :joint_names (list "base_link_x" "base_link_y" "base_link_pan"))
