@@ -392,5 +392,50 @@
    (send-super* :init args))
   )
 
+(defun joint-list->joint_state (jlist &key (position) (effort 0) (velocity 0))
+  (let (nlist plist vlist elist)
+    (cond
+     ((numberp velocity)
+      (setq vlist (instantiate float-vector (length jlist)))
+      (fill vlist velocity))
+     ((float-vector-p velocity)
+      (setq vlist (copy-object velocity)))
+     )
+    (cond
+     ((numberp effort)
+      (setq elist (instantiate float-vector (length jlist)))
+      (fill elist effort))
+     ((float-vector-p effort)
+      (setq elist (copy-object effort)))
+     )
+    (cond
+     ((numberp position)
+      (setq plist (instantiate float-vector (length jlist)))
+      (fill plist position))
+     ((float-vector-p position)
+      (setq plist (copy-object position)))
+     )
+    (dolist (j jlist)
+      (let* ((n (send j :name))
+             (nm (if (symbolp n) (symbol-name n) n)))
+        (push n nlist)
+        (unless position
+          (push (deg2rad (send j :joint-angle)) plist))))
+    (instance sensor_msgs::JointState :init
+              :name (nreverse nlist)
+              :position (if position plist
+                          (coerce (nreverse plist) float-vector))
+              :velocity vlist
+              :effort elist)
+    ))
+(defun apply-joint_state (jointstate robot)
+  (let ((cntr 0)
+        (ps (send jointstate :position))
+        (vl (send jointstate :velocity))
+        (ef (send jointstate :effort)))
+    (dolist (jn (send jointstate :name))
+      (send robot (intern (string-upcase jn) *keyword-package*)
+            :joint-angle (rad2deg (elt ps cntr)))
+      (incf cntr))
+    ))
 (provide :robot-interface "robot-interface.l")
-
