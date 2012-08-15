@@ -1,13 +1,13 @@
 <package>
-  <description brief="pr2eus_armplanning">
+  <description brief="pr2eus_armnavigation">
 
-     pr2eus_armplanning
+     pr2eus_armnavigation
 
   </description>
   <author>Yohei Kakiuchi</author>
   <license>BSD</license>
   <review status="unreviewed" notes=""/>
-  <url>http://ros.org/wiki/pr2eus_armplanning</url>
+  <url>http://ros.org/wiki/pr2eus_armnavigation</url>
 
   <depend package="pr2eus"/>
   <depend package="ompl_ros_interface"/>
