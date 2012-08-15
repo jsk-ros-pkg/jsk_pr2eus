@@ -378,10 +378,60 @@
   (:joint-action-enable (&optional (e :dummy)) (if (not (eq e :dummy)) (setq joint-action-enable e)) joint-action-enable)
   (:warningp (&optional (w :dummy)) (if (not (eq w :dummy)) (setq warningp w)) warningp)
   (:spin-once () (ros::spin-once groupname))
+  (:send-trajectory (joint-trajectory-msg
+                     &key ((:controller-actions ca) controller-actions) ((:controller-type ct) controller-type)
+                     (starttime 1))
+   (mapcar
+    #'(lambda (action param)
+        (send self :send-trajectory-each
+              action (cdr (assoc :joint-names param)) ;; action server and joint-names
+              joint-trajectory-msg
+              starttime))
+    ca (send self ct)))
+  (:send-trajectory-each
+   (action joint-names traj &optional (starttime 0))
+   (let* ((jnames (send traj :joint_names))
+          (st (ros::time+ (ros::time-now) (ros::time starttime)))
+          (ilst (mapcar #'(lambda (jn) (position jn jnames :test #'string=)) joint-names))
+          points-lst)
+     (when ilst
+       (dolist (p (send traj :points))
+         (let ((poss (send p :positions))
+               (vels (send p :velocities))
+               (effs (send p :accelerations))
+               plst vlst elst)
+           (dolist (i ilst)
+             (cond
+              (i
+               (push (elt poss i) plst)
+               (if vels (push (elt vels i) vlst))
+               (if effs (push (elt effs i) elst)))
+              (t
+               ;; TODO: add reference joint angles to positions
+               ;;       if trajectory does not include some joints in joint-names
+               )))
+           (push
+            (instance trajectory_msgs::JointTrajectoryPoint :init
+                      :positions (coerce (nreverse plst) float-vector)
+                      :velocities (if vels (coerce (nreverse vlst) float-vector))
+                      :accelerations (if effs (coerce (nreverse elst) float-vector))
+                      :time_from_start (send p :time_from_start)) points-lst)
+           ))
+       (let ((goal (send action :make-goal-instance)))
+         (send goal :header :stamp st)
+         (send goal :header :seq 1)
+         (send goal :goal :trajectory :header :stamp st)
+         (send goal :goal :trajectory :header :seq 1)
+         (send goal :goal :trajectory :joint_names joint-names)
+         (send goal :goal :trajectory :points (nreverse points-lst))
+         (pprint (send goal :goal :trajectory))
+         (send self :spin-once)
+         (send action :send-goal goal))
+       ) ;;; /when ilst
+     ))
   ) ;; ros-interface
 
-
-;; 
+;;
 (defclass ros-interface
   :super robot-interface
   :slots ())
@@ -428,6 +478,7 @@
               :velocity vlist
               :effort elist)
     ))
+
 (defun apply-joint_state (jointstate robot)
   (let ((cntr 0)
         (ps (send jointstate :position))
@@ -438,4 +489,37 @@
             :joint-angle (rad2deg (elt ps cntr)))
       (incf cntr))
     ))
+
+(defun apply-trajectory_point (names trajpoint robot)
+  (let ((cntr 0)
+        (ps (send trajpoint :positions))
+        ;;(vl (send trajpoint :velocities))
+        ;;(ef (send trajpoint :accelerations))
+        )
+    (dolist (jn names)
+      (send robot (intern (string-upcase jn) *keyword-package*)
+            :joint-angle (rad2deg (elt ps cntr)))
+      (incf cntr))
+    ))
+
+(defun apply-joint_trajectory (joint-trajectory robot &optional (offset 200.0))
+  (let ((names (send joint-trajectory :joint_names))
+        (points (send joint-trajectory :points))
+        avs tms ptm)
+    (dolist (p points)
+      (apply-trajectory_point names p robot)
+      (push (send robot :angle-vector) avs)
+      (cond
+       ((eq p (car points))
+        (setq ptm (* 1000.0 (send (send p :time_from_start) :to-sec)))
+        (push (+ ptm offset) tms))
+       (t
+        (let ((tm (* 1000.0 (send (send p :time_from_start) :to-sec))))
+          (push (- tm ptm) tms)
+          (setq ptm tm)))
+        ))
+    (list (nreverse avs)
+          (nreverse tms))
+    ))
+
 (provide :robot-interface "robot-interface.l")
