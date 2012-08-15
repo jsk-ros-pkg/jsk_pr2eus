@@ -1,0 +1,17 @@
+<package>
+  <description brief="pr2eus_armplanning">
+
+     pr2eus_armplanning
+
+  </description>
+  <author>Yohei Kakiuchi</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/pr2eus_armplanning</url>
+
+  <depend package="pr2eus"/>
+  <depend package="ompl_ros_interface"/>
+
+</package>
+
+
