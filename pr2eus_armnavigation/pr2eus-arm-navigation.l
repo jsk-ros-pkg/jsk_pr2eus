@@ -113,7 +113,7 @@
               (send arm-action-client :get-state)
               (send arm-action-client :get-goal-status-text))|#
         (ros::ros-info ";; action state result ~A / ~A"
-                       (goal-status-string (send arm-action-client :get-state))
+                       (ros::goal-status-to-string (send arm-action-client :get-state))
                        (send arm-action-client :get-goal-status-text))
         )
       ) ;; /when
