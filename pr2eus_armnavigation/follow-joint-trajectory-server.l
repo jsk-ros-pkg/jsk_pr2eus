@@ -22,8 +22,7 @@
    (setq robot-interface interface)
    self
    )
-  (:execute-cb
-   (s g)
+  (:execute-cb (s g)
    (warn ";; execute ~A ~A~%" s g)
    (let ((msg (send s :result))
          (traj (send g :goal :trajectory))
@@ -43,11 +42,9 @@
        (send robot-interface :wait-interpolation))
      (send s :set-succeeded msg)
      ))
-  (:preempt-cb
-   (s g)
+  (:preempt-cb (s g)
    (warn ";; preempt ~A ~A~%" s g))
-  (:accept-cb
-   (s g)
+  (:accept-cb (s g)
    (warn ";; accept ~A ~A~%" s g))
   (:spin ()
    (ros::rate 100)
@@ -57,16 +54,15 @@
     (ros::sleep)))
   )
 
-#|
-(load "package://pr2eus/pr2-interface.l")
-;;(load "package://pr2eus_armnavigation/follow-joint-trajectory-server.l")
+(defun start-node (&optional (trajectory "/follow_joint_trajectory"))
+  (load "package://pr2eus/pr2-interface.l")
+  ;;(load "package://pr2eus_armnavigation/follow-joint-trajectory-server.l")
 
-(ros::roseus "fake_follow_joint_trajectory")
+  (ros::roseus "fake_follow_joint_trajectory")
 
-(setq *ri* (instance pr2-interface :init))
+  (setq *ri* (instance pr2-interface :init))
 
-(setq *server* (instance moge :init "/follow_joint_trajectory"
-                         :robot (pr2) :interface *ri*))
-(ros::ros-info ";; start follow-server")
-(send *server* :spin)
-|#
+  (setq *server* (instance moge :init trajectory
+                           :robot (instance pr2-robot :init) :interface *ri*))
+  (ros::ros-info ";; start follow-server")
+  (send *server* :spin))
