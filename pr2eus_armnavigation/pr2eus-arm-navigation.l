@@ -169,11 +169,12 @@
                               (nm (if (symbolp n) (symbol-name n) n)))
                          (instance arm_navigation_msgs::JointConstraint :init
                                    :joint_name nm
-                                   :position (deg2rad (send j :joint-angle))
+                                   :position (cond
+                                              ((derivedp j rotational-joint) (deg2rad (send j :joint-angle)))
+                                              (t (* 0.001 (send j :joint-angle))))
                                    :tolerance_above tolerance_above
                                    :tolerance_below tolerance_below)
                          )) joint-list))
-
      (send arm-action-client :send-goal
            (instance arm_navigation_msgs::MoveArmActionGoal :init :goal gl))
 
@@ -191,7 +192,7 @@
   (:get-ik-for-pose
    (cds confkey &key (use-actual-seed t) (retry t) (get-scene t)
         (end-coords) ;; (list :rarm :end-coords)
-        (frame-id default-frame-id))
+        (frame-id default-frame-id) (timeout 2.0))
    (when get-scene (send self :get-planning-scene))
    (when end-coords
      (let ((rcds (send self :get-robot-coords confkey)))
@@ -201,7 +202,8 @@
                    :transformation rcds))))
    (let* ((msg (ros::coords->tf-pose-stamped cds frame-id)))
      (setq ret (send self :get-ik-for-pose-single msg confkey
-                     :use-actual-seed use-actual-seed))
+                     :use-actual-seed use-actual-seed
+                     :timeout timeout))
      (cond
       ((= (send ret :error_code :val) 1)
        (ros::ros-info ";; success IK")
@@ -213,7 +215,8 @@
                       (elt *arm-navigation-error-code-list* (- (send ret :error_code :val))))
        (if retry
            (send self :get-ik-for-pose cds confkey
-                 :retry nil :use-actual-seed (if use-actual-seed nil t))
+                 :retry nil :use-actual-seed (if use-actual-seed nil t)
+                 :timeout timeout)
          (send ret :error_code :val)))
       )))
   (:planning-move-arm
