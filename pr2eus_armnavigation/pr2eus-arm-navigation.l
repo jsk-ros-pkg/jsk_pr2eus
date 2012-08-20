@@ -200,10 +200,10 @@
        (send cds :transform
              (send (send (send* robot end-coords) :worldcoords)
                    :transformation rcds))))
-   (let* ((msg (ros::coords->tf-pose-stamped cds frame-id)))
-     (setq ret (send self :get-ik-for-pose-single msg confkey
+   (let* ((msg (ros::coords->tf-pose-stamped cds frame-id))
+          (ret (send self :get-ik-for-pose-single msg confkey
                      :use-actual-seed use-actual-seed
-                     :timeout timeout))
+                     :timeout timeout)))
      (cond
       ((= (send ret :error_code :val) 1)
        (ros::ros-info ";; success IK")
@@ -242,7 +242,7 @@
    (when get-scene (send self :get-planning-scene))
    (when (send self :get-ik-for-pose cds confkey
                :use-actual-seed t :retry t :frame-id frame-id)
-     (return nil))
+     (return-from :planning-move-arm-to-coords nil))
    (send self :planning-move-arm confkey :time time :wait wait)
    )
   )
