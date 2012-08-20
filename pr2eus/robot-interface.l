@@ -409,6 +409,7 @@
               (t
                ;; TODO: add reference joint angles to positions
                ;;       if trajectory does not include some joints in joint-names
+               (ros::ros-warn ";; trajectory contains lacking joint names")
                )))
            (push
             (instance trajectory_msgs::JointTrajectoryPoint :init
@@ -427,6 +428,7 @@
          (pprint (send goal :goal :trajectory))
          (send self :spin-once)
          (send action :send-goal goal))
+       (apply-trajectory_points jnames (car (last points-lst)) robot)
        ) ;;; /when ilst
      ))
   ) ;; ros-interface
@@ -470,12 +472,12 @@
              (nm (if (symbolp n) (symbol-name n) n)))
         (push n nlist)
         (unless position
-	  (cond
-	   ((derivedp j rotational-joint)
-	    (push (deg2rad (send j :joint-angle)) plist))
-	   (t
-	    (push (* 0.001 (send j :joint-angle)) plist)))
-	  )))
+          (cond
+           ((derivedp j rotational-joint)
+            (push (deg2rad (send j :joint-angle)) plist))
+           (t
+            (push (* 0.001 (send j :joint-angle)) plist)))
+          )))
     (instance sensor_msgs::JointState :init
               :name (nreverse nlist)
               :position (if position plist
@@ -488,16 +490,15 @@
   (let ((cntr 0)
         (ps (send jointstate :position))
         (vl (send jointstate :velocity))
-        (ef (send jointstate :effort))
-	j)
+        (ef (send jointstate :effort)))
     (dolist (jn (send jointstate :name))
       (let ((j (send robot (intern (string-upcase jn) *keyword-package*))))
-	(cond
-	 ((derivedp j rotational-joint)
-	  (send :joint-angle (rad2deg (elt ps cntr))))
-	 (t
-	  (send :joint-angle (* 1000.0 (elt ps cntr)))))
-	(incf cntr)))
+        (cond
+         ((derivedp j rotational-joint)
+          (send j :joint-angle (rad2deg (elt ps cntr))))
+         (t
+          (send j :joint-angle (* 1000.0 (elt ps cntr)))))
+        (incf cntr)))
     ))
 
 (defun apply-trajectory_point (names trajpoint robot)
@@ -508,12 +509,12 @@
         )
     (dolist (jn names)
       (let ((j (send robot (intern (string-upcase jn) *keyword-package*))))
-	(cond
-	 ((derivedp j rotational-joint)
-	  (send j :joint-angle (rad2deg (elt ps cntr))))
-	 (t
-	  (send j :joint-angle (* 1000.0 (elt ps cntr)))))
-	(incf cntr)))
+        (cond
+         ((derivedp j rotational-joint)
+          (send j :joint-angle (rad2deg (elt ps cntr))))
+         (t
+          (send j :joint-angle (* 1000.0 (elt ps cntr)))))
+        (incf cntr)))
     ))
 
 (defun apply-joint_trajectory (joint-trajectory robot &optional (offset 200.0))
