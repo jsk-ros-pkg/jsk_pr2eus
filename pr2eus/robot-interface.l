@@ -394,7 +394,7 @@
           (st (ros::time+ (ros::time-now) (ros::time starttime)))
           (ilst (mapcar #'(lambda (jn) (position jn jnames :test #'string=)) joint-names))
           points-lst)
-     (when ilst
+     (when (some #'identity ilst)
        (dolist (p (send traj :points))
          (let ((poss (send p :positions))
                (vels (send p :velocities))
@@ -425,10 +425,9 @@
          (send goal :goal :trajectory :header :seq 1)
          (send goal :goal :trajectory :joint_names joint-names)
          (send goal :goal :trajectory :points (nreverse points-lst))
-         (pprint (send goal :goal :trajectory))
          (send self :spin-once)
          (send action :send-goal goal))
-       (apply-trajectory_points jnames (car (last points-lst)) robot)
+       (apply-trajectory_point joint-names (car (last points-lst)) robot)
        ) ;;; /when ilst
      ))
   ) ;; ros-interface
