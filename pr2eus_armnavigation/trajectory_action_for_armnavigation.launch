@@ -1,0 +1,17 @@
+<launch>
+  <!--
+  <node name="right_torso_follow" pkg="pr2eus_armnavigation"
+        type="follow-joint-trajectory-server.l"  >
+    <remap from="follow_joint_trajectory" to="/right_torso_controller/follow_joint_trajectory" />
+  </node>
+  <node name="left_torso_follow" pkg="pr2eus_armnavigation"
+        type="follow-joint-trajectory-server.l"  >
+    <remap from="follow_joint_trajectory" to="/left_torso_controller/follow_joint_trajectory" />
+  </node>
+  -->
+  <node name="torso_follow_trajectories" pkg="roseus" type="roseus"
+        args="'(load &quot;package://pr2eus_armnavigation/follow-joint-trajectory-server.l&quot;)' '(start-node (list &quot;/right_torso_controller/follow_joint_trajectory&quot; &quot;/left_torso_controller/follow_joint_trajectory&quot;))'" 
+        output="screen" >
+    <!--remap from="follow_joint_trajectory" to="/left_torso_controller/follow_joint_trajectory" /-->
+  </node>
+</launch>
