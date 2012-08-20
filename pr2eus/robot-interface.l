@@ -470,7 +470,12 @@
              (nm (if (symbolp n) (symbol-name n) n)))
         (push n nlist)
         (unless position
-          (push (deg2rad (send j :joint-angle)) plist))))
+	  (cond
+	   ((derivedp j rotational-joint)
+	    (push (deg2rad (send j :joint-angle)) plist))
+	   (t
+	    (push (* 0.001 (send j :joint-angle)) plist)))
+	  )))
     (instance sensor_msgs::JointState :init
               :name (nreverse nlist)
               :position (if position plist
@@ -483,11 +488,16 @@
   (let ((cntr 0)
         (ps (send jointstate :position))
         (vl (send jointstate :velocity))
-        (ef (send jointstate :effort)))
+        (ef (send jointstate :effort))
+	j)
     (dolist (jn (send jointstate :name))
-      (send robot (intern (string-upcase jn) *keyword-package*)
-            :joint-angle (rad2deg (elt ps cntr)))
-      (incf cntr))
+      (let ((j (send robot (intern (string-upcase jn) *keyword-package*))))
+	(cond
+	 ((derivedp j rotational-joint)
+	  (send :joint-angle (rad2deg (elt ps cntr))))
+	 (t
+	  (send :joint-angle (* 1000.0 (elt ps cntr)))))
+	(incf cntr)))
     ))
 
 (defun apply-trajectory_point (names trajpoint robot)
@@ -497,9 +507,13 @@
         ;;(ef (send trajpoint :accelerations))
         )
     (dolist (jn names)
-      (send robot (intern (string-upcase jn) *keyword-package*)
-            :joint-angle (rad2deg (elt ps cntr)))
-      (incf cntr))
+      (let ((j (send robot (intern (string-upcase jn) *keyword-package*))))
+	(cond
+	 ((derivedp j rotational-joint)
+	  (send j :joint-angle (rad2deg (elt ps cntr))))
+	 (t
+	  (send j :joint-angle (* 1000.0 (elt ps cntr)))))
+	(incf cntr)))
     ))
 
 (defun apply-joint_trajectory (joint-trajectory robot &optional (offset 200.0))
