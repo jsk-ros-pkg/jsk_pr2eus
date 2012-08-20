@@ -1,4 +1,4 @@
-;;
+#!/usr/bin/env roseus
 ;;
 ;;
 (ros::load-ros-manifest "control_msgs")
@@ -6,7 +6,7 @@
 (defclass follow-joint-trajectory-server
   :super propertied-object
   :slots ((action :forward (:worker))
-          reference-robot robot-interface
+          reference-robot interface-instance
           rgoal)
   )
 (defmethod follow-joint-trajectory-server
@@ -19,7 +19,7 @@
                    :accept-cb  `(lambda (s g) (send ,self :accept-cb  s g))
                    ))
    (setq reference-robot robot)
-   (setq robot-interface interface)
+   (setq interface-instance interface)
    self
    )
   (:execute-cb (s g)
@@ -29,17 +29,18 @@
          (path_tor (send g :goal :path_tolerance))
          (goal_tor (send g :goal :goal_tolerance))
          (gtime_tor (send g :goal :goal_time_tolerance)))
-     (when (and reference-robot robot-interface)
+
+     (when (and reference-robot interface-instance)
        (cond
-        ((find-method robot-interface :send-trajectory)
-         (send robot-interface :send-trajectory traj))
+        ((find-method interface-instance :send-trajectory)
+         (send interface-instance :send-trajectory traj))
         (t
          (let ((ret (apply-joint_trajectory traj reference-robot)))
-           (send robot-interface :angle-vector-sequence
+           (send interface-instance :angle-vector-sequence
                  (car ret) (cadr ret)))
          ))
        ;; FIXME: add feedback while waiting
-       (send robot-interface :wait-interpolation))
+       (send interface-instance :wait-interpolation))
      (send s :set-succeeded msg)
      ))
   (:preempt-cb (s g)
@@ -52,9 +53,10 @@
     (send self :worker)
     (send action :spin-once)
     (ros::sleep)))
+  (:spin-once () (send self :worker) (send action :spin-once))
   )
 
-(defun start-node (&optional (trajectory "/follow_joint_trajectory"))
+(defun start-node (&optional (trajectory "follow_joint_trajectory"))
   (load "package://pr2eus/pr2-interface.l")
   ;;(load "package://pr2eus_armnavigation/follow-joint-trajectory-server.l")
 
@@ -62,7 +64,28 @@
 
   (setq *ri* (instance pr2-interface :init))
 
-  (setq *server* (instance moge :init trajectory
-                           :robot (instance pr2-robot :init) :interface *ri*))
-  (ros::ros-info ";; start follow-server")
-  (send *server* :spin))
+  (cond
+   ((listp trajectory)
+    (setq *server-list* nil)
+    (let ((rb (instance pr2-robot :init)))
+      (dolist (traj trajectory)
+        (push
+         (instance follow-joint-trajectory-server
+                   :init (ros::resolve-name traj)
+                   :robot rb :interface *ri*) *server-list*))
+      (ros::ros-info ";; start follow-servers")
+      (ros::rate 100)
+      (do-until-key
+       (dolist (s *server-list*)
+         (send s :spin-once))
+       (ros::sleep))
+      ))
+   (t
+    (setq *server* (instance follow-joint-trajectory-server
+                             :init (ros::resolve-name trajectory)
+                             :robot (instance pr2-robot :init) :interface *ri*))
+    (ros::ros-info ";; start follow-server")
+    (send *server* :spin))
+   ))
+
+;; (start-node)
