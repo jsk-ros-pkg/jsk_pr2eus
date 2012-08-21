@@ -31,7 +31,7 @@
    ;;# state/trajectory monitor errors
    (cons "INVALID_TRAJECTORY" -19)
    (cons "INVALID_INDEX" -20)
-   (cons "JOINT_LIMITS_VIOLATED" -21)
+v   (cons "JOINT_LIMITS_VIOLATED" -21)
    (cons "PATH_CONSTRAINTS_VIOLATED" -22)
    (cons "COLLISION_CONSTRAINTS_VIOLATED" -23)
    (cons "GOAL_CONSTRAINTS_VIOLATED" -24)
@@ -124,8 +124,8 @@
          ik-res)
      (unless (and link-name ik-service-name)
        ;; error
-       (warn "~A~%" (list link-name ik-service-name))
-       (ros::ros-error ""))
+       (ros::ros-error "configuration not found ~A" (list confkey link-name ik-service-name))
+       (return-from :get-ik-for-pose-single))
      (send ik-req :ik_request :ik_link_name link-name)
      (send ik-req :ik_request :pose_stamped pose_stamped)
      (let (names positions)
@@ -143,6 +143,44 @@
    (let ((link-name (cdr (assoc :target-link-name (cdr (assoc confkey config-list))))))
      (send robot (intern (string-upcase link-name) *keyword-package*) :copy-worldcoords)
      ))
+  (:motion-plan
+   (confkey &key (tolerance_below 0.08) (tolerance_above 0.08)
+            (planning_time 5.0) (wait-result t))
+   (let ((group_name (cdr (assoc :group-name (cdr (assoc confkey config-list)))))
+         (joint-list (cdr (assoc :joint-list (cdr (assoc confkey config-list)))))
+         (gl (instance arm_navigation_msgs::GetMotionPlanRequest :init))
+         res)
+     (unless (and group_name joint-list)
+       ;; error
+       (ros::ros-error "configuration not found ~A" (list confkey group_name joint-list))
+       (return-from :motion-plan))
+     ;;
+     (send gl :motion_plan_request :group_name group_name)
+     (send gl :motion_plan_request :num_planning_attempts 1)
+     (send gl :motion_plan_request :allowed_planning_time (ros::Time planning_time))
+     (send gl :motion_plan_request :planner_id planner-id)
+
+     (send gl :motion_plan_request :goal_constraints :joint_constraints
+           (mapcar #'(lambda (j)
+                       (let* ((n (send j :name))
+                              (nm (if (symbolp n) (symbol-name n) n)))
+                         (instance arm_navigation_msgs::JointConstraint :init
+                                   :joint_name nm
+                                   :position (cond
+                                              ((derivedp j rotational-joint) (deg2rad (send j :joint-angle)))
+                                              (t (* 0.001 (send j :joint-angle))))
+                                   :tolerance_above tolerance_above
+                                   :tolerance_below tolerance_below)
+                         )) joint-list))
+     ;; call service
+     (setq res (ros::service-call arm-planning-service-name gl))
+     ;;
+     (when (and res wait-result)
+       (ros::ros-info ";; service result -> ~A"
+                      (let ((val (send res :error_code :val)))
+                        (if (> val 0) "Succeeded"
+                          (elt *arm-navigation-error-code-list* (- val))))))
+     res))
   (:move-arm-to-goal
    (confkey &key (tolerance_below 0.08) (tolerance_above 0.08)
             (planning_time 5.0) (wait-result t))
@@ -152,8 +190,9 @@
          (gl (instance arm_navigation_msgs::MoveArmGoal :init)))
      (unless (and arm-action-client group_name joint-list)
        ;; error
-       (warn "~A~%" (list arm-action-client group_name joint-list))
-       (ros::ros-error ""))
+       (ros::ros-error "configuration not found ~A"
+                       (list confkey arm-action-client group_name joint-list))
+       (return-from :move-arm-to-goal))
 
       ;; (send gl :planning_scene_diff :link_padding link_padding)
       ;; (send gl :operations collision_operations)
@@ -205,6 +244,7 @@
                      :use-actual-seed use-actual-seed
                      :timeout timeout)))
      (cond
+      ((null ret) -255)
       ((= (send ret :error_code :val) 1)
        (ros::ros-info ";; success IK")
        (apply-joint_state (send ret :solution :joint_state) robot)
