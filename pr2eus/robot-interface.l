@@ -21,9 +21,12 @@
    (&rest args &key ((:robot r)) ((:objects objs)) (type :default-controller)
           ((:groupname nh) "robot_multi_queue") &allow-other-keys)
    (setq joint-action-enable t)
-   (setq robot (instance r :init))
+   (setq robot (cond ((derivedp r metaclass) (instance r :init))
+		     (t r)))
    (setq groupname nh)
    (ros::create-nodehandle groupname)
+   (unless (ros::ok)
+     (ros::roseus "default_robot_interface"))
    ;;
    (defvar *tfl* (instance ros::transform-listener :init))
    (ros::subscribe "/joint_states" sensor_msgs::JointState
