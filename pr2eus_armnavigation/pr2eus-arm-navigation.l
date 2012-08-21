@@ -31,7 +31,7 @@
    ;;# state/trajectory monitor errors
    (cons "INVALID_TRAJECTORY" -19)
    (cons "INVALID_INDEX" -20)
-v   (cons "JOINT_LIMITS_VIOLATED" -21)
+   (cons "JOINT_LIMITS_VIOLATED" -21)
    (cons "PATH_CONSTRAINTS_VIOLATED" -22)
    (cons "COLLISION_CONSTRAINTS_VIOLATED" -23)
    (cons "GOAL_CONSTRAINTS_VIOLATED" -24)
