@@ -3,6 +3,9 @@
 (ros::load-ros-manifest "kinematics_msgs")
 (ros::load-ros-manifest "arm_navigation_msgs")
 
+(ros::load-ros-manifest "pr2eus")
+(load "package://pr2eus/robot-interface.l")
+
 (defvar *arm-navigation-error-code-list*
   (list
    (cons "SUCCESS" 1)
@@ -166,9 +169,7 @@
                               (nm (if (symbolp n) (symbol-name n) n)))
                          (instance arm_navigation_msgs::JointConstraint :init
                                    :joint_name nm
-                                   :position (cond
-                                              ((derivedp j rotational-joint) (deg2rad (send j :joint-angle)))
-                                              (t (* 0.001 (send j :joint-angle))))
+                                   :position (send j :ros-joint-angle)
                                    :tolerance_above tolerance_above
                                    :tolerance_below tolerance_below)
                          )) joint-list))
@@ -208,12 +209,11 @@
                               (nm (if (symbolp n) (symbol-name n) n)))
                          (instance arm_navigation_msgs::JointConstraint :init
                                    :joint_name nm
-                                   :position (cond
-                                              ((derivedp j rotational-joint) (deg2rad (send j :joint-angle)))
-                                              (t (* 0.001 (send j :joint-angle))))
+                                   :position (send j :ros-joint-angle)
                                    :tolerance_above tolerance_above
                                    :tolerance_below tolerance_below)
                          )) joint-list))
+     ;; send goal
      (send arm-action-client :send-goal
            (instance arm_navigation_msgs::MoveArmActionGoal :init :goal gl))
 

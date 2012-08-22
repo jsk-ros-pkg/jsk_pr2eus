@@ -10,6 +10,22 @@
 (ros::roseus-add-msgs "sensor_msgs")
 (ros::roseus-add-msgs "pr2_controllers_msgs")
 
+;; add ros-joint-angle method using meter/radian
+(defmethod rotational-joint
+  (:ros-joint-angle
+   (&optional v &rest args)
+   (if v (setq v (rad2deg v)))
+   (setq v (send* self :joint-angle v args))
+   (deg2rad v))
+  )
+(defmethod linear-joint
+  (:ros-joint-angle
+   (&optional v &rest args)
+   (if v (setq v (* 1000.0 v)))
+   (setq v (send* self :joint-angle v args))
+   (* 0.001 v))
+  )
+
 (defclass robot-interface
   :super propertied-object
   :slots (robot objects robot-state joint-action-enable warningp
@@ -72,24 +88,9 @@
   ;;
   (:publish-joint-state ;; for simulation mode (joint-action-enable is nil)
    (&optional (joint-list (send robot :joint-list)))
-   (let ((msg (instance sensor_msgs::JointState :init)) names positions velocities efforts)
+   (let (msg names positions velocities efforts)
+     (setq msg (joint-list->joint_state joint-list))
      (send msg :header :stamp (ros::time-now))
-     (dolist (j joint-list)
-       (cond ((stringp (send j :name))
-	      (push (send j :name) names))
-	     (t
-	      (push (string-downcase (symbol-name (send j :name))) names)))
-       (push (cond ((derivedp j rotational-joint)
-		    (deg2rad (send j :joint-angle)))
-		   (t
-		    (* 0.001 (send j :joint-angle))))
-	     positions)
-       (push 0 velocities)
-       (push 0 efforts))
-     (send msg :name names)
-     (send msg :position positions)
-     (send msg :velocity velocities)
-     (send msg :effort efforts)
      (unless joint-action-enable
        (ros::publish "/joint_states" msg))
      msg))
@@ -311,13 +312,8 @@
      (mapcar #'(lambda (n p v e)
 		 (let (j (kn (intern (string-upcase n) *keyword-package*)))
 		   (when (and (find-method robot kn) (setq j (send robot kn)))
-		     (cond
-		      ;; position
-		      ((derivedp j rotational-joint)
-		       (send j :joint-angle (rad2deg p)))
-		      (t
-		       (send j :joint-angle (* 1000 p))))
-			 ;; velocity
+                     (send j :ros-joint-angle p)
+                     ;; velocity
 		     (send j :joint-velocity v)
 		     ;; effort
 		     (send j :joint-torque e))))
@@ -398,6 +394,12 @@
           (ilst (mapcar #'(lambda (jn) (position jn jnames :test #'string=)) joint-names))
           points-lst)
      (when (some #'identity ilst)
+       (setq ilst (mapcar #'(lambda (jn)
+                              (let ((p (position jn jnames :test #'string=)))
+                                (unless p
+                                  (setq p (send robot (intern (string-upcase jn) *keyword-package*))))
+                                p))
+                          joint-names))
        (dolist (p (send traj :points))
          (let ((poss (send p :positions))
                (vels (send p :velocities))
@@ -405,13 +407,14 @@
                plst vlst elst)
            (dolist (i ilst)
              (cond
-              (i
+              ((numberp i)
                (push (elt poss i) plst)
                (if vels (push (elt vels i) vlst))
                (if effs (push (elt effs i) elst)))
               (t
-               ;; TODO: add reference joint angles to positions
-               ;;       if trajectory does not include some joints in joint-names
+               (push (send i :ros-joint-angle) plst)
+               (if vels (push 0 vlst))
+               (if effs (push 0 elst))
                (ros::ros-warn ";; trajectory contains lacking joint names")
                )))
            (push
@@ -472,14 +475,10 @@
     (dolist (j jlist)
       (let* ((n (send j :name))
              (nm (if (symbolp n) (symbol-name n) n)))
-        (push n nlist)
+        (push nm nlist)
         (unless position
-          (cond
-           ((derivedp j rotational-joint)
-            (push (deg2rad (send j :joint-angle)) plist))
-           (t
-            (push (* 0.001 (send j :joint-angle)) plist)))
-          )))
+          (push (send j :ros-joint-angle) plist))
+        ))
     (instance sensor_msgs::JointState :init
               :name (nreverse nlist)
               :position (if position plist
@@ -493,13 +492,13 @@
         (ps (send jointstate :position))
         (vl (send jointstate :velocity))
         (ef (send jointstate :effort)))
+    (if (/= (length vl) (length (send jointstate :name))) (setq vl nil)) ;; vl is not set
+    (if (/= (length ef) (length (send jointstate :name))) (setq ef nil)) ;; ef is not set
     (dolist (jn (send jointstate :name))
       (let ((j (send robot (intern (string-upcase jn) *keyword-package*))))
-        (cond
-         ((derivedp j rotational-joint)
-          (send j :joint-angle (rad2deg (elt ps cntr))))
-         (t
-          (send j :joint-angle (* 1000.0 (elt ps cntr)))))
+        (send j :ros-joint-angle (elt ps cntr))
+        (if vl (send j :joint-velocity (elt vl cntr)))
+        (if ef (send j :joint-torque (elt ef cntr)))
         (incf cntr)))
     ))
 
@@ -511,11 +510,7 @@
         )
     (dolist (jn names)
       (let ((j (send robot (intern (string-upcase jn) *keyword-package*))))
-        (cond
-         ((derivedp j rotational-joint)
-          (send j :joint-angle (rad2deg (elt ps cntr))))
-         (t
-          (send j :joint-angle (* 1000.0 (elt ps cntr)))))
+        (send j :ros-joint-angle (elt ps cntr))
         (incf cntr)))
     ))
 
