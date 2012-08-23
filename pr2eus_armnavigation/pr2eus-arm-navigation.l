@@ -71,7 +71,7 @@
    (&key ((:planning-scene-service pl-srv) "/environment_server/set_planning_scene_diff")
          ((:planner-id pl-id) "SBLkConfig1")
          ((:arm-planning-service-name arm-pl-srv) "ompl_planning/plan_kinematic_path")
-         ((:robot rb) *pr2*) (frame-id "/base_footprint"))
+         ((:robot rb) *pr2*) (frame-id "/base_footprint")) ;; frame-id needs to be contained in robot_model
    (setq planning-scene-service pl-srv
          planner-id pl-id
          arm-planning-service-name arm-pl-srv
@@ -147,12 +147,12 @@
      (send robot (intern (string-upcase link-name) *keyword-package*) :copy-worldcoords)
      ))
   (:motion-plan
-   (confkey &key (tolerance_below 0.08) (tolerance_above 0.08)
-            (planning_time 5.0) (wait-result t))
+   (confkey &key (tolerance_below 0.08) (tolerance_above 0.08) (scene)
+            (planning_time 5.0) (filter_time 4.0) (wait-result t))
    (let ((group_name (cdr (assoc :group-name (cdr (assoc confkey config-list)))))
          (joint-list (cdr (assoc :joint-list (cdr (assoc confkey config-list)))))
          (gl (instance arm_navigation_msgs::GetMotionPlanRequest :init))
-         res)
+         res (ret t))
      (unless (and group_name joint-list)
        ;; error
        (ros::ros-error "configuration not found ~A" (list confkey group_name joint-list))
@@ -175,12 +175,32 @@
                          )) joint-list))
      ;; call service
      (setq res (ros::service-call arm-planning-service-name gl))
-     ;;
+
      (when (and res wait-result)
-       (ros::ros-info ";; service result -> ~A"
+       (ros::ros-info ";; plan service result -> ~A"
                       (let ((val (send res :error_code :val)))
-                        (if (> val 0) "Succeeded"
-                          (elt *arm-navigation-error-code-list* (- val))))))
+                        (cond
+                         ((> val 0) (setq ret nil) "Succeeded")
+                         (t (elt *arm-navigation-error-code-list* (- val)))))))
+     (if ret (return-from :motion-plan res))
+
+     ;;filter
+     (unless scene
+       (setq scene (send (send self :get-planning-scene) :planning_scene)))
+     (let ((req (instance arm_navigation_msgs::FilterJointTrajectoryWithConstraintsRequest :init
+                          :group_name group_name
+                          :start_state (send scene :robot_state)
+                          :trajectory (send res :trajectory :joint_trajectory)
+                          :goal_constraints (send gl :motion_plan_request :goal_constraints)
+                          :allowed_time (ros::Time filter_time))))
+       (setq res (ros::service-call "/trajectory_filter_server/filter_trajectory_with_constraints" req))
+       (when (and res wait-result)
+         (ros::ros-info ";; filter service result -> ~A"
+                        (let ((val (send res :error_code :val)))
+                          (cond
+                           ((> val 0) "Succeeded")
+                           (t (elt *arm-navigation-error-code-list* (- val))))))))
+
      res))
   (:move-arm-to-goal
    (confkey &key (tolerance_below 0.08) (tolerance_above 0.08)
@@ -259,6 +279,14 @@
                  :timeout timeout)
          (send ret :error_code :val)))
       )))
+  (:planning-make-trajectory
+   (confkey &key (angle-vector) (get-scene t) (use-scene t) (planning-time 5.0) (filter-time 4.0) (wait t))
+   )
+  (:planning-make-trajectory-to-coords
+   (cds confkey &key (end-coords) ;; (list :rarm :end-coords)
+        (planning-time 5.0) (wait t) (get-scene t) (frame-id default-frame-id)
+        (filter-time 4.0) (use-scene t))
+   )
   (:planning-move-arm
    (confkey &key (angle-vector) (get-scene t) (planning-time 5.0) (wait t))
    (let (ret)
@@ -278,11 +306,11 @@
        ))))
   (:planning-move-arm-to-coords
    (cds confkey &key (end-coords) ;; (list :rarm :end-coords)
-        (time 5.0) (wait t) (get-scene t) (frame-id default-frame-id))
+        (planning-time 5.0) (wait t) (get-scene t) (frame-id default-frame-id))
    (when get-scene (send self :get-planning-scene))
    (when (send self :get-ik-for-pose cds confkey
                :use-actual-seed t :retry t :frame-id frame-id)
      (return-from :planning-move-arm-to-coords nil))
-   (send self :planning-move-arm confkey :time time :wait wait)
+   (send self :planning-move-arm confkey :planning-time planning-time :wait wait) ;; get-scene ?
    )
   )
