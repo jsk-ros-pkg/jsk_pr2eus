@@ -61,49 +61,58 @@
 		 ))
      (send self :joint-trajectory-to-angle-vector-list move-arm joint-trajectory :diff-sum diff-sum :diff-thre diff-thre :speed-scale speed-scale)
      ))
-  (:joint-trajectory-to-angle-vector-list (move-arm joint-trajectory &key ((:diff-sum diff-sum) 0) ((:diff-thre diff-thre) 50) ((:speed-scale speed-scale) 1.0))
-   (let* (joint-trajectory-points joints avs tms  (tm (ros::time -1)) link-coords-list
-			   (dae-link-list
-			    (send self :find-descendants-dae-links (send robot move-arm :root-link))))
+  (:joint-trajectory-to-angle-vector-list
+   (move-arm joint-trajectory
+             &key ((:diff-sum diff-sum) 0) ((:diff-thre diff-thre) 50)
+             (show-trajectory t) (send-trajectory t)
+             ((:speed-scale speed-scale) 1.0))
+   (let* (joint-trajectory-points
+          joints avs tms  (tm (ros::time -1)) link-coords-list
+          (org-av (send robot :angle-vector))
+          (dae-link-list
+           (send self :find-descendants-dae-links (send robot move-arm :root-link))))
      ;; JointTrajectory to angle-vector
      (if joint-trajectory
-	 (setq joint-trajectory-points (send joint-trajectory :points)
-	       joints (mapcar #'(lambda (x) (send robot (intern (string-upcase x) *keyword-package*))) (send joint-trajectory :joint_names))))
+         (setq joint-trajectory-points (send joint-trajectory :points)
+               joints (mapcar #'(lambda (x)
+                                  (send robot (intern (string-upcase x) *keyword-package*)))
+                              (send joint-trajectory :joint_names))))
      ;;
-     (if (= (length joint-trajectory-points) 0) (return-from :joint-trajectory-to-angle-vector-list nil))
+     (if (= (length joint-trajectory-points) 0)
+         (return-from :joint-trajectory-to-angle-vector-list nil))
      (dolist (point joint-trajectory-points)
-       (mapcar '(lambda (ajoint aposition)
-		  (cond
-		   ((derivedp ajoint rotational-joint)
-		    (send ajoint :joint-angle (rad2deg aposition)))
-		   (t
-		    (send ajoint :joint-angle (* 1000 aposition)))))
-	       joints (coerce (send point :positions) cons))
+       (mapc '(lambda (ajoint aposition)
+                (send ajoint :ros-joint-angle aposition))
+             joints (coerce (send point :positions) cons))
        (push (send robot :angle-vector) avs)
        (when (cadr avs)
-	 (incf diff-sum (reduce #'+ (map float-vector #'(lambda(x) (abs x)) (v- (car avs) (cadr avs)))))
-	 (if (> diff-sum diff-thre)
-	     (progn (setq diff-sum 0)
-		    (push (send-all (flatten (send-all dae-link-list :bodies)) :copy-worldcoords)
-			  link-coords-list))))
+         (incf diff-sum (reduce #'+ (map float-vector #'(lambda(x) (abs x)) (v- (car avs) (cadr avs)))))
+         (when (> diff-sum diff-thre)
+           (setq diff-sum 0)
+           (when show-trajectory
+             (push (send-all (flatten (send-all dae-link-list :bodies)) :copy-worldcoords)
+                   link-coords-list))))
        (push (* (send (ros::time- (send point :time_from_start) tm) :to-sec) 1000 speed-scale) tms)
        (setq tm (send point :time_from_start))
        )
-     (push (send-all (flatten (send-all dae-link-list :bodies)) :copy-worldcoords)
-	   link-coords-list)
-     ;; send visualization_msgs to rviz
-     ;;     (send self :show-mesh-traj-with-color (send-all (flatten (send-all link-list :bodies)) :name) link-coords-list)
+     (when show-trajectory
+       (push (send-all (flatten (send-all dae-link-list :bodies)) :copy-worldcoords)
+             link-coords-list)
+       ;; send visualization_msgs to rviz
+       ;; (send self :show-mesh-traj-with-color (send-all (flatten (send-all link-list :bodies)) :name) link-coords-list)
+       (send self :show-mesh-traj-with-color
+             (flatten (send-all dae-link-list :bodies))
+             link-coords-list :lifetime 0))
+     (cond
+      (send-trajectory
+       (send robot :angle-vector (car (last avs)))
+       ;; send to *ri*
+       (send self :angle-vector-sequence (setq avs (nreverse avs)) (setq tms (nreverse tms))))
+      (t
+       (send robot :angle-vector org-av)
+       ))
 
-     (send self :show-mesh-traj-with-color
-	   (flatten (send-all dae-link-list :bodies))
-	   link-coords-list :lifetime 0)
-
-     (send robot :angle-vector (car (last avs)))
-     ;; send to *ri*
-     (send self :angle-vector-sequence (nreverse avs) (nreverse tms))
-
-     (if joint-trajectory
-	 (list avs tms) nil)
+     (if joint-trajectory (list avs tms))
      ))
   (:call-openrave-move-to-hand-position
    (coords manip-name hand-frame-id)
@@ -168,11 +177,10 @@
      	   gripper-bodies (list gripper-coords)
      	   :lifetime 0 :color #f(1 0 1) :ns "hand_traj")
      ))
-  (:find-descendants-dae-links
-   (l)
+  (:find-descendants-dae-links (l)
    (unless l (return-from :find-descendants-dae-links nil))
    (append (list l)
-	   (mapcan #'(lambda (x) (send self :find-descendants-dae-links x)) (send l :child-links))))
+           (mapcan #'(lambda (x) (send self :find-descendants-dae-links x)) (send l :child-links))))
   (:show-mesh-traj-with-color
    (link-body-list link-coords-list &key ((:lifetime lf) 20)
 		 (ns "robot_traj") ((:color col) #f(0.5 0.5 0.5)))
