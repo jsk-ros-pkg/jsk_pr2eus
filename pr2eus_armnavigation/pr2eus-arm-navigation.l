@@ -314,3 +314,8 @@
    (send self :planning-move-arm confkey :planning-time planning-time :wait wait) ;; get-scene ?
    )
   )
+
+(defun worldcoords->link-relative (wcds &key ((:link lname) "ROOT") (robot *pr2*))
+  (let ((base (send robot (intern (string-upcase lname) *keyword-package*))))
+    (send (send base :worldcoords) :transformation
+          (send wcds :worldcoords))))
