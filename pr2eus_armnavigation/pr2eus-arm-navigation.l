@@ -281,12 +281,32 @@
       )))
   (:planning-make-trajectory
    (confkey &key (angle-vector) (get-scene t) (use-scene t) (planning-time 5.0) (filter-time 4.0) (wait t))
-   )
+   (let (ret scene)
+     (when get-scene (setq scene (send self :get-planning-scene)))
+     (if angle-vector (send robot :angle-vector angle-vector))
+     (setq ret
+           (send self :motion-plan confkey :planning_time planning-time
+                 :filter-time filter-timr :wait-result wait :scene (if use-scene scene)))
+     (cond
+      ((derivedp ret arm_navigation_msgs::FilterJointTrajectoryWithConstraintsResponse)
+       (if (> (send ret :error_code :val) 0)
+           (send ret :trajectory)))
+      (t
+       nil))
+     ))
   (:planning-make-trajectory-to-coords
    (cds confkey &key (end-coords) ;; (list :rarm :end-coords)
         (planning-time 5.0) (wait t) (get-scene t) (frame-id default-frame-id)
         (filter-time 4.0) (use-scene t))
-   )
+   (let (ret scene)
+     (when get-scene (setq scene (send self :get-planning-scene)))
+     (when (send self :get-ik-for-pose cds confkey :end-coords end-coords
+                 :use-actual-seed t :retry t :frame-id frame-id)
+       (return-from :planning-make-trajectory-to-coords nil))
+     (send self :planning-make-trajectory confkey
+           :planning-time planning-time :filter-time filter-time
+           :use-scene use-scene :wait wait :get-scene get-scene)
+     ))
   (:planning-move-arm
    (confkey &key (angle-vector) (get-scene t) (planning-time 5.0) (wait t))
    (let (ret)
@@ -307,12 +327,13 @@
   (:planning-move-arm-to-coords
    (cds confkey &key (end-coords) ;; (list :rarm :end-coords)
         (planning-time 5.0) (wait t) (get-scene t) (frame-id default-frame-id))
-   (when get-scene (send self :get-planning-scene))
-   (when (send self :get-ik-for-pose cds confkey
-               :use-actual-seed t :retry t :frame-id frame-id)
-     (return-from :planning-move-arm-to-coords nil))
-   (send self :planning-move-arm confkey :planning-time planning-time :wait wait) ;; get-scene ?
-   )
+   (let (ret)
+     (when get-scene (send self :get-planning-scene))
+     (when (steq ret (send self :get-ik-for-pose cds confkey :end-coords end-coords
+                           :use-actual-seed t :retry t :frame-id frame-id))
+       (return-from :planning-move-arm-to-coords ret))
+     (send self :planning-move-arm confkey :planning-time planning-time :wait wait) ;; get-scene ?
+     ))
   )
 
 (defun worldcoords->link-relative (wcds &key ((:link lname) "ROOT") (robot *pr2*))
