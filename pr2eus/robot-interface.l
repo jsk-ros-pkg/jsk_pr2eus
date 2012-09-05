@@ -40,9 +40,9 @@
    (setq robot (cond ((derivedp r metaclass) (instance r :init))
 		     (t r)))
    (setq groupname nh)
-   (ros::create-nodehandle groupname)
    (unless (ros::ok)
      (ros::roseus "default_robot_interface"))
+   (ros::create-nodehandle groupname)
    ;;
    (defvar *tfl* (instance ros::transform-listener :init))
    (ros::subscribe "/joint_states" sensor_msgs::JointState
