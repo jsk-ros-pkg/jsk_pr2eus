@@ -183,16 +183,20 @@
            (mapcan #'(lambda (x) (send self :find-descendants-dae-links x)) (send l :child-links))))
   (:show-mesh-traj-with-color
    (link-body-list link-coords-list &key ((:lifetime lf) 20)
-		 (ns "robot_traj") ((:color col) #f(0.5 0.5 0.5)))
+                   (ns "robot_traj") ((:color col) #f(0.5 0.5 0.5)))
    (let ((msg (instance visualization_msgs::MarkerArray :init))
-	 (header (instance std_msgs::header :init
-			   :stamp (ros::time-now) :frame_id (send (car (send robot :links)) :name)))
-	 (l (length link-coords-list)) markers-list alpha-list)
+         (header (instance std_msgs::header :init
+                           :stamp (ros::time-now)
+                           :frame_id (send (car (send robot :links)) :name)))
+         (l (length link-coords-list)) markers-list alpha-list
+         (base-cds (send (car (send robot :links)) :copy-worldcoords)))
+     (setq base-cds (send base-cds :inverse-transformation))
      (dotimes (i l)
        (push (+ (/ (/ (1+ i) 2.0) l) 0.5) alpha-list))
      (dotimes (i l)
        (let (mrk markers)
-	 (mapcar #'(lambda (abody acoords)
+         (mapcar #'(lambda (abody acoords)
+                     (setq acoords (send (send acoords :copy-worldcoords) :transform base-cds :world))
 		     (cond ((send abody :name)
 			    (setq mrk (mesh->marker-msg
 				       acoords
