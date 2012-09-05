@@ -141,6 +141,10 @@
      (unless ik-res
        (ros::ros-info ";; IK service failed"))
      ik-res))
+  (:worldcoords->default-frame-relative (wcds)
+   (let ((base (send robot (intern (string-upcase default-frame-id) *keyword-package*))))
+     (send (send base :worldcoords) :transformation
+           (send wcds :worldcoords))))
   (:get-robot-coords
    (confkey)
    (let ((link-name (cdr (assoc :target-link-name (cdr (assoc confkey config-list))))))
@@ -189,7 +193,7 @@
        (setq scene (send (send self :get-planning-scene) :planning_scene)))
      (let ((req (instance arm_navigation_msgs::FilterJointTrajectoryWithConstraintsRequest :init
                           :group_name group_name
-                          :start_state (send scene :robot_state)
+                          :start_state (send scene :planning_scene :robot_state)
                           :trajectory (send res :trajectory :joint_trajectory)
                           :goal_constraints (send gl :motion_plan_request :goal_constraints)
                           :allowed_time (ros::Time filter_time))))
@@ -253,12 +257,16 @@
         (end-coords) ;; (list :rarm :end-coords)
         (frame-id default-frame-id) (timeout 2.0))
    (when get-scene (send self :get-planning-scene))
-   (when end-coords
+
+   (when end-coords ;; cds is target coords of end-coords
      (let ((rcds (send self :get-robot-coords confkey)))
        (setq cds (send cds :copy-worldcoords))
        (send cds :transform
              (send (send (send* robot end-coords) :worldcoords)
                    :transformation rcds))))
+
+   (setq cds (send self :worldcoords->default-frame-relative cds))
+
    (let* ((msg (ros::coords->tf-pose-stamped cds frame-id))
           (ret (send self :get-ik-for-pose-single msg confkey
                      :use-actual-seed use-actual-seed
@@ -285,8 +293,9 @@
      (when get-scene (setq scene (send self :get-planning-scene)))
      (if angle-vector (send robot :angle-vector angle-vector))
      (setq ret
-           (send self :motion-plan confkey :planning_time planning-time
-                 :filter-time filter-timr :wait-result wait :scene (if use-scene scene)))
+           (send self :motion-plan confkey
+                 :planning_time planning-time :filter_time filter-time
+                 :wait-result wait :scene (if use-scene scene)))
      (cond
       ((derivedp ret arm_navigation_msgs::FilterJointTrajectoryWithConstraintsResponse)
        (if (> (send ret :error_code :val) 0)
