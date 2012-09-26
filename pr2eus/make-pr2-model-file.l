@@ -44,10 +44,9 @@
                  "l_forearm_cam"
                  "r_forearm_cam"
                  "prosilica"
-		 "camera/rgb"
-		 "camera/depth"
+		 "openni/rgb"
+		 "openni/depth"
 		 ))
-     (setq openni-frames (list "openni_camera" "openni_rgb_frame" "openni_depth_frame" "openni_rgb_optical_frame" "openni_depth_optical_frame"))
      (dolist (camera-path camera-paths)
        (let* ((camera-info (format nil "~A/camera_info" camera-path))
 	      (camera-name (substitute #\- #\/ (string-downcase camera-path)))
@@ -80,8 +79,6 @@
      (dolist (valid-camera valid-cameras)
        (let* ((camera-name (cdr (assoc :camera-name valid-camera))))
 	 (format f "~A " camera-name)))
-     (dolist (openni-frame openni-frames)
-       (format f "~A " openni-frame))
      (format f "))~%")
      (format f "~%")
      (format f "(defmethod ~A-sensor-robot~%" robot)
@@ -90,14 +87,8 @@
      ;; pr2 specific openni frames
      (format f "   ;; openni frame definition, this data is taken from jsk_pr2_startup kinect_head_launch ~%")
      (format f "#|~%")
-     (format f " get frame coordinates data from pr1012:/etc/ros/electric/urdf/robot.xml~%")
+     (format f " get frame coordinates data from pr1012:/etc/ros/fuerte/urdf/robot.xml~%")
      (format f "|#~%")
-     (format f "   (setq openni_camera (make-cascoords :coords (send (make-coords :pos (float-vector 22 40 150) :rpy (float-vector 0 -0.02 0)) :transform (send head_plate_frame :worldcoords) :world) :parent head_plate_frame :name :openni_camera))~%")
-     (format f "   (setq openni_depth_frame (make-cascoords :coords (send (make-coords :pos (float-vector 0 -20 0)) :transform (send openni_camera :worldcoords) :world) :parent openni_camera :name :openni_depth_frame))~%")
-     (format f "   (setq openni_rgb_frame (make-cascoords :coords (send (make-coords :pos (float-vector 0 -40 0)) :transform (send openni_camera :worldcoords) :world) :parent openni_camera :name :openni_rgb_frame))~%")
-     (dolist (frame (list "depth" "rgb"))
-       (format f "   (setq openni_~A_optical_frame (make-cascoords :coords (send (make-coords :rpy (float-vector -pi/2 0 -pi/2)) :transform (send openni_~A_frame :worldcoords) :world) :parent openni_~A_frame :name :openni_~A_optical_frame))~%" frame frame frame frame))
-     (format f "~%")
      (format f "   ;; define cameras~%")
      (dolist (valid-camera valid-cameras)
        (let* ((camera-path (cdr (assoc :camera-path valid-camera)))
@@ -112,8 +103,6 @@
      (dolist (valid-camera valid-cameras)
        (let* ((camera-name (cdr (assoc :camera-name valid-camera))))
 	 (format f "  (:~A (&rest args) (forward-message-to ~A args))~%" camera-name camera-name)))
-     (dolist (openni-frame openni-frames)
-       (format f "  (:~A (&rest args) (forward-message-to ~A args))~%" openni-frame openni-frame))
      ;; :cameras
      (format f "~%")
      (format f "  (:cameras (&rest args)~%")
