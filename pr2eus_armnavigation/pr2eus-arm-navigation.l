@@ -190,7 +190,7 @@
 
      ;;filter
      (unless scene
-       (setq scene (send (send self :get-planning-scene) :planning_scene)))
+       (setq scene (send self :get-planning-scene)))
      (let ((req (instance arm_navigation_msgs::FilterJointTrajectoryWithConstraintsRequest :init
                           :group_name group_name
                           :start_state (send scene :planning_scene :robot_state)
