@@ -1,4 +1,5 @@
 #!/usr/bin/env roseus
+(ros::load-ros-manifest "topic_tools")
 (ros::load-ros-manifest "pr2eus_openrave")
 (ros::load-ros-manifest "orrosplanning")
 (load "package://pr2eus/pr2-interface.l")
@@ -118,7 +119,8 @@
    (coords manip-name hand-frame-id)
    (let ((req (instance orrosplanning::MoveToHandPositionRequest :init))
 	 (hand-goal (ros::coords->tf-pose-stamped coords "base_footprint"))
-	 res (mux-req (instance topic_tools::MuxSelectRequest :init)))
+	 res (mux-req (instance topic_tools::MuxSelectRequest :init))
+	 )
      (ros::ros-info "pos ~A ~A ~A"
 		    (send hand-goal :pose :position :x)
 		    (send hand-goal :pose :position :y)

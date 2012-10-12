@@ -11,10 +11,11 @@
   <include file="$(find pr2eus_openrave)/launch/openrave_armplan.launch">
     <arg name="test" value="$(arg test)"/>
     <arg name="collision_map_time" value="1"/>
-    <arg name="option" default="--use-simulation='true'"/>
+    <arg name="option" value="--use-simulation='true'"/>
     <arg name="robot" value="$(find hrpsys_ros_bridge)/models/HRP4C.dae"/>
-    <arg name="robot_name" default="hrp4"/>
-    <arg name="eusmodel_fname" default="$(find hrpsys_ros_bridge)/models/hrp4c.l"/>
+    <arg name="robot_name" value="hrp4"/>
+    <arg name="robot_frame" value="base_footprint" />
+    <arg name="eusmodel_fname" value="$(find hrpsys_ros_bridge)/models/hrp4c.l"/>
   </include>
 
 

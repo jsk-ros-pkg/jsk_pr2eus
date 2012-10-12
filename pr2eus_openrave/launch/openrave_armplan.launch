@@ -5,6 +5,7 @@
   <arg name="robot" default="$(find collada_robots)/data/robots/pr2-beta-static.dae"/>
   <arg name="collision_map" default="/collision_map_occ_throttle"/>
   <arg name="collision_map_time" default="1"/>
+  <arg name="robot_frame" default="base_link" />
   <arg name="option" default=""/>
 
 <!-- $(find pr2eus_openrave)/test/hrp4c.robot.xml -->
@@ -31,10 +32,12 @@
           args="0.130 0.016 1.338 -1.977 0.000 -1.487 /base_link /openni_rgb_optical_frame 100"/>
   </group>
 
-  <group unless="$(arg test)">  
-    <include file="$(find pr2eus_openrave)/launch/collision_map_publisher.launch"/>
+  <group unless="$(arg test)">
+    <include file="$(find pr2eus_openrave)/launch/collision_map_publisher.launch">
+      <arg name="robot_frame" value="$(find robot_frame)" />
+    </include>
   </group>
-  
+
   <test name="pr2eus_openrave_eus" pkg="roseus" type="roseus"
 	args="$(find pr2eus_openrave)/test/robot_openrave_simulation.l"
 	test-name="$(arg robot_name)_openrave_simulation" time-limit="1000">
