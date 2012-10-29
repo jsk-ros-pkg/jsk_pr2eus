@@ -46,7 +46,7 @@
      (send self :joint-trajectory-to-angle-vector-list move-arm joint-trajectory :diff-sum diff-sum :diff-thre diff-thre :speed-scale speed-scale)
      ))
   (:move-end-coords-plan
-   (coords &key (move-arm :larm) (use-torso t) ((:lifetime lf) 20)
+   (coords &key (move-arm :larm) (use-torso t) ((:lifetime lf) 20) (send-trajectory t)
 	   ((:diff-sum diff-sum) 0) ((:diff-thre diff-thre) 50) ((:speed-scale speed-scale) 1.0)
 	   (manip-name (if (derivedp (*ri* . robot) pr2-robot) (case move-arm (:larm "l_gripper_tool_frame") (:rarm "r_gripper_tool_frame")) "")))
    ;; for fast result view
@@ -60,7 +60,7 @@
 		 manip-name
 ;;		 (case move-arm (:larm "l_gripper_tool_frame") (:rarm "r_gripper_tool_frame"))
 		 ))
-     (send self :joint-trajectory-to-angle-vector-list move-arm joint-trajectory :diff-sum diff-sum :diff-thre diff-thre :speed-scale speed-scale)
+     (send self :joint-trajectory-to-angle-vector-list move-arm joint-trajectory :diff-sum diff-sum :diff-thre diff-thre :speed-scale speed-scale :send-trajectory send-trajectory)
      ))
   (:joint-trajectory-to-angle-vector-list
    (move-arm joint-trajectory
@@ -103,7 +103,7 @@
        ;; (send self :show-mesh-traj-with-color (send-all (flatten (send-all link-list :bodies)) :name) link-coords-list)
        (send self :show-mesh-traj-with-color
              (flatten (send-all dae-link-list :bodies))
-             link-coords-list :lifetime 0))
+             link-coords-list :lifetime (+ (apply #'+ tms) 10000)))
      (cond
       (send-trajectory
        (send robot :angle-vector (car (last avs)))
@@ -165,7 +165,7 @@
        (ros::ros-warn "MoveManipulator did not respond"))
      (if res (send res :traj))))
 
-  (:show-goal-hand-coords ;;temporally
+  (:show-goal-hand-coords
    (coords move-arm)
    (let* ((gripper-bodies
 	   (flatten (send-all (send robot move-arm :gripper :links) :bodies)))
@@ -179,7 +179,8 @@
      	   gripper-bodies (list gripper-coords)
      	   :lifetime 0 :color #f(1 0 1) :ns "hand_traj")
      ))
-  (:find-descendants-dae-links (l)
+  (:find-descendants-dae-links
+   (l)
    (unless l (return-from :find-descendants-dae-links nil))
    (append (list l)
            (mapcan #'(lambda (x) (send self :find-descendants-dae-links x)) (send l :child-links))))
