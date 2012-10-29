@@ -103,17 +103,16 @@
        ;; (send self :show-mesh-traj-with-color (send-all (flatten (send-all link-list :bodies)) :name) link-coords-list)
        (send self :show-mesh-traj-with-color
              (flatten (send-all dae-link-list :bodies))
-             link-coords-list :lifetime (+ (apply #'+ tms) 10000)))
+             link-coords-list :lifetime (+ (/ (apply #'+ tms) 1000.0) 10)))
      (cond
       (send-trajectory
        (send robot :angle-vector (car (last avs)))
        ;; send to *ri*
-       (send self :angle-vector-sequence (setq avs (nreverse avs)) (setq tms (nreverse tms))))
+       (send self :angle-vector-sequence (setq avs (reverse avs)) (setq tms (reverse tms))))
       (t
        (send robot :angle-vector org-av)
        ))
-
-     (if joint-trajectory (list avs tms))
+     (if joint-trajectory (list (reverse avs) (reverse tms)))
      ))
   (:call-openrave-move-to-hand-position
    (coords manip-name hand-frame-id)
