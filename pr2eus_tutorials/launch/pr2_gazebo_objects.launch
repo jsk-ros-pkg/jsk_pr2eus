@@ -1,0 +1,7 @@
+<launch>
+  <include file="$(find pr2_gazebo)/launch/pr2_empty_world.launch" />
+  <node pkg="rviz" name="pr2_rviz" type="rviz"
+        args="-d $(find pr2eus_tutorials)/launch/pr2_planning.vcg" />
+
+  <include file="$(find pr2eus_tutorials)/launch/spawn_objects.launch" />
+</launch>

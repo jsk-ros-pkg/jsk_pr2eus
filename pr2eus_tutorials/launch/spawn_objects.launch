@@ -1,0 +1,9 @@
+<launch>
+  <include file="$(find gazebo_worlds)/launch/table.launch" />
+
+  <!--
+  <param name="box1_description" command="$(find pr2eus_tutorials)/objects/box.urdf" />
+  <node name="spawn_table" pkg="gazebo" type="spawn_model" args="-urdf -param box1_description -z 0.01 -model box1_model" respawn="false" output="screen" />
+  -->
+
+ </launch>
