@@ -200,6 +200,18 @@
    ()
    (unless joint-action-enable (return-from :wait-interpolation nil))
    (send-all controller-actions :wait-for-result))
+  (:stop-motion (&key (stop-time 0))
+   (let ((av (send self :state :potentio-vector)))
+     (send self :angle-vector av stop-time)
+     (send self :wait-interpolation)))
+  (:cancel-angle-vector
+   (&key (wait) ((:controller-actions ca) controller-actions)
+	 ((:controller-type ct) controller-type))
+   (send-all ca :cancel-goal)
+   (when wait
+     (send self :wait-interpolation)
+     (send self :spin-once))
+   t)
   ;;
   (:reference-vector
    ()
