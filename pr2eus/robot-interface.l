@@ -205,9 +205,9 @@
      (send self :angle-vector av stop-time)
      (send self :wait-interpolation)))
   (:cancel-angle-vector
-   (&key (wait) ((:controller-actions ca) controller-actions)
-	 ((:controller-type ct) controller-type))
-   (send-all ca :cancel-goal)
+   (&key ((:controller-actions ca) controller-actions)
+         ((:controller-type ct) controller-type))
+   (send-all ca :cancel-all-goals)
    (when wait
      (send self :wait-interpolation)
      (send self :spin-once))
