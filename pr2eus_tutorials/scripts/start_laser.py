@@ -24,7 +24,7 @@ def set_tilt_profile(position, time_from_start):
 def configure_laser():
     #TODO: remove hack to get things working in gazebo
     try:
-        rospy.wait_for_service('tilt_hokuyo_node/set_parameters', 1.0)
+        rospy.wait_for_service('tilt_hokuyo_node/set_parameters', 10.0)
     except rospy.exceptions.ROSException, e:
         rospy.logerr("Couldn't set parameters %s" % e)
         return

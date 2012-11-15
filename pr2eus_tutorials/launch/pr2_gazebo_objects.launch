@@ -1,7 +1,13 @@
 <launch>
+  <arg name="launch_rviz" default="true" />
+
   <include file="$(find pr2_gazebo)/launch/pr2_empty_world.launch" />
-  <node pkg="rviz" name="pr2_rviz" type="rviz"
+
+  <node if="$(arg launch_rviz)"
+	pkg="rviz" name="pr2_rviz" type="rviz"
         args="-d $(find pr2eus_tutorials)/launch/pr2_planning.vcg" />
 
   <include file="$(find pr2eus_tutorials)/launch/spawn_objects.launch" />
+
+  <node pkg="pr2eus_tutorials" name="start_tilt_laser" type="start_laser.py" />
 </launch>

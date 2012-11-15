@@ -1,0 +1,14 @@
+<launch>
+  <!-- env name="ROBOT" value="sim"/ -->
+  <include file="$(pr2eus_tutorials)/launch/pr2_gazebo_object.launch" >
+    <arg name="launch_rviz" value="false" />
+  </include>
+
+  <include file="$(find pr2_interactive_manipulation)/launch/pr2_interactive_manipulation_robot.launch">
+    <arg name="sim" value="true" />
+  </include>
+
+  <include file="$(find pr2_interactive_manipulation)/launch/pr2_interactive_manipulation_desktop.launch">
+    <arg name="sim" value="true" />
+  </include>
+</launch>
