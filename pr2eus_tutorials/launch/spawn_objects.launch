@@ -1,5 +1,14 @@
 <launch>
-  <include file="$(find gazebo_worlds)/launch/table.launch"/>
+  <arg name="table_x_pos" default="0.0" />
+
+  <!-- <include file="$(find gazebo_worlds)/launch/table.launch"/> -->
+  <!-- copy from table.launch -->
+  <param name="table_description" command="$(find xacro)/xacro.py $(find gazebo_worlds)/objects/table.urdf.xacro" />
+  <!-- push table_description to factory and spawn robot in gazebo -->
+  <node name="spawn_table" pkg="gazebo" type="spawn_model"
+	args="-urdf -param table_description -z 0.01 -x $(arg table_x_pos) -model table_model"
+	respawn="false" output="screen" />
+
   <!-- <node pkg="gazebo" name="spawn_coffee_cup" type="spawn_model" args="-file $(find gazebo_worlds)/objects/desk1.model -gazebo -model desk -x 0.8 -y -0.2 -z 0.4"/> -->
   <!-- node pkg="gazebo" name="spawn_coffee_cup" type="spawn_model" args="-file $(find gazebo_worlds)/objects/china_cup.model -gazebo -model china_cup -x 0.8 -y 0.2 -z 0.6"/-->
   <node pkg="gazebo" name="spawn_" type="spawn_model" args="-file $(find gazebo_worlds)/objects/object102.model -gazebo -model green_cylinder -x 0.8 -y -0.2 -z 0.4"/>

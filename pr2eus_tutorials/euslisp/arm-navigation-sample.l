@@ -11,8 +11,9 @@
 (load "package://pr2eus_armnavigation/collision-object-publisher.l")
 (load "package://pr2eus_openrave/pr2eus-openrave.l")
 
-(setq *plan-env* (instance arm_planning_environment :init :robot (instance pr2-robot :init)))
-#|
+(setq *plan-env* (instance arm_planning_environment
+                           :init :robot (instance pr2-robot :init)))
+
 ;; for using torso setting
 (defclass pr2torso_arm_planning_environment
   :super arm_planning_environment
@@ -49,8 +50,9 @@
                )
          ))
   )
-(setq *plan-env* (instance pr2torso_arm_planning_environment :init :robot *pr2*))
-|#
+(setq *plan-env-torso* (instance pr2torso_arm_planning_environment
+                                 :init :robot (instance pr2-robot :init)))
+
 (setq *collision-server* (instance collision-object-publisher :init))
 
 (send *plan-env* :robot :angle-vector (send *ri* :robot :angle-vector))
