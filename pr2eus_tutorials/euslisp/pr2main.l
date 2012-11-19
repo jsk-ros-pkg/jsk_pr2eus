@@ -8,7 +8,7 @@
 (defmethod pr2-robot
   (:initial-pose ()
    (send self :angle-vector
-	 (float-vector 12.0 45.0 60.0 0.0 -120.0 0.0 -45.0 0.0 -45.0 60.0 0.0 -120.0 0.0 -45.0 0.0 0.0 35.0))
+         (float-vector 12.0 45.0 60.0 0.0 -120.0 0.0 -45.0 0.0 -45.0 60.0 0.0 -120.0 0.0 -45.0 0.0 0.0 35.0))
    ))
 
 #|
@@ -37,7 +37,7 @@
   )
 
 ;; initial pose
-(defun go-init-pose (&key (wait t) (tm 4000))
+(defun goto-init-pose (&key (wait t) (tm 4000))
   (send *pr2* :initial-pose)
   (send *ri* :angle-vector (send *pr2* :angle-vector) tm)
   (if wait (send *ri* :wait-interpolation)))
