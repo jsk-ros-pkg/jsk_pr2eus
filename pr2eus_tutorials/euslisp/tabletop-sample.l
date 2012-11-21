@@ -12,12 +12,14 @@
 
 (setq *msg* nil)
 (ros::roseus "tabletop_object_sample")
+;; /ObjectDetection にテーブル上の物体の位置が出ている
 (ros::subscribe "/ObjectDetection" posedetection_msgs::ObjectDetection
                 #'detect-callback)
 
 ;; goto initial pose
 (goto-init-pose)
 
+;; /ObjectDetection に出ている位置を受け取る
 (defun detect-one (&optional (timeout 500))
   "subscribe just one detection result and return list of worldcoords of object's centroid"
   (let (lst
@@ -53,7 +55,8 @@
   (let ((av-st (send *pr2* :angle-vector))
         av-ed av-mid)
   (setq *res* (detect-one))
-  ;; sort nearest first
+
+  ;; sort nearest first// 手に近い物体から順番に並べる
   (sort *res*
         #'(lambda (x y)
             (<= (norm (send (send (send *pr2* arm :end-coords :worldcoords) :transformation x) :pos))
@@ -61,24 +64,29 @@
   (cond
    ((send *pr2* arm :inverse-kinematics (car *res*) :rotation-axis :z)
     ;;(setq av-ed (send *pr2* :angle-vector))
+    ;; 物体をつかむ位置へ手先を持っていくIK(inverse kinematics/逆運動学)
     (let ((cds (send *pr2* arm :end-coords :copy-worldcoords)))
-      (send cds :translate (float-vector 0 0 35)) ;; offset of centroid
+      (send cds :translate (float-vector 15 0 10 )) ;; 10mm offset of centroid
       (if (send *pr2* arm :inverse-kinematics cds :rotation-axis :z)
           (setq av-ed (send *pr2* :angle-vector))))
 
+    ;; 物体をつかむ位置へのアプローチのIK(inverse kinematics/逆運動学)
     (let ((cds (send *pr2* arm :end-coords :copy-worldcoords)))
       (send cds :translate (float-vector -75 0 0)) ;; linear reach to object
       (if (send *pr2* arm :inverse-kinematics cds)
           (setq av-mid (send *pr2* :angle-vector))))
 
     (when av-mid
+      ;; 手を開く
       (send *ri* :stop-grasp arm)
       (send *ri* :wait-interpolation) ;; ??
 
+      ;; 腕を動かす
       (send *ri* :angle-vector-sequence
             (list av-mid av-ed) (list 3800 1200))
       (send *ri* :wait-interpolation)
 
+      ;; 手を閉じる
       (> (send *ri* :start-grasp arm) 8) ;; hand width is more than 8mm
       )
     )
@@ -86,9 +94,11 @@
   ))
 
 (defun pickup-up (&key (arm :rarm))
+  ;; 手を少し上げる
   (send *pr2* arm :move-end-pos (float-vector 0 0 55) :world)
   (send *ri* :angle-vector (send *pr2* :angle-vector) 2500)
   (send *ri* :wait-interpolation)
+  ;; 元の姿勢に戻る
   (goto-init-pose)
   )
 
