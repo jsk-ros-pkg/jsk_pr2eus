@@ -212,11 +212,8 @@
               (send (ros::tf-pose->coords
                      (send (elt (send gp-res :grasps) counter) :grasp_pose))
                     :translate (float-vector 0 0 51) :world)) ;; /base_link -> /base_footprint
-	;; solve motion-plan at OpenRAVE
-        (setq orres (send *ri* :move-end-coords-plan grasp-cds
-                          :move-arm arm :use-torso t :send-trajectory nil))
+
         (when (and
-               orres
 	       ;; hand direction should be downword
                (>= (v. (send (send grasp-cds :worldcoords) :x-axis)
                        (float-vector 0 0 -1)) 0)
@@ -224,6 +221,9 @@
                (> (elt (send grasp-cds :pos) 2)
                   (* (send od-res :detection :table
 			   :pose :pose :position :z) 1000))
+	       ;; solve motion-plan at OpenRAVE
+	       (setq orres (send *ri* :move-end-coords-plan grasp-cds
+				 :move-arm arm :use-torso t :send-trajectory nil))
                )
           (ros::ros-info "orres:~A" orres)
 
@@ -252,8 +252,8 @@
               (send *ri* :move-gripper arm
                     (* 2 (elt (send (car (send gp-res :grasps))
 				    :grasp_posture :position) 0))
-                    :wait t :effort 20))
-            (return t)))
+                    :wait t :effort 20)
+	      (return t))))
         (setq counter (+ counter 1))))
     ))
 
@@ -324,7 +324,7 @@
        )
       ('PassToHumanOnce
        (ros::ros-info "PassToHumanOnce called")
-       (PassToHumanExecute arm-id)
+       (PassToHumanExecute arm-id :wait-shock 10)
        )
       ('ScanObject
        (ros::ros-info "ScanObject called")
@@ -332,7 +332,7 @@
        )
       ('PickObjectSelected
        (ros::ros-info "PickObjectSelected called")
-       (Show3DScreenPointExecute (send msg :action :touch_x) (send msg :action :touch_y) "/openni/rgb")
+       ;;(Show3DScreenPointExecute (send msg :action :touch_x) (send msg :action :touch_y) "/openni/rgb")
        (PickObjectExecute (send msg :action :touch_x) (send msg :action :touch_y) arm-id)
        )
       )))
@@ -485,6 +485,43 @@
 	    (incf cntr) (incf obj-cntr))
 	  )))))
 
+(defun pr2-tuckarm-pose (&rest args)
+  (let* ((current-arm (check-tuckarm-pose :thre 40)) ;; nil rarm larm
+         (free-arm (or (car args) current-arm :larm))
+		 (msec 500) (use-time t))
+    (ros::ros-warn "this is not formal tuckarm-pose!!")
+    (when (not (eq current-arm free-arm))
+	  (progn
+		(setq msec 2000)
+		(send *pr2* :larm :angle-vector #f( 25 0 0 -121 0 -6 0))
+		(send *pr2* :rarm :angle-vector #f(-25 0 0 -121 0 -6 0))
+		(send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
+		(send *ri* :wait-interpolation)))
+    (if (eq free-arm :larm)
+        (progn
+		  (send *pr2* :rarm :angle-vector (cadr *pr2-tuckarm-pose-larm-free*))
+		  (send *ri* :rarm-angle-vector (send *pr2* :angle-vector) msec))
+	  (progn
+		(send *pr2* :larm :angle-vector (car *pr2-tuckarm-pose-rarm-free*))
+		(send *ri* :larm-angle-vector (send *pr2* :angle-vector) msec)))
+    (print "debug03")
+    (if use-time (unix::sleep 2)
+      (send *ri* :wait-interpolation))
+    (print "debug04")
+    (if (eq free-arm :larm)
+        (progn
+		  (send *pr2* :larm :angle-vector (car *pr2-tuckarm-pose-larm-free*))
+		  (send *ri* :larm-angle-vector (send *pr2* :angle-vector) msec))
+      (progn
+		(send *pr2* :rarm :angle-vector (cadr *pr2-tuckarm-pose-rarm-free*))
+		(send *ri* :rarm-angle-vector (send *pr2* :angle-vector) msec)))
+    (print "debug05")
+    (if use-time (unix::sleep 2)
+      (send *ri* :wait-interpolation))
+    (print "debug06")
+ ;;   (unix::sleep 2)
+    ))
+
 (defun PickObjectExecute (x y arm &key (use-openrave t))
   (let* ((c (screenpoint-srvcall x y)) cpos target-num)
     (if (null c) (return-from PickObjectExecute nil))
@@ -545,6 +582,7 @@
 (defun start-detect-demo ()
   (init)
   (tablet-setup)
+  (change-inflation-range 0.15)
   (ros::ros-info "start demo")
   (do-until-key
     (ros::spin-once)

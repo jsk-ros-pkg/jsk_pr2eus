@@ -1,5 +1,6 @@
 <launch>
   <arg name="kinect_camera_name" default="openni" />
+  <arg name="launch_object_manipulation" default="false" />
   <include file="$(find pr2_machine)/$(env ROBOT).machine" />
 
   <!-- client for object database running on remote server at Willow Garage -->
@@ -8,10 +9,12 @@
 
   <!-- alternative option: database server running on a local machine -->
   <rosparam command="load" file="$(find household_objects_database)/config/wgs36.yaml"/>
-  <node pkg="household_objects_database" name="objects_database_node" type="objects_database_node" respawn="true" output="screen"/>
+  <node pkg="household_objects_database" name="objects_database_node"
+        type="objects_database_node" respawn="true" output="screen"/>
 
   <include file="$(find pr2_arm_navigation_config)/launch/pr2_planning_environment.launch" />
 
+  <group if="$(arg launch_object_manipulation)" >
   <!-- separate self filter Kinect points for creating object models with higher resolution-->
   <node pkg="robot_self_filter_color"
         type="self_filter_color"
@@ -70,6 +73,17 @@
   <include file="$(find trajectory_filter_server)/launch/trajectory_unnormalize.launch"/>
 
   <include file="$(find pr2_object_manipulation_launch)/launch/pr2_manipulation.launch"/>
+
+  </group>
+
+  <!-- -->
+  <node unless="$(arg launch_object_manipulation)"
+        name="cluster_bounding_box_finder"
+        pkg="object_manipulator" cwd="node"
+        type="cluster_bounding_box_finder_server.py"
+        output="screen" respawn="false" >
+    <param name="z_up_frame" value="/base_link" />
+  </node>
 
   <node pkg="tabletop_collision_map_processing"
         type="tabletop_collision_map_processing_node"
