@@ -257,6 +257,107 @@
         (setq counter (+ counter 1))))
     ))
 
+(defun template-grasp-get-object-openrave-debug
+  (grasp-target-num &key (arm :rarm) (show-all-grasps nil)
+                    (od-res *od-res*) (cp-res *cp-res*))
+  (let* ((grasp-target (elt (send cp-res :graspable_objects) grasp-target-num))
+         (gpsrv-name "/pr2_template_grasp_planner")
+         (gp-req (instance object_manipulation_msgs::GraspPlanningRequest :init))
+         gp-res max-grasps (counter 0)
+         grasp-cds-lst)
+
+    (ros::ros-info "Calling template grasp planner")
+    (send gp-req :target :cluster (elt (send od-res :detection :clusters) grasp-target-num))
+    (send gp-req :target :region :roi_box_pose (send od-res :detection :table :pose))
+
+    ;;(send gp-req :target grasp-target)
+    (if (check-service-response gpsrv-name)
+        (setq gp-res (ros::service-call gpsrv-name gp-req)))
+    (unless (= (send gp-res :error_code :value)
+               object_manipulation_msgs::GraspPlanningErrorCode::*SUCCESS*)
+      (ros::ros-error (format nil "Template grasp planner returned error code ~A"
+                              (send gp-res :error_code :value)))
+      (return-from template-grasp-get-object-openrave nil))
+
+    ;;(setq *gp-res* gp-res)
+    (setq max-grasps (length (send gp-res :grasps)))
+    (let ((world-z-offst (float-vector 0 0 51))
+          (local-endpos-offset
+           (send (send *pr2* (case arm (:rarm :r_wrist_roll_link) (t :l_wrist_roll_link)))
+                 :transformation (send *pr2* arm :end-coords))))
+      (setq grasp-cds-lst
+            (mapcar #'(lambda (gp)
+                        (let ((cds (ros::tf-pose->coords (send gp :grasp_pose))))
+                          (send cds :translate world-z-offset :world) ;; /base_link -> /base_footprint
+                          (send cds :transform local-endpos-offset) ;; wrist_roll_link -> end-coords
+                          cds)) (send gp-res :grasps))))
+
+    ;; grasp-list should be sorted ....
+
+    ;; show grasps
+    (when show-all-grasps
+      (dolist (grasp-cds grasp-cds-lst)
+        (unix::usleep (* 30 1000))
+        (send *ri* :show-goal-hand-coords grasp-cds arm)))
+
+    ;; solve motion plan and move
+    (setq counter 0)
+    (dolist (grasp-cds grasp-cds-lst)
+      (let (orres
+            (pre-grasp-cds ;; offset
+             (let ((c (send grasp-cds :copy-worldcoords)))
+               (send c :translate (float-vector -75 0 0)) c) ;; approach offset
+             ))
+
+        (when (and
+               ;; hand direction should be downword
+               (>= (v. (send (send grasp-cds :worldcoords) :x-axis)
+                       (float-vector 0 0 -1)) 0)
+               ;; higher than table
+               (> (elt (send pre-grasp-cds :pos) 2)
+                  (* (send od-res :detection :table
+                           :pose :pose :position :z) 1000))
+               ;; solve motion-plan at OpenRAVE
+               (setq orres (send *ri* :move-end-coords-plan pre-grasp-cds
+                                 :move-arm arm :use-torso t :send-trajectory nil))
+               )
+          (ros::ros-info "orres:~A" orres)
+
+          (let (eusres)
+            (send *pr2* :angle-vector (car (last (elt orres 0))))
+            (setq eusres
+                  (send *pr2* arm :inverse-kinematics
+                        (send (send grasp-cds :copy-worldcoords)
+                              :translate (float-vector
+                                          (* (+
+                                              (send (elt (send gp-res :grasps) counter)
+                                                    :desired_approach_distance)
+                                              (send (elt (send gp-res :grasps) counter)
+                                                   :min_approach_distance))
+                                             0.5 1000)
+                                          0 0)
+                              :local) :rotation-axis t))
+
+            (ros::ros-info "eusres: ~A" eusres)
+            (when eusres
+              (send *pr2* :angle-vector (send *ri* :state :potentio-vector))
+              (send *ri* :angle-vector-sequence (elt orres 0) (elt orres 1))
+              (send *ri* :wait-interpolation)
+              (send *ri* :update-robot-state)
+              (send *ri* :move-gripper arm
+                    (* 2 (elt (send (car (send gp-res :grasps))
+                                    :pre_grasp_posture :position) 0))
+                    :wait t :effort 20)
+              (send *ri* :angle-vector eusres 2000)
+              (send *ri* :wait-interpolation)
+              (send *ri* :move-gripper arm
+                    (* 2 (elt (send (car (send gp-res :grasps))
+                                    :grasp_posture :position) 0))
+                    :wait t :effort 20)
+              (return t))))
+        (setq counter (+ counter 1))))
+    ))
+
 (defun calc-object-pos (res)
   (let (calc-pos)
     (setq calc-pos (mapcar
