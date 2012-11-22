@@ -194,12 +194,13 @@
     ;;(setq *gp-res* gp-res)
     (setq max-grasps (length (send gp-res :grasps)))
 
+    ;; show grasps
     (while (and show-all-grasps (< counter max-grasps))
       (let (grasp-cds)
         (setq grasp-cds
               (send (ros::tf-pose->coords
                      (send (elt (send gp-res :grasps) counter) :grasp_pose))
-                    :translate #f(0 0 51) :world))
+                    :translate (float-vector 0 0 51) :world)) ;; /base_link -> /base_footprint
 	(send *ri* :show-goal-hand-coords grasp-cds)
         (setq counter (+ counter 1))
 	))
@@ -209,17 +210,22 @@
         (setq grasp-cds
               (send (ros::tf-pose->coords
                      (send (elt (send gp-res :grasps) counter) :grasp_pose))
-                    :translate #f(0 0 51) :world)) ;; translate from ground to /base_link
+                    :translate (float-vector 0 0 51) :world)) ;; /base_link -> /base_footprint
+	;; solve motion-plan at OpenRAVE
         (setq orres (send *ri* :move-end-coords-plan grasp-cds
                           :move-arm arm :use-torso t :send-trajectory nil))
         (when (and
                orres
+	       ;; hand direction should be downword
                (>= (v. (send (send grasp-cds :worldcoords) :x-axis)
-                       (float-vector 0 0 -1)) 0) ;; ???
-               (> (elt (send grasp-cds :pos) 2) ;; higher than table
-                  (* (send od-res :detection :table :pose :pose :position :z) 1000))
+                       (float-vector 0 0 -1)) 0)
+	       ;; higher than table
+               (> (elt (send grasp-cds :pos) 2)
+                  (* (send od-res :detection :table
+			   :pose :pose :position :z) 1000))
                )
           (ros::ros-info "orres:~A" orres)
+
           (let (eusres)
             (send *pr2* :angle-vector (car (last (elt orres 0))))
             (setq eusres
@@ -237,12 +243,14 @@
               (send *ri* :wait-interpolation)
               (send *ri* :update-robot-state)
               (send *ri* :move-gripper arm
-                    (* 2 (elt (send (car (send gp-res :grasps)) :pre_grasp_posture :position) 0))
+                    (* 2 (elt (send (car (send gp-res :grasps))
+				    :pre_grasp_posture :position) 0))
                     :wait t :effort 20)
               (send *ri* :angle-vector eusres 2000)
               (send *ri* :wait-interpolation)
               (send *ri* :move-gripper arm
-                    (* 2 (elt (send (car (send gp-res :grasps)) :grasp_posture :position) 0))
+                    (* 2 (elt (send (car (send gp-res :grasps))
+				    :grasp_posture :position) 0))
                     :wait t :effort 20))
             (return t)))
         (setq counter (+ counter 1))))
