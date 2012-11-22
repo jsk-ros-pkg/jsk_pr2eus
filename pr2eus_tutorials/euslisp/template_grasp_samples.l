@@ -201,7 +201,8 @@
               (send (ros::tf-pose->coords
                      (send (elt (send gp-res :grasps) counter) :grasp_pose))
                     :translate (float-vector 0 0 51) :world)) ;; /base_link -> /base_footprint
-	(send *ri* :show-goal-hand-coords grasp-cds)
+	(unix::usleep (* 30 1000))
+	(send *ri* :show-goal-hand-coords grasp-cds arm)
         (setq counter (+ counter 1))
 	))
     (setq counter 0)
@@ -236,7 +237,7 @@
                                                    :desired_approach_distance) 1000 2)
                                           0 51)
                               :local) :rotation-axis t))
-            (ros::ros-info "eusres:~A" eusres)
+            (ros::ros-info "eusres: ~A" eusres)
             (when eusres
               (send *pr2* :angle-vector (send *ri* :state :potentio-vector))
               (send *ri* :angle-vector-sequence (elt orres 0) (elt orres 1))
@@ -414,14 +415,10 @@
     (send mrk :action image_view2::ImageMarker2::*REMOVE*)
     (ros::publish "image_marker" mrk)))
 
-;; same as remove-marker in pr2eus-openrave.l, but seems not wokring
-(defun stop-visualize-object-rviz ()
-  (let ((mrk-array (instance visualization_msgs::MarkerArray :init))
-	(mrk (instance visualization_msgs::Marker :init)))
-    (send mrk :id 1)
-    (send mrk :action visualization_msgs::Marker::*DELETE*)
-    (send mrk-array :markers (list mrk))
-    (ros::publish "tabletop_detection_marker_array" mrk)))
+(defun stop-visualize-object-rviz
+  (&key (idn 100) (ns "") (topic-name "marker-array"))
+  (dotimes (i idn) (remove-marker i :ns ns :topic-name topic-name))
+  ) ;; remove-marker in pr2eus-openrave.l
 
 (defun visualize-object-rviz
   (pc-list &key (counter 0) (ns nil) (lifetime 10)
@@ -448,7 +445,7 @@
 	   (text nil) (lifetime 10) (text-lifetime 40)
 	   (outline-colors (list (instance std_msgs::ColorRGBA :init :r 0.0 :g 1.0 :b 0.0 :a 1.0)))
 	   )
-  (let ((points-list pc-list) (cntr counter) (obj-counter 0))
+  (let ((points-list pc-list) (cntr counter) (obj-cntr 0))
     (when points-list
       (dolist (points points-list)
 	(let* ((mrk (instance image_view2::ImageMarker2 :init))
@@ -508,6 +505,9 @@
     ;; for demo
     ;; (unix::sleep 5)
     (stop-visualize-object-image)
+    (stop-visualize-object-rviz :ns "hand_traj" :topic-name "openrave_marker_array")
+    (stop-visualize-object-rviz :ns "tabletop" :topic-name "tabletop_detection_marker_array")
+
     (unix::usleep (* 100 1000))
     (visualize-object-image (make-eus-pointcloud (list (elt (send *od-res* :detection :clusters) target-num))) :counter 201 :text "Target")
     (when (numberp target-num)
@@ -515,6 +515,13 @@
       (if use-openrave
 	  (template-grasp-get-object-openrave target-num :arm arm :show-all-grasps t)
 	(template-grasp-get-object target-num :arm arm)))
+
+    (stop-visualize-object-rviz :ns "hand_traj" :topic-name "openrave_marker_array")
+    ;; up
+    (send *pr2* :angle-vector (send *ri* :state :potentio-vector))
+    (send *pr2* arm :move-end-pos #f(0 0 100) :world :rotation-axis nil)
+    (send *ri* :angle-vector (send *pr2* :angle-vector))
+
     (ros::set-param "stop_tabletop" 0)
     ))
 

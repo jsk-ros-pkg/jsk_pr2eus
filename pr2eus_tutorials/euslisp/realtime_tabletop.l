@@ -16,7 +16,7 @@
 
 (do-until-key
  (ros::spin-once)
- (ros::ros-info "Scanning object")
+ (ros::ros-info "Scanning loop")
  (when (zerop (ros::get-param "stop_tabletop"))
    (let ((pc-list (tabletop-detect)))
      (when pc-list
