@@ -360,24 +360,26 @@
    (ros::ros-info "go-pos-unsafe (x y d) = (~A ~A ~A)" x y d)
    (unless joint-action-enable
      (let ((orig-coords (send robot :copy-worldcoords))
-	   (coords (send robot :copy-worldcoords)))
+           (coords (send robot :copy-worldcoords)))
        (send coords :translate (float-vector (* x 1000) (* y 1000) 0))
        (send coords :rotate (deg2rad d) :z)
        (do ((curr-tm 0.0 (+ curr-tm 100.0)))
-	   ((> curr-tm 1000))
-	 (send robot :newcoords (midcoords (/ curr-tm 1000.0) orig-coords coords))
-	 (if viewer (send viewer :draw-objects))))
+           ((> curr-tm 1000))
+         (send robot :newcoords (midcoords (/ curr-tm 1000.0) orig-coords coords))
+         (if viewer (send viewer :draw-objects))))
      (return-from :go-pos-unsafe t))
    (let (msec step goal (maxvel 0.3) (maxrad 0.5))
      ;; package://pr2_base_trajectory_action/config/pr2_base_link.yaml
      ;; 80% of maxvel = 0.3[m/sec]
      ;; 80% of maxrad = 0.5[rad/sec]
      (setq msec (* 1000 (max (/ (norm (float-vector x y)) (* maxvel 0.8))
-			     (/ (abs (deg2rad d)) (* maxrad 0.8)))))
+                             (/ (abs (deg2rad d)) (* maxrad 0.8)))))
      (setq msec (max msec 1000))
      (setq step (/ 1000.0 msec))
-     (while (or (> (sqrt (+ (* x x) (* y y)))  0.03) (> d 3)) ;; 3 cm and 3deg
-       (setq goal (send self :move-trajectory (* x step) (* y step) (* (deg2rad d) step) msec :stop t))
+     (while (or (> (sqrt (+ (* x x) (* y y)))  0.03)
+                (> (abs d) 3)) ;; 3 cm and 3deg
+       (setq goal (send self :move-trajectory (* x step) (* y step)
+                        (* (deg2rad d) step) msec :stop t))
        (send move-base-trajectory-action :send-goal goal)
        (send move-base-trajectory-action :wait-for-result)
        (send self :spin-once)
@@ -387,9 +389,12 @@
              (odom-angle (elt (car (send (send self :state :odom :pose) :rpy-angle)) 0))
              diff-position v)
          (setq diff-position (v- goal-position (v+ odom-pos (float-vector 0 0 odom-angle))))
-         (setq v (v- (rotate-vector (float-vector (elt diff-position 0) (elt diff-position 1) 0) (- odom-angle) :z)
+         (setq v (v- (rotate-vector (float-vector (elt diff-position 0) (elt diff-position 1) 0)
+                                    (- odom-angle) :z)
                      (float-vector 0 0 odom-angle)))
-         (setq x (elt v 0) y (elt v 1) d (rad2deg (elt diff-position 2)))
+         (setq x (elt v 0)
+               y (elt v 1)
+               d (rad2deg (elt diff-position 2)))
          (ros::ros-info "                diff-pos ~A ~A, diff-angle ~A" x y d)
          ) ;; let
        ) ;; dotimes
