@@ -39,7 +39,7 @@
      ((= (send res :result)
          tabletop_object_detector::TabletopSegmentation::*SUCCESS*)
       (ros::ros-info ";; tabletop detection succeeded ~d" (send res :result))
-      (setq ret
+      (setq ret ;;use make-eus-pointcloud ?
 	    (mapcar #'(lambda (p)
 			(let ((r (make-eus-pointcloud-from-ros-msg1 p)))
 			  (setf (get r :header) (send p :header))
@@ -98,7 +98,7 @@
     (setq *cp-res* cp-res)
     ))
 
-(defun template-grasp-get-object
+(defun template-grasp-get-object ;; no more support on arm_planning
   (grasp-target-num &key (arm :rarm) (od-res *od-res*) (cp-res *cp-res*))
   (let* ((grasp-target (elt (send cp-res :graspable_objects) grasp-target-num))
 	 (co-name (elt (send cp-res :collision_object_names) grasp-target-num))
@@ -172,7 +172,7 @@
 
 (defun template-grasp-get-object-openrave
   (grasp-target-num &key (arm :rarm) (show-all-grasps nil)
-		    (od-res *od-res*) (cp-res *cp-res*))
+		    (od-res *od-res*) (cp-res *cp-res*) (use-select t))
   (let* ((grasp-target (elt (send cp-res :graspable_objects) grasp-target-num))
          (gpsrv-name "/pr2_template_grasp_planner")
          (gp-req (instance object_manipulation_msgs::GraspPlanningRequest :init))
@@ -227,6 +227,7 @@
 	(print (list 'tablezpos (* (send od-res :detection :table
 					 :pose :pose :position :z) 1000)))
 	(send *ri* :show-goal-hand-coords grasp-cds arm)
+	;; Todo: show hand coords on image_view2
         (when (and
 	       ;; hand direction should be downword
                (>= (v. (send (send grasp-cds :worldcoords) :x-axis)
@@ -235,7 +236,9 @@
                (> (elt (send grasp-cds :pos) 2)
                   (+ (* (send od-res :detection :table
 			      :pose :pose :position :z) 1000) 100))
-               (y-or-n-p)
+	       ;; select correct hand pos from tablet
+               ;; (if use-select (y-or-n-p) t)
+               (if use-select (y-or-n-from-tablet) t)
 	       ;; solve motion-plan at OpenRAVE
 	       (setq orres (send *ri* :move-end-coords-plan grasp-cds
 				 :move-arm arm :use-torso t :send-trajectory nil))
@@ -313,26 +316,61 @@
   (setq *ray_srv* "/pointcloud_screenpoint_nodelet/screen_to_point")
   ;; for is-old-msg and screenpoinot-srvcall
   (load "package://jsk_smart_gui/src/utils.l")
-  ;;(load "package://jsk_smart_gui/src/tablet_callback.l")
-  (ros::subscribe "/Tablet/Command" jsk_gui_msgs::Tablet #'tablet-command-cb)
+
+  (subscribe-tablet-command-default)
+  ;;(ros::subscribe "/Tablet/Command" jsk_gui_msgs::Tablet #'tablet-command-cb)
   (ros::advertise "tablet_marker_array" visualization_msgs::MarkerArray 10)
   (ros::advertise "tablet_marker" visualization_msgs::Marker 10)
   (ros::advertise "image_marker" image_view2::ImageMarker2 10)
   (ros::advertise "tabletop_detection_marker_array" visualization_msgs::MarkerArray 10)
   (setq *time-count* (ros::time-now))
-  (setq *current-camera* "/openni/rgb")
+  (setq *current-camera* "/openni/rgb") ;; not need?
+  (setq *has-reset-collider* nil)
   )
+
+(defun subscribe-tablet-command-default ()
+  (ros::subscribe "/Tablet/Command" jsk_gui_msgs::Tablet #'tablet-command-cb))
+
+(defun unsubscribe-tablet-command-default ()
+  (ros::unsubscribe "/Tablet/Command"))
+
+(defun subscribe-tablet-command-select ()
+  (ros::subscribe "/Tablet/Select" roseus::StringStamped #'tablet-select-cb))
+
+(defun unsubscribe-tablet-command-select ()
+  (ros::unsubscribe "/Tablet/Select")
+  )
+
+(defun tablet-select-cb (msg)
+  (if (is-old-msg msg) (return-from tablet-select-cb nil))
+  (ros::ros-info "tablet-select-cb called")
+  (let ((taskname (read-from-string (send msg :data))))
+    (case taskname
+      ('ResultYes
+       (setq *select-result* t)
+       )
+      ('ResultNo
+       (setq *select-result* nil)
+       ))
+    (setq *select-flag* t)
+    ))
 
 (defun tablet-command-cb (msg)
   (if (is-old-msg msg) (return-from tablet-command-cb nil))
   (let* ((touches (send msg :touches))
 	 (taskname (read-from-string (send msg :action :task_name)))
-	 (arm-id-raw (send msg :action :arm_id))
+to	 (arm-id-raw (send msg :action :arm_id))
 	 (arm-id (if (or (zerop arm-id-raw) (equal arm-id-raw jsk_gui_msgs::Action::*RARMID*)) ':rarm ':larm)))
+    (ros::ros-info "tablet-command-cb called")
     ;;(print arm-id-raw)
     (case taskname
       ('StartDetect
        (ros::ros-info "StartDetect called")
+       )
+      ('ResetCollider
+       (ros::ros-info "ResetCollider called")
+       (call-empty-service "/collider_node/reset")
+       (setq *has-reset-collider* t)
        )
       ('PassToHumanOnce
        (ros::ros-info "PassToHumanOnce called")
@@ -344,7 +382,6 @@
        )
       ('PickObjectSelected
        (ros::ros-info "PickObjectSelected called")
-       ;;(Show3DScreenPointExecute (send msg :action :touch_x) (send msg :action :touch_y) "/openni/rgb")
        (PickObjectExecute (send msg :action :touch_x) (send msg :action :touch_y) arm-id)
        )
       )))
@@ -541,8 +578,12 @@
 	(progn (ros::ros-info "pr2-tuckarm-pose ~A" arm)
 	       (pr2-tuckarm-pose arm))
       (reset-pose))
-    (ros::ros-info "calling /collider_node/reset")
-    (call-empty-service "/collider_node/reset")
+    (if *has-reset-collider*
+	(ros::ros-info "already called /collider_node/reset")
+      (progn
+	(ros::ros-info "calling /collider_node/reset")
+	(call-empty-service "/collider_node/reset")))
+    (setq *has-reset-collider* nil)
     (ros::set-param "stop_tabletop" 1)
     (template-grasp-get-data) ;; get *cp-res*, *od-res*
     (unless (boundp '*od-res*) (return-from PickObjectExecute nil))
@@ -573,44 +614,44 @@
     (ros::set-param "stop_tabletop" 0)
     ))
 
-(defun Show3DScreenPointExecute (x y cam)
-  (let* ((c (screenpoint-srvcall x y))
-	 (cam-name-orig (string-left-trim "/" cam))
-	 (cam-name (substitute #\- #\/ (string-downcase cam-name-orig)))
-	 (cam-method-name (intern (string-upcase cam-name) *keyword-package*)))
-    (ros::ros-info "cam-method-name : ~A" cam-method-name)
-    (if (null c) (return-from Show3DScreenPointExecute nil))
-    (send *pr2* :angle-vector (send *ri* :state :potentio-vector))
-    (visualize-point x y :sca 10 :r 1.0 :lifetime 10)
-    (show-marker (send (send c :copy-worldcoords) :pos) :lifetime 10)
-    (if (find-method *pr2* cam-method-name)
-	(show-line (send (send c :copy-worldcoords) :pos)
-		   (send (funcall 'send *pr2* cam-method-name :copy-worldcoords) :pos) :lifetime 10)
-      (ros::ros-warn "Assume that you are using external camera"))
-    (ros::ros-info "Show3DScreenPointExecute: showing for 10 seconds")
-    ))
-
-(defun start-detect-demo ()
-  (init)
-  (tablet-setup)
-  (change-inflation-range 0.15)
-  (ros::ros-info "start demo")
-  (do-until-key
+;; Todo:: create button for y-or-n and reset collider
+(defun y-or-n-from-tablet ()
+  (unsubscribe-tablet-command-default)
+  (unix::usleep (* 200 1000))
+  (subscribe-tablet-command-select)
+  (unix::usleep (* 200 1000))
+  (setq *select-flag* nil *select-result* nil)
+  (while (not *select-flag*)
     (ros::spin-once)
-    (ros::sleep)))
+    (ros::sleep))
+  (setq *select-flag* nil)
+  (unsubscribe-tablet-command-select)
+  (unix::usleep (* 200 1000))
+  (subscribe-tablet-command-default)
+  (unix::usleep (* 200 1000))
+  *select-result*)
 
-(defun reset-pose ()
+(defun reset-pose () ;; only used for arm_planning
   (send *pr2* :angle-vector #f(11.7223 122.335 -20.2339 24.6296 -55.5484 48.3199 -114.592 -176.87 -122.338 -19.5301 -5.80601 -75.6798 -72.7564 -114.592 -155.57 -0.332237 46.746))
   (send *ri* :angle-vector (send *pr2* :angle-vector))
   (send *ri* :wait-interpolation))
 
 (defun get-data-demo()
-  (reset-pose)
   (call-empty-service "/collider_node/reset")
   (template-grasp-get-data))
 
 (defun get-object-demo(target-num arm)
   (template-grasp-get-object-openrave target-num :arm arm))
+
+(defun start-detect-demo ()
+  (init)
+  (tablet-setup)
+  (ros::ros-info "change inflation range to 0.15")
+  (change-inflation-range 0.15)
+  (ros::ros-info "start demo")
+  (do-until-key
+    (ros::spin-once)
+    (ros::sleep)))
 
 ;;(init)
 ;;(start-detect-demo)
