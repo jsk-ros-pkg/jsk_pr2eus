@@ -361,7 +361,7 @@
 	 (taskname (read-from-string (send msg :action :task_name)))
 to	 (arm-id-raw (send msg :action :arm_id))
 	 (arm-id (if (or (zerop arm-id-raw) (equal arm-id-raw jsk_gui_msgs::Action::*RARMID*)) ':rarm ':larm)))
-    (ros::ros-info "tablet-command-cb called: arm-id:~A" arm-id)
+    (ros::ros-info "tablet-command-cb called: arm-id~A" arm-id)
     (case taskname
       ('StartDetect
        (ros::ros-info "StartDetect called")
@@ -382,6 +382,10 @@ to	 (arm-id-raw (send msg :action :arm_id))
       ('PickObjectSelected
        (ros::ros-info "PickObjectSelected called")
        (PickObjectExecute (send msg :action :touch_x) (send msg :action :touch_y) arm-id)
+       )
+      ('PlaceObjectSelected
+       (ros::ros-info "PlaceObjectSelected called")
+       (PlaceObjectExecute arm-id)
        )
       )))
 
@@ -533,6 +537,10 @@ to	 (arm-id-raw (send msg :action :arm_id))
 	    (incf cntr) (incf obj-cntr))
 	  )))))
 
+(defun is-current-tuckarm (arm)
+  (let ((current-arm (check-tuckarm-pose :thre 40)))
+    (if (eq current-arm arm) t nil)))
+
 (defun pr2-tuckarm-pose (&rest args)
   (let* ((current-arm (check-tuckarm-pose :thre 40)) ;; nil rarm larm
          (free-arm (or (car args) current-arm :larm))
@@ -569,18 +577,30 @@ to	 (arm-id-raw (send msg :action :arm_id))
     (unless use-time (print "debug06"))
     ))
 
+(defun PlaceObjectExecute (arm)
+  ;; down
+  (send *pr2* :angle-vector (send *ri* :state :potentio-vector))
+  (send *pr2* arm :move-end-pos #f(0 0 -100) :world :rotation-axis nil)
+  (send *ri* :angle-vector (send *pr2* :angle-vector))
+  (send *ri* :wait-interpolation)
+  ;; close
+  (send *ri* :stop-grasp)
+ )
+
 (defun PickObjectExecute (x y arm &key (use-openrave t))
   (let* ((c (screenpoint-srvcall x y)) cpos target-num)
     (if (null c) (return-from PickObjectExecute nil))
     (setq cpos (send (send c :copy-worldcoords) :pos))
     (if use-openrave
 	(progn (ros::ros-info "pr2-tuckarm-pose ~A" arm)
+	       (unless (is-current-tuckarm arm)
+		 (setq *has-reset-collider* nil))
 	       (pr2-tuckarm-pose arm))
       (reset-pose))
     (if *has-reset-collider*
-	(ros::ros-info "already called /collider_node/reset")
+	(ros::ros-warn "already called /collider_node/reset")
       (progn
-	(ros::ros-info "calling /collider_node/reset")
+	(ros::ros-warn "calling /collider_node/reset")
 	(call-empty-service "/collider_node/reset")))
     (setq *has-reset-collider* nil)
     (ros::set-param "stop_tabletop" 1)
