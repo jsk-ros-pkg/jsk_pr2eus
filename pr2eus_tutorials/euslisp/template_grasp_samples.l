@@ -361,8 +361,7 @@
 	 (taskname (read-from-string (send msg :action :task_name)))
 to	 (arm-id-raw (send msg :action :arm_id))
 	 (arm-id (if (or (zerop arm-id-raw) (equal arm-id-raw jsk_gui_msgs::Action::*RARMID*)) ':rarm ':larm)))
-    (ros::ros-info "tablet-command-cb called")
-    ;;(print arm-id-raw)
+    (ros::ros-info "tablet-command-cb called: arm-id:~A" arm-id)
     (case taskname
       ('StartDetect
        (ros::ros-info "StartDetect called")
@@ -587,7 +586,7 @@ to	 (arm-id-raw (send msg :action :arm_id))
     (ros::set-param "stop_tabletop" 1)
     (template-grasp-get-data) ;; get *cp-res*, *od-res*
     (unless (boundp '*od-res*) (return-from PickObjectExecute nil))
-    ;; (visualize-object-image (make-eus-pointcloud (send *od-res* :detection :clusters)))
+    ;; (visualize-object-image (make-eus-pointcloud (send *od-res* :detection :clusters))) this is not needed if (realtime-tabletop) is called in background
     (unless (boundp '*cp-res*) (return-from PickObjectExecute nil))
     (setq target-num (find-nearest cpos (calc-object-pos (send *cp-res* :graspable_objects))))
     (ros::ros-info "target: ~A" target-num)

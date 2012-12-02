@@ -14,7 +14,8 @@
 (ros::ros-info "waiting service: tabletop_segmentation")
 (ros::wait-for-service "/tabletop_segmentation")
 
-(do-until-key
+;;(do-until-key
+(while (ros::ok)
  (ros::spin-once)
  (ros::ros-info "Scanning loop")
  (when (zerop (ros::get-param "stop_tabletop"))
@@ -24,3 +25,5 @@
        (visualize-object-rviz pc-list :lifetime *rate* :ns "tabletop")
        )))
  (ros::sleep))
+
+(ros::exit)

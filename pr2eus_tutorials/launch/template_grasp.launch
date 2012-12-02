@@ -1,7 +1,13 @@
 <launch>
   <arg name="kinect_camera_name" default="openni" />
   <arg name="launch_object_manipulation" default="false" />
+  <arg name="launch_realtime_tabletop" default="true" />
   <include file="$(find pr2_machine)/$(env ROBOT).machine" />
+
+  <node if="$(arg launch_realtime_tabletop)"
+        name="realtime_tabletop_default" pkg="pr2eus_tutorials"
+        type="realtime_tabletop.l" output="screen" respawn="false">
+  </node>
 
   <!-- client for object database running on remote server at Willow Garage -->
   <!-- DOES NOT WORK IN TRUNK RIGHT NOW -->
