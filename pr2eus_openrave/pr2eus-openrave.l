@@ -7,15 +7,14 @@
 
 (ros::advertise "openrave_marker_array" visualization_msgs::MarkerArray 100)
 
-
-(defun remove-marker (id)
-  (let*	((header (instance std_msgs::header :init :stamp (ros::time-now) :frame_id "base_footprint")) (ns "robot_traj")
+(defun remove-marker (id &key (ns "") (topic-name "marker_array"))
+  (let*	((header (instance std_msgs::header :init :stamp (ros::time-now) :frame_id "base_footprint"))
 	 (msg (instance visualization_msgs::Marker :init :header header :ns ns))
 	 (msgarray (instance visualization_msgs::MarkerArray :init)))
     (send msg :id id)
     (send msg :action visualization_msgs::Marker::*DELETE*)
     (send msgarray :markers (list msg))
-    (ros::publish "openrave_marker_array" msgarray)
+    (ros::publish topic-name msgarray)
     ))
 
 (defmethod robot-interface
@@ -177,7 +176,7 @@
      (send self :show-mesh-traj-with-color
      	   gripper-bodies (list gripper-coords)
      	   :lifetime 0 :color #f(1 0 1) :ns "hand_traj")
-     ))
+     (list gripper-bodies gripper-coords)))
   (:find-descendants-dae-links
    (l)
    (unless l (return-from :find-descendants-dae-links nil))
