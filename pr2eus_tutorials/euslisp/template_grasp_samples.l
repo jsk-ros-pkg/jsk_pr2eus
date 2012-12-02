@@ -215,7 +215,7 @@
 	))
     (setq counter 0)
     (while (< counter max-grasps)
-      (let (grasp-cds orres)
+      (let (grasp-cds orres hand-coords-result hand-coords)
         (setq grasp-cds
               (send (send (ros::tf-pose->coords
 			   (send (elt (send gp-res :grasps) counter) :grasp_pose))
@@ -226,8 +226,12 @@
 	(print (list 'zpos (elt (send grasp-cds :pos) 2)))
 	(print (list 'tablezpos (* (send od-res :detection :table
 					 :pose :pose :position :z) 1000)))
-	(send *ri* :show-goal-hand-coords grasp-cds arm)
-	;; Todo: show hand coords on image_view2
+
+	(setq hand-coords-result (send *ri* :show-goal-hand-coords grasp-cds arm))
+	;; temporary
+	(setq hand-coords (cadr hand-coords-result))
+	(visualize-object-image-from-coords
+	 (list (elt hand-coords 4) (elt hand-coords 2) (elt hand-coords 0) (elt hand-coords 1) (elt hand-coords 3)) :counter 601 :lifetime 10 :ns "hand")
         (when (and
 	       ;; hand direction should be downword
                (>= (v. (send (send grasp-cds :worldcoords) :x-axis)
@@ -318,13 +322,13 @@
   (load "package://jsk_smart_gui/src/utils.l")
 
   (subscribe-tablet-command-default)
-  ;;(ros::subscribe "/Tablet/Command" jsk_gui_msgs::Tablet #'tablet-command-cb)
-  (ros::advertise "tablet_marker_array" visualization_msgs::MarkerArray 10)
+  (ros::advertise "image_marker" image_view2::ImageMarker2 100)
   (ros::advertise "tablet_marker" visualization_msgs::Marker 10)
-  (ros::advertise "image_marker" image_view2::ImageMarker2 10)
+  (ros::advertise "tablet_marker_array" visualization_msgs::MarkerArray 10)
   (ros::advertise "tabletop_detection_marker_array" visualization_msgs::MarkerArray 10)
+
   (setq *time-count* (ros::time-now))
-  (setq *current-camera* "/openni/rgb") ;; not need?
+  (setq *current-camera* "/openni/rgb") ;; not needed anymore?
   (setq *has-reset-collider* nil)
   )
 
@@ -492,6 +496,25 @@ to	 (arm-id-raw (send msg :action :arm_id))
     (ros::publish "tabletop_detection_marker_array" mrk-array)
     ))
 
+(defun visualize-object-image-from-coords
+  (cds-list &key (counter 0) (ns nil) (lifetime 10)
+	    (outline-colors (list (instance std_msgs::ColorRGBA :init :r 1.0 :g 0.0 :b 0.0 :a 1.0))))
+  (let* ((mrk (instance image_view2::ImageMarker2 :init))
+	 point-list)
+    (send mrk :header :stamp (ros::time-now))
+    (send mrk :type image_view2::ImageMarker2::*LINE_STRIP3D*)
+    (send mrk :points3D :header :frame_id "base_link")
+    (send mrk :lifetime (ros::Time lifetime))
+    (send mrk :id counter)
+    (dolist (cds cds-list)
+      ;;(ros::ros-warn "cds: ~A" (send cds :pos))
+      (push (ros::pos->tf-point (send cds :worldpos)) point-list))
+    (send mrk :points3D :points point-list)
+    (send mrk :outline_colors outline-colors)
+    (if ns (send mrk :ns ns))
+    (ros::publish "image_marker" mrk)
+  ))
+
 (defun visualize-object-image
   (pc-list &key (counter 0) (use-text t) (ns nil)
 	   (text nil) (lifetime 10) (text-lifetime 40)
@@ -633,7 +656,6 @@ to	 (arm-id-raw (send msg :action :arm_id))
     (ros::set-param "stop_tabletop" 0)
     ))
 
-;; Todo:: create button for y-or-n and reset collider
 (defun y-or-n-from-tablet ()
   (unsubscribe-tablet-command-default)
   (unix::usleep (* 200 1000))
