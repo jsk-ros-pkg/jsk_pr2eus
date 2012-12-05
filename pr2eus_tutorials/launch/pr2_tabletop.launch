@@ -9,6 +9,7 @@
     <arg name="run_rviz" value="false" />
     <arg name="tabletop_segmentation_points_in"
          value="/openni/depth_registered/points_throttle" />
+    <arg name="convert_to_base_link" value="true" />
   </include>
 
   <node if="$(arg run_rviz)"
