@@ -3,8 +3,6 @@
 
 (ros::roseus "pr2_main")
 
-(setup-for-pr2 t)
-
 (defmethod pr2-robot
   (:initial-pose ()
    (send self :angle-vector

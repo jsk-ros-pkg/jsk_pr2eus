@@ -11,9 +11,6 @@
 (load "package://pr2eus_armnavigation/collision-object-publisher.l")
 (load "package://pr2eus_openrave/pr2eus-openrave.l")
 
-(setq *plan-env* (instance arm_planning_environment
-                           :init :robot (instance pr2-robot :init)))
-
 ;; for using torso setting
 (defclass pr2torso_arm_planning_environment
   :super arm_planning_environment
@@ -50,20 +47,45 @@
                )
          ))
   )
-(setq *plan-env-torso* (instance pr2torso_arm_planning_environment
-                                 :init :robot (instance pr2-robot :init)))
-
 (setq *collision-server* (instance collision-object-publisher :init))
 
 (send *plan-env* :robot :angle-vector (send *ri* :robot :angle-vector))
+(send *plan-env-torso* :robot :angle-vector (send *ri* :robot :angle-vector))
 
 (warn ";;
+;; (demo-init)
 ;; (demo-ik)
 ;; (demo-planning)
 ;;
 ")
 
+(defun demo-init ()
+  (pr2-init)
+  ;;(setq *plan-env* (instance arm_planning_environment :init :robot (instance pr2-robot :init)))
+  (setq *plan-env* (instance pr2torso_arm_planning_environment :init :robot (instance pr2-robot :init)))
+  (send *ri* :arm-planning-environment *plan-env*)
+  (setq (*plan-env* . robot) (send *ri* :robot)) ;; ???
+  )
+
 (defun demo-ik ()
+  (setq cds (send (send *pr2* :rarm :end-coords) :copy-worldcoords))
+
+  (send *pr2* :reset-pose)
+
+  (send *ri* :angle-vector (send *pr2* :angle-vector) 6000)
+  (send *irtviewer* :draw-objects)
+  (send *ri* :wait-interpolation)
+
+  (send *ri* :collision-aware-ik cds :move-arm :rarm)
+
+  (send *ri* :anglev-vector
+        (send (send *ri* :arm-planning-environment) :robot :angle-vector))
+  ;;(send *ri* :move-end-coords-plan cds :move-arm :rarm)
+
+  (send *irtviewer* :draw-objects)
+  )
+
+(defun demo-ik-old ()
   (setq cds (send (send *pr2* :rarm :end-coords) :copy-worldcoords))
 
   (send *pr2* :reset-pose)
@@ -73,7 +95,13 @@
 
   (send *plan-env* :get-ik-for-pose cds :rarm
         :end-coords (list :rarm :end-coords))
-  (send *plan-env* :planning-move-arm :rarm)
+  ;;(send *pr2* :angle-vector (send *plan-env* :robot :angle-vector))
+
+  ;;(send *plan-env* :planning-move-arm :rarm)
+  (setq traj (send *plan-env* :planning-make-trajectory :rarm))
+  (when traj
+    (send *ri* :joint-trajectory-to-angle-vector-list :rarm traj))
+
   (send *irtviewer* :draw-objects)
   )
 
