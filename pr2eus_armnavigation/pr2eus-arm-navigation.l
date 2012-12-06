@@ -71,7 +71,7 @@
    (&key ((:planning-scene-service pl-srv) "/environment_server/set_planning_scene_diff")
          ((:planner-id pl-id) "SBLkConfig1")
          ((:arm-planning-service-name arm-pl-srv) "ompl_planning/plan_kinematic_path")
-         ((:robot rb) *pr2*) (frame-id "/base_footprint")) ;; frame-id needs to be contained in robot_model
+         ((:robot rb) *pr2*) (frame-id "base_footprint")) ;; frame-id needs to be contained in robot_model
    (setq planning-scene-service pl-srv
          planner-id pl-id
          arm-planning-service-name arm-pl-srv
@@ -255,7 +255,7 @@
   (:get-ik-for-pose
    (cds confkey &key (use-actual-seed t) (retry t) (get-scene t)
         (end-coords) ;; (list :rarm :end-coords)
-        (frame-id default-frame-id) (timeout 2.0))
+        (frame-id default-frame-id) (timeout 2.0) &allow-other-keys)
    (when get-scene (send self :get-planning-scene))
 
    (when end-coords ;; cds is target coords of end-coords
@@ -288,7 +288,8 @@
          (send ret :error_code :val)))
       )))
   (:planning-make-trajectory
-   (confkey &key (angle-vector) (get-scene t) (use-scene t) (planning-time 5.0) (filter-time 4.0) (wait t))
+   (confkey &key (angle-vector) (get-scene t) (use-scene t) (planning-time 5.0)
+            (filter-time 4.0) (wait t) &allow-other-keys)
    (let (ret scene)
      (when get-scene (setq scene (send self :get-planning-scene)))
      (if angle-vector (send robot :angle-vector angle-vector))
@@ -306,7 +307,7 @@
   (:planning-make-trajectory-to-coords
    (cds confkey &key (end-coords) ;; (list :rarm :end-coords)
         (planning-time 5.0) (wait t) (get-scene t) (frame-id default-frame-id)
-        (filter-time 4.0) (use-scene t))
+        (filter-time 4.0) (use-scene t) &allow-other-keys)
    (let (ret scene)
      (when get-scene (setq scene (send self :get-planning-scene)))
      (when (send self :get-ik-for-pose cds confkey :end-coords end-coords
@@ -317,7 +318,8 @@
            :use-scene use-scene :wait wait :get-scene get-scene)
      ))
   (:planning-move-arm
-   (confkey &key (angle-vector) (get-scene t) (planning-time 5.0) (wait t))
+   (confkey &key (angle-vector) (get-scene t) (planning-time 5.0) (wait t)
+            &allow-other-keys)
    (let (ret)
      (when get-scene (send self :get-planning-scene))
      (if angle-vector (send robot :angle-vector angle-vector))
@@ -335,7 +337,8 @@
        ))))
   (:planning-move-arm-to-coords
    (cds confkey &key (end-coords) ;; (list :rarm :end-coords)
-        (planning-time 5.0) (wait t) (get-scene t) (frame-id default-frame-id))
+        (planning-time 5.0) (wait t) (get-scene t) (frame-id default-frame-id)
+        &allow-other-keys)
    (let (ret)
      (when get-scene (send self :get-planning-scene))
      (when (steq ret (send self :get-ik-for-pose cds confkey :end-coords end-coords
@@ -349,3 +352,77 @@
   (let ((base (send robot (intern (string-upcase lname) *keyword-package*))))
     (send (send base :worldcoords) :transformation
           (send wcds :worldcoords))))
+
+(defmethod robot-interface
+  (:arm-planning-environment
+   (&optional ap-env)
+   (when ap-env
+     (setf (get self :arm-planning-environment) ap-env)
+     ;;(setq (ap-env . robot) robot)
+     )
+   (get self :arm-planning-environment))
+  (:parse-end-coords
+   (arm use-torso)
+   (let (confkey ed-lst)
+     (cond
+      ((eq arm :rarm)
+       (setq confkey (if use-torso :right-torso :rarm))
+       (setq  ed-lst (list :rarm :end-coords)))
+      (t
+       (setq confkey (if use-torso :left-torso :larm))
+       (setq  ed-lst (list :larm :end-coords))))
+     (cons confkey ed-lst)))
+  (:collision-aware-ik
+   (cds &rest args &key (move-arm :larm) (use-torso) &allow-other-keys)
+   (let (ret confkey ed-lst
+         (env (send self :arm-planning-environment)))
+     (let ((r (send self :parse-end-coords move-arm use-torso)))
+       (setq confkey (car r))
+       (setq ed-lst (cdr r)))
+     (when env
+       (unless
+           (send env :get-ik-for-pose
+                 cds confkey :end-coords ed-lst)
+         (setq ret (send env :robot :angle-vector))
+         ))
+     ret))
+  (:angle-vector-make-trajectory
+   (av &rest args &key (move-arm :larm) (use-torso) &allow-other-keys)
+   (let (ret confkey ed-lst
+         (env (send self :arm-planning-environment)))
+     (let ((r (send self :parse-end-coords move-arm use-torso)))
+       (setq confkey (car r))
+       (setq ed-lst (cdr r)))
+     (when env
+       (send env :robot :angle-vector av)
+       (setq ret
+             (send* env :planning-make-trajectory
+                    cds confkey :end-coords ed-lst args)))
+     ret))
+  (:end-coords-make-trajectory
+   (cds &rest args &key (move-arm :larm) (use-torso) &allow-other-keys)
+   (let (ret confkey ed-lst
+         (env (send self :arm-planning-environment)))
+     (let ((r (send self :parse-end-coords move-arm use-torso)))
+       (setq confkey (car r))
+       (setq ed-lst (cdr r)))
+     (when env
+       (setq ret
+             (send* env :planning-make-trajectory-to-coords
+                    cds confkey :end-coords ed-lst args)))
+     ret))
+  (:angle-vector-motion-plan
+   (av &rest args &key (move-arm :larm) &allow-other-keys)
+   (let (traj)
+     (setq traj (send* self :angle-vector-make-trajectory av args))
+     (when traj
+       (send* self :joint-trajectory-to-angle-vector-list move-arm traj args)
+       )))
+  (:move-end-coords-plan
+   (coords &rest args &key (move-arm :larm) &allow-other-keys)
+   (let (traj)
+     (setq traj (send* self :end-coords-make-trajectory coords args))
+     (when traj
+       (send* self :joint-trajectory-to-angle-vector-list move-arm traj args)
+       )))
+  )
