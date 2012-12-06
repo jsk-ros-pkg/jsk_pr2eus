@@ -30,8 +30,9 @@
        (ros::ros-warn "SetJointState did not respond"))
      res))
   (:angle-vector-motion-plan
-   (av &key (move-arm :larm) (use-torso t)
-       ((:diff-sum diff-sum) 0) ((:diff-thre diff-thre) 50) ((:speed-scale speed-scale) 1.0))
+   (av &key (move-arm :larm) (use-torso t) (send-trajectory t)
+       ((:diff-sum diff-sum) 0) ((:diff-thre diff-thre) 50) ((:speed-scale speed-scale) 1.0)
+       &allow-other-keys)
    (let (coords joint-trajectory (av-rad av))
      (send robot :angle-vector av)
      (setq coords (send robot move-arm :end-coords :copy-worldcoords))
@@ -42,12 +43,18 @@
 		 av-rad
 		 (format nil "~A~A" (case move-arm (:larm "leftarm") (:rarm "rightarm")) (if use-torso "_torso" ""))
 		 ))
-     (send self :joint-trajectory-to-angle-vector-list move-arm joint-trajectory :diff-sum diff-sum :diff-thre diff-thre :speed-scale speed-scale)
+     (send self :joint-trajectory-to-angle-vector-list move-arm joint-trajectory
+           :diff-sum diff-sum :diff-thre diff-thre :speed-scale speed-scale
+           :send-trajectory send-trajectory)
      ))
   (:move-end-coords-plan
    (coords &key (move-arm :larm) (use-torso t) ((:lifetime lf) 20) (send-trajectory t)
-	   ((:diff-sum diff-sum) 0) ((:diff-thre diff-thre) 50) ((:speed-scale speed-scale) 1.0)
-	   (manip-name (if (derivedp (*ri* . robot) pr2-robot) (case move-arm (:larm "l_gripper_tool_frame") (:rarm "r_gripper_tool_frame")) "")))
+           ((:diff-sum diff-sum) 0) ((:diff-thre diff-thre) 50) ((:speed-scale speed-scale) 1.0)
+           (manip-name (if (derivedp (*ri* . robot) pr2-robot)
+                           (case move-arm
+                             (:larm "l_gripper_tool_frame")
+                             (:rarm "r_gripper_tool_frame")) ""))
+           &allow-other-keys)
    ;; for fast result view
    (send self :show-goal-hand-coords (send coords :copy-worldcoords) move-arm)
 
@@ -59,7 +66,9 @@
 		 manip-name
 ;;		 (case move-arm (:larm "l_gripper_tool_frame") (:rarm "r_gripper_tool_frame"))
 		 ))
-     (send self :joint-trajectory-to-angle-vector-list move-arm joint-trajectory :diff-sum diff-sum :diff-thre diff-thre :speed-scale speed-scale :send-trajectory send-trajectory)
+     (send self :joint-trajectory-to-angle-vector-list move-arm joint-trajectory
+           :diff-sum diff-sum :diff-thre diff-thre :speed-scale speed-scale
+           :send-trajectory send-trajectory)
      ))
   (:joint-trajectory-to-angle-vector-list
    (move-arm joint-trajectory
