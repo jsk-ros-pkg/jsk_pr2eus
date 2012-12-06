@@ -441,7 +441,7 @@
 ;;;;;
 ;;;;; utility functions pr2 robot
 ;;;;;
-(defun setup-for-pr2 (&optional (create-viewer))
+(defun pr2-init (&optional (create-viewer))
   ;; env
   (unless (boundp '*pr2*) (pr2))
   (unless (ros::ok) (ros::roseus "pr2_eus_interface"))
