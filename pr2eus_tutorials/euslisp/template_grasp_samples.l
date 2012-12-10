@@ -193,7 +193,7 @@
 
     ;;(setq *gp-res* gp-res)
     (setq max-grasps (length (send gp-res :grasps)))
-    (let ((world-z-offst (float-vector 0 0 51))
+    (let ((world-z-offset (float-vector 0 0 51))
           (local-endpos-offset
            (send (send *pr2* (case arm (:rarm :r_wrist_roll_link) (t :l_wrist_roll_link)))
                  :transformation (send *pr2* arm :end-coords))))
@@ -203,35 +203,34 @@
                           (send cds :translate world-z-offset :world) ;; /base_link -> /base_footprint
                           (send cds :transform local-endpos-offset) ;; wrist_roll_link -> end-coords
                           cds)) (send gp-res :grasps))))
-
     ;; show grasps
-    (while show-all-grasps
+    (when show-all-grasps
       (dolist (grasp-cds grasp-cds-lst)
+	;;(print (list 'debug02-before grasp-cds grasp-cds-lst))
         (unix::usleep (* 30 1000))
         (send *ri* :show-goal-hand-coords grasp-cds arm)
-        (when nil
-          (print (list 'handdirection (v. (send (send grasp-cds :worldcoords) :x-axis)
-                                          (float-vector 0 0 -1))))
-          (print (list 'zpos (elt (send grasp-cds :pos) 2)))
-          (print (list 'tablezpos (* (send od-res :detection :table
-                                           :pose :pose :position :z) 1000)))
-          (read-line)
-          )
+        ;; (when nil
+        ;;   (print (list 'handdirection (v. (send (send grasp-cds :worldcoords) :x-axis)
+        ;;                                   (float-vector 0 0 -1))))
+        ;;   (print (list 'zpos (elt (send grasp-cds :pos) 2)))
+        ;;   (print (list 'tablezpos (* (send od-res :detection :table
+        ;;                                    :pose :pose :position :z) 1000)))
+        ;;   (read-line)
+        ;;   )
         ))
-
     (setq counter 0)
     (dolist (grasp-cds grasp-cds-lst)
       (let (orres
-            (pre-grasp-cds ;; offset
+            (pre-grasp-cds;; offset
              (let ((c (send grasp-cds :copy-worldcoords)))
-               (send c :translate (float-vector -75 0 0)) c)) ;; approach offset
+               (send c :translate (float-vector -75 0 0)) c));; approach offset
             hand-coords-result
             hand-coords)
-        #|(print (list 'handdirection (v. (send (send grasp-cds :worldcoords) :x-axis)
+        (print (list 'handdirection (v. (send (send grasp-cds :worldcoords) :x-axis)
                                         (float-vector 0 0 -1))))
         (print (list 'zpos (elt (send grasp-cds :pos) 2)))
         (print (list 'tablezpos (* (send od-res :detection :table
-                                         :pose :pose :position :z) 1000)))|#
+                                         :pose :pose :position :z) 1000)))
 
         (setq hand-coords-result (send *ri* :show-goal-hand-coords grasp-cds arm))
         ;; temporary
@@ -261,13 +260,13 @@
                   (send *pr2* arm :inverse-kinematics
                         (send (send grasp-cds :copy-worldcoords)
                               :translate (float-vector
-                                          (* (+
+                                          #|(* (+
                                               (send (elt (send gp-res :grasps) counter)
                                                     :desired_approach_distance)
                                               (send (elt (send gp-res :grasps) counter)
                                                    :min_approach_distance))
-                                             0.5 1000)
-                                          0 0)
+                                             0.5 1000)|#
+                                          0 0 0)
                               :local) :rotation-axis t))
 
             (ros::ros-info "eusres: ~A" eusres)
@@ -518,6 +517,7 @@ to	 (arm-id-raw (send msg :action :arm_id))
     (send mrk :header :stamp (ros::time-now))
     (send mrk :type image_view2::ImageMarker2::*LINE_STRIP3D*)
     (send mrk :points3D :header :frame_id "base_link")
+;;    (send mrk :points3D :header :frame_id "base_footprint")
     (send mrk :lifetime (ros::Time lifetime))
     (send mrk :id counter)
     (dolist (cds cds-list)
