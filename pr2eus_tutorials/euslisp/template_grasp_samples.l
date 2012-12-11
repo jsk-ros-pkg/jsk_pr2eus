@@ -206,7 +206,6 @@
     ;; show grasps
     (when show-all-grasps
       (dolist (grasp-cds grasp-cds-lst)
-	;;(print (list 'debug02-before grasp-cds grasp-cds-lst))
         (unix::usleep (* 30 1000))
         (send *ri* :show-goal-hand-coords grasp-cds arm)
         ;; (when nil
@@ -223,7 +222,14 @@
       (let (orres
             (pre-grasp-cds;; offset
              (let ((c (send grasp-cds :copy-worldcoords)))
-               (send c :translate (float-vector -75 0 0)) c));; approach offset
+               (send c :translate (float-vector
+                                   (* (+
+                                       (send (elt (send gp-res :grasps) counter)
+                                             :desired_approach_distance)
+                                       (send (elt (send gp-res :grasps) counter)
+                                             :min_approach_distance))
+                                      -0.5 1000)
+                                   0 0)) c)) ;; approach offset
             hand-coords-result
             hand-coords)
         (print (list 'handdirection (v. (send (send grasp-cds :worldcoords) :x-axis)
@@ -236,7 +242,9 @@
         ;; temporary
         (setq hand-coords (cadr hand-coords-result))
         (visualize-object-image-from-coords
-         (list (elt hand-coords 4) (elt hand-coords 2) (elt hand-coords 0) (elt hand-coords 1) (elt hand-coords 3)) :counter 601 :lifetime 10 :ns "hand")
+         (list (elt hand-coords 4) (elt hand-coords 2)
+               (elt hand-coords 0) (elt hand-coords 1) (elt hand-coords 3))
+         :counter 601 :lifetime 10 :ns "hand")
         (when (and
                ;; hand direction should be downword
                (>= (v. (send (send grasp-cds :worldcoords) :x-axis)
@@ -257,17 +265,8 @@
           (let (eusres)
             (send *pr2* :angle-vector (car (last (elt orres 0))))
             (setq eusres
-                  (send *pr2* arm :inverse-kinematics
-                        (send (send grasp-cds :copy-worldcoords)
-                              :translate (float-vector
-                                          #|(* (+
-                                              (send (elt (send gp-res :grasps) counter)
-                                                    :desired_approach_distance)
-                                              (send (elt (send gp-res :grasps) counter)
-                                                   :min_approach_distance))
-                                             0.5 1000)|#
-                                          0 0 0)
-                              :local) :rotation-axis t))
+                  (send *pr2* arm :inverse-kinematics grasp-cds
+                        :rotation-axis t))
 
             (ros::ros-info "eusres: ~A" eusres)
             (when eusres
