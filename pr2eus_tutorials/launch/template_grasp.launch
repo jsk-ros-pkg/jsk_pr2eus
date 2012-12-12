@@ -2,12 +2,19 @@
   <arg name="kinect_camera_name" default="openni" />
   <arg name="launch_object_manipulation" default="false" />
   <arg name="launch_realtime_tabletop" default="true" />
+  <arg name="launch_objectdetection" default="false" />
+
   <include file="$(find pr2_machine)/$(env ROBOT).machine" />
 
   <node if="$(arg launch_realtime_tabletop)"
         name="realtime_tabletop_default" pkg="pr2eus_tutorials"
         type="realtime_tabletop.l" output="screen" respawn="false">
   </node>
+
+  <node if="$(arg launch_objectdetection)"
+        pkg="roseus" type="roseus" name="eus_tabletop_detector"
+        output="screen"
+        args="&quot;$(find roseus_tutorials)/src/tabletop-object-detector.l&quot;" />
 
   <!-- client for object database running on remote server at Willow Garage -->
   <!-- DOES NOT WORK IN TRUNK RIGHT NOW -->
