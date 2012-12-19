@@ -48,15 +48,18 @@
 (objects (list *pr2* *ar*))
 (send *irtviewer* :draw-objects)
 
-(defun proc-detection (&optional 100)
-  (setq *cds* nil)
-  (ros::rate 10)
-  (while t
-    (ros::spin-once)
-    (when *cds*
-      (return-from proc-detection *cds*))
-    (ros::sleep))
-  )
+(defun proc-detection (&optional (max-count 100))
+  (let ((counter 0))
+    (setq *cds* nil)
+    (ros::rate 10)
+    (while t
+      (ros::spin-once)
+      (when *cds*
+        (return-from proc-detection *cds*))
+      (if (> counter max-count) (return-from proc-detection))
+      (incf counter)
+      (ros::sleep))
+    ))
 
 #|
 ;;
