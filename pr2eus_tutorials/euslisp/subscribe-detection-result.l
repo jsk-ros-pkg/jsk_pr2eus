@@ -21,7 +21,7 @@
   (let (frame-id (obj (car (send msg :objects))))
     (describe obj)
     (when (and obj
-               (string= type (send obj: type)))
+               (string= type (send obj :type)))
       (let ((fid (send msg :header :frame_id)))
         (if (and fid
                  (/= (elt fid 0) #\/))
@@ -37,7 +37,7 @@
     ))
 
 (ros::subscribe "ObjectDetection" posedetection_msgs::ObjectDetection
-                #'objectdetection-cb *type-name*)
+                #'objectdetection-cb *typename*)
 
 (pr2)
 (if (not (boundp '*irtviewer*)) (make-irtviewer))
