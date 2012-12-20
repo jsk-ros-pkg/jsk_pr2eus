@@ -16,6 +16,9 @@
 ;; transform listener
 (setq *tfl* (instance ros::transform-listener :init))
 
+;;
+;; object detection result subscribe
+;;
 (setq *cds* nil)
 (defun objectdetection-cb (type msg)
   (let (frame-id (obj (car (send msg :objects))))
@@ -39,15 +42,6 @@
 (ros::subscribe "ObjectDetection" posedetection_msgs::ObjectDetection
                 #'objectdetection-cb *typename*)
 
-(pr2)
-(if (not (boundp '*irtviewer*)) (make-irtviewer))
-(setq *ri* (instance pr2-interface :init))
-;;(send *pr2* :reset-pose)
-;;ボードの座標
-(send *pr2* :angle-vector (send *ri* :state :potentio-vector))
-(objects (list *pr2* *ar*))
-(send *irtviewer* :draw-objects)
-
 (defun proc-detection (&optional (max-count 100))
   (let ((counter 0))
     (setq *cds* nil)
@@ -60,6 +54,45 @@
       (incf counter)
       (ros::sleep))
     ))
+
+;;
+;; point cloud subscribe
+;;
+(setq *points* nil)
+(defun callback-points ( msg )
+  (setq *points*
+        (make-eus-pointcloud-from-ros-msg
+         msg :remove-nan t)) ;; for replace -> :remove-nan :replace
+  (if (and *points* (> (send *points* :size) 0))
+      (setf (get *points* :header) (send msg :header))
+    (setq *points* nil))
+  *points*)
+
+(ros::subscribe "/openni/depth_registered/points"
+                sensor_msgs::PointCloud2
+                #'callback-points)
+
+(defun proc-points (&optional (max-count 20))
+  (let ((counter 0))
+    (setq *points* nil)
+    (ros::rate 10)
+    (while t
+      (ros::spin-once)
+      (when *points*
+        (return-from proc-points *points*))
+      (if (> counter max-count) (return-from detect-points))
+      (incf counter)
+      (ros::sleep))
+    ))
+
+(pr2)
+(if (not (boundp '*irtviewer*)) (make-irtviewer))
+(setq *ri* (instance pr2-interface :init))
+;;(send *pr2* :reset-pose)
+;;ボードの座標
+(send *pr2* :angle-vector (send *ri* :state :potentio-vector))
+(objects (list *pr2* *ar*))
+(send *irtviewer* :draw-objects)
 
 #|
 ;;
