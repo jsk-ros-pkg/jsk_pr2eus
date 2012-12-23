@@ -206,7 +206,8 @@
      (send self :wait-interpolation)))
   (:cancel-angle-vector
    (&key ((:controller-actions ca) controller-actions)
-         ((:controller-type ct) controller-type))
+         ((:controller-type ct) controller-type)
+         (wait))
    (send-all ca :cancel-all-goals)
    (when wait
      (send self :wait-interpolation)
