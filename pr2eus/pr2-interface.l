@@ -94,11 +94,17 @@
    ()
    (unless joint-action-enable (return-from :wait-interpolation nil))
    (let (result)
-	 (setq result (send-all controller-actions :wait-for-result))
+     (ros::ros-info "wait-interpolation debug: start")
+   ;;  (setq result (send-all controller-actions :wait-for-result))
+     (dolist (ca controller-actions)
+       (print ca)
+       (push (send ca :wait-for-result) result))
+     (ros::ros-info "wait-interpolation debug: end")
+     (setq result (reverse result))
 	 (while (ros::ok)
 	   (send self :update-robot-state)
 	   (when (every #'(lambda(x)(< (abs (send x :joint-velocity))
-								   (if (derivedp x rotational-joint) 0.05 0.001)))
+				       (if (derivedp x rotational-joint) 0.05 0.001)))
 			  (send robot :joint-list))
 		 (return)))
 	 result))
@@ -395,6 +401,8 @@
          (setq x (elt v 0)
                y (elt v 1)
                d (rad2deg (elt diff-position 2)))
+         (if (> d (* 360 0.8)) (setq d (- d 360)))
+         (if (< d (* -360 0.8)) (setq d (+ d 360)))
          (ros::ros-info "                diff-pos ~A ~A, diff-angle ~A" x y d)
          ) ;; let
        ) ;; dotimes
@@ -422,10 +430,10 @@
 	 (send pt2 :velocities (float-vector 0 0 0)) ;; To stop just
        (send pt2 :velocities (rotate-vector (float-vector x y d) odom-angle :z)))
 
-     (ros::ros-info "move-trajectory (x y d msec) = (~A ~A ~A ~A)" (* sec x) (* sec y) (* sec d) msec)
-     (ros::ros-info "                odom-pos ~A, odom-angle ~A" odom-pos odom-angle)
-     (ros::ros-info "                pt1 ~A" (send pt1 :positions))
-     (ros::ros-info "                pt2 ~A" (send pt2 :positions))
+     (ros::ros-debug "move-trajectory (x y d msec) = (~A ~A ~A ~A)" (* sec x) (* sec y) (* sec d) msec)
+     (ros::ros-debug "                odom-pos ~A, odom-angle ~A" odom-pos odom-angle)
+     (ros::ros-debug "                pt1 ~A" (send pt1 :positions))
+     (ros::ros-debug "                pt2 ~A" (send pt2 :positions))
      ;;
      (send msg :header :stamp (ros::time-now))
      (send msg :joint_names (list "base_link_x" "base_link_y" "base_link_pan"))
