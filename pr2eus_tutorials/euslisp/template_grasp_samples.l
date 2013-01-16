@@ -59,6 +59,10 @@
 		r))
 	  pc-list))
 
+;;; Function calls tabletop object detection service. Results of
+;;; object detection service (segmentation) and collision map (for
+;;; grasp and path planning) are placed in global variables *od-res*
+;;; and *cp-res* respectively.
 (defun template-grasp-get-data()
   (let* ((odsrv-name "/object_detection")
 	 (cpsrv-name "/tabletop_collision_map_processing/tabletop_collision_map_processing")
@@ -170,6 +174,9 @@
     (ros::ros-info "Calling the place action")
     ))
 
+;;; Given index of object to be picked, pickup plan is created and
+;;; executed. Plan consist of deciding correct grasp for the object
+;;; and then creating a path for the arm using OpenRave.
 (defun template-grasp-get-object-openrave
   (grasp-target-num &key (arm :rarm) (show-all-grasps nil)
                     (od-res *od-res*) (cp-res *cp-res*) (use-select t))
@@ -182,7 +189,7 @@
     (send gp-req :target :cluster (elt (send od-res :detection :clusters) grasp-target-num))
     (send gp-req :target :region :roi_box_pose (send od-res :detection :table :pose))
 
-    ;;(send gp-req :target grasp-target)
+    ;; Call Grasp planner service and handle possible errors.
     (if (check-service-response gpsrv-name)
         (setq gp-res (ros::service-call gpsrv-name gp-req)))
     (unless (= (send gp-res :error_code :value)
@@ -191,7 +198,8 @@
                               (send gp-res :error_code :value)))
       (return-from template-grasp-get-object-openrave nil))
 
-    ;;(setq *gp-res* gp-res)
+    ;; Transform and translate coordinates of the grasps to be
+    ;; compatible with OpenRave.
     (setq max-grasps (length (send gp-res :grasps)))
     (let ((world-z-offset (float-vector 0 0 51))
           (local-endpos-offset
@@ -207,16 +215,8 @@
     (when show-all-grasps
       (dolist (grasp-cds grasp-cds-lst)
         (unix::usleep (* 30 1000))
-        (send *ri* :show-goal-hand-coords grasp-cds arm)
-        ;; (when nil
-        ;;   (print (list 'handdirection (v. (send (send grasp-cds :worldcoords) :x-axis)
-        ;;                                   (float-vector 0 0 -1))))
-        ;;   (print (list 'zpos (elt (send grasp-cds :pos) 2)))
-        ;;   (print (list 'tablezpos (* (send od-res :detection :table
-        ;;                                    :pose :pose :position :z) 1000)))
-        ;;   (read-line)
-        ;;   )
-        ))
+        (send *ri* :show-goal-hand-coords grasp-cds arm)))
+
     (setq counter 0)
     (dolist (grasp-cds grasp-cds-lst)
       (let (orres
@@ -623,8 +623,13 @@ to	 (arm-id-raw (send msg :action :arm_id))
   (send *ri* :stop-grasp)
  )
 
+;;; This function executes the whole process of picking up the
+;;; object. Given arguments are X and Y coordinates of tablet screen
+;;; and possible openRave usage boolean. XY-value are matched to
+;;; XYZ-point in real world and the closest object from there is
+;;; picked up with the correct grasp. Grasp selection is done interactively in tablet.
 (defun PickObjectExecute (x y arm &key (use-openrave t))
-  (let* ((c (screenpoint-srvcall x y)) cpos target-num)
+  (let* ((c (screenpoint-srvcall x y)) cpos target-num) ; c = XYZ point in real world
     (if (null c) (return-from PickObjectExecute nil))
     (setq cpos (send (send c :copy-worldcoords) :pos))
     (if use-openrave
