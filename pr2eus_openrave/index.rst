@@ -155,7 +155,7 @@ Contents
     <include file="$(find pr2eus_openrave)/launch/pr2_openrave_simulation.launch">
       <arg name="COLLISION_MAP_WAIT_TIME" value="20" />
     </include>
-    <node args="--sync -d $(find pr2eus_openrave)/test/test_pr2eus_openrave.vcg" launch-prefix="glc-capture --start --out=$(find pr2eus_openrave)/build/rviz_pr2_openrave.glc" name="rviz_pr2_openrave" pkg="rviz" type="rviz" />
+    <node args="-sync -d $(find pr2eus_openrave)/test/test_pr2eus_openrave.vcg" launch-prefix="glc-capture --start --out=$(find pr2eus_openrave)/build/rviz_pr2_openrave.glc" name="rviz_pr2_openrave" pkg="rviz" type="rviz" />
   
     <test args="$(find pr2eus_openrave)/test/pr2_openrave_simulation.l" name="pr2eus_openrave_eus" pkg="roseus" test-name="pr2_openrave_simulation" time-limit="3000" type="roseus" />
     
