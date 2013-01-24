@@ -3,7 +3,7 @@
     <arg name="COLLISION_MAP_WAIT_TIME" value="20"/>
   </include>
   <node type="rviz" pkg="rviz" name="rviz_pr2_openrave"
-  	args="--sync -d $(find pr2eus_openrave)/test/test_pr2eus_openrave.vcg"
+  	args="-sync -d $(find pr2eus_openrave)/test/test_pr2eus_openrave.vcg"
   	launch-prefix='glc-capture --start --out=$(find pr2eus_openrave)/build/rviz_pr2_openrave.glc' />
 
   <sphinxdoc><![CDATA[
