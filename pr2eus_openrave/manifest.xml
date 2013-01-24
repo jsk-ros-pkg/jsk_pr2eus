@@ -13,8 +13,10 @@
     <rosdoc config="rosdoc.yaml" />
   </export>
 
+
   <depend package="pr2eus"/>
 
+  <depend package="topic_tools"/>
   <depend package="orrosplanning"/>
   <depend package="robot_state_publisher"/>
 
