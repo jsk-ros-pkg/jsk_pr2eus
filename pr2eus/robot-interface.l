@@ -233,7 +233,7 @@
 	      (key (intern (string-upcase ctrl) *keyword-package*))
 	      (msg (send self :state key))
 	      jn jangle jpos j)
-	 (print msg)
+         ;; (print msg)
 	 (if (not msg)
 	     (return-from :state-vector nil))
 	 (dotimes (idx (length (send msg :joint_names)))
