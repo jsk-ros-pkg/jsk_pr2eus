@@ -336,15 +336,14 @@
 	     (coerce efforts cons))))
   (:state
    (&rest args)
+   (send self :update-robot-state)
    (case (car args)
      ((:angle-vector nil)
       (ros::ros-warn "please use :state :potentio-vector~%")
       (send self :state :potentio-vector))
      (:potentio-vector
-      (send self :update-robot-state)
       (send robot :angle-vector))
      (:torque-vector
-      (send self :update-robot-state)
       (send robot :torque-vector))
      (:worldcoords
       (send *tfl* :lookup-transform (or (cadr args) "/map") "/base_footprint" (ros::time)))
