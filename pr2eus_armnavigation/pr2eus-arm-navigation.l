@@ -95,6 +95,11 @@
                  (send self :default-configuration)))
    self)
   (:robot (&rest args) (forward-message-to robot args))
+  (:copy-robot-state (rb)
+   (send robot :reset-coords)
+   (send robot :transform (send rb :worldcoords))
+   (send robot :angle-vector (send rb :angle-vector))
+   robot)
   (:default-configuration ()
    (list (list :rarm
                (cons :group-name "right_arm")
@@ -354,28 +359,33 @@
           (send wcds :worldcoords))))
 
 (defmethod robot-interface
-  (:arm-planning-environment
+  (:set-planning-environment
    (&optional ap-env)
    (when ap-env
      (setf (get self :arm-planning-environment) ap-env)
      ;;(setq (ap-env . robot) robot)
      )
    (get self :arm-planning-environment))
+  (:planning-environment
+   (&rest args)
+   (let ((env (get self :arm-planning-environment)))
+     (when env
+       (send* env args))))
   (:parse-end-coords
    (arm use-torso)
    (let (confkey ed-lst)
      (cond
       ((eq arm :rarm)
-       (setq confkey (if use-torso :right-torso :rarm))
+       (setq confkey (if use-torso :rarm-torso :rarm))
        (setq  ed-lst (list :rarm :end-coords)))
       (t
-       (setq confkey (if use-torso :left-torso :larm))
+       (setq confkey (if use-torso :larm-torso :larm))
        (setq  ed-lst (list :larm :end-coords))))
      (cons confkey ed-lst)))
   (:collision-aware-ik
    (cds &rest args &key (move-arm :larm) (use-torso) &allow-other-keys)
    (let (ret confkey ed-lst
-         (env (send self :arm-planning-environment)))
+         (env (send self :set-planning-environment)))
      (let ((r (send self :parse-end-coords move-arm use-torso)))
        (setq confkey (car r))
        (setq ed-lst (cdr r)))
@@ -389,7 +399,7 @@
   (:angle-vector-make-trajectory
    (av &rest args &key (move-arm :larm) (use-torso) &allow-other-keys)
    (let (ret confkey ed-lst
-         (env (send self :arm-planning-environment)))
+         (env (send self :set-planning-environment)))
      (let ((r (send self :parse-end-coords move-arm use-torso)))
        (setq confkey (car r))
        (setq ed-lst (cdr r)))
@@ -402,7 +412,7 @@
   (:end-coords-make-trajectory
    (cds &rest args &key (move-arm :larm) (use-torso) &allow-other-keys)
    (let (ret confkey ed-lst
-         (env (send self :arm-planning-environment)))
+         (env (send self :set-planning-environment)))
      (let ((r (send self :parse-end-coords move-arm use-torso)))
        (setq confkey (car r))
        (setq ed-lst (cdr r)))
