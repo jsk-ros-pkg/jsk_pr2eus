@@ -250,8 +250,8 @@
 	     (send robot :l_gripper_joint :joint-angle)
 	     (send robot :r_gripper_joint :joint-angle)))))
   (:stop-grasp
-   (&optional (arm :arms))
-   (send self :move-gripper arm 0.09 :wait nil)
+   (&optional (arm :arms) &key (wait nil))
+   (send self :move-gripper arm 0.09 :wait wait)
    (unless joint-action-enable
      (dolist (a (if (eq arm :arms) '(:larm :rarm) (list arm)))
        (dolist (obj (send robot a :end-coords :descendants))
