@@ -101,8 +101,9 @@
     (setq *od-res* od-res)
     (setq *cp-res* cp-res)
     ))
-
-(defun template-grasp-get-object ;; no more support on arm_planning
+#|
+;; no more support on arm_planning
+(defun template-grasp-get-object
   (grasp-target-num &key (arm :rarm) (od-res *od-res*) (cp-res *cp-res*))
   (let* ((grasp-target (elt (send cp-res :graspable_objects) grasp-target-num))
 	 (co-name (elt (send cp-res :collision_object_names) grasp-target-num))
@@ -173,6 +174,7 @@
     (send head-goal :target :point (send pickup-location :pose :position))
     (ros::ros-info "Calling the place action")
     ))
+|#
 
 ;;; Given index of object to be picked, pickup plan is created and
 ;;; executed. Plan consist of deciding correct grasp for the object

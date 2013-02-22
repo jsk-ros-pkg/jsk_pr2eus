@@ -7,9 +7,9 @@
 ;; roseus arm-navigation-sample.l
 ;;
 (load "package://pr2eus_tutorials/euslisp/pr2main.l")
+(load "package://pr2eus_openrave/pr2eus-openrave.l");;
 (load "package://pr2eus_armnavigation/pr2eus-arm-navigation.l")
 (load "package://pr2eus_armnavigation/collision-object-publisher.l")
-(load "package://pr2eus_openrave/pr2eus-openrave.l")
 
 ;; for using torso setting
 (defclass pr2torso_arm_planning_environment
@@ -31,14 +31,14 @@
                (cons :ik-service-name "/pr2_left_arm_kinematics/get_constraint_aware_ik")
                (cons :joint-list (send robot :larm :joint-list))
                )
-         (list :right-torso ;; add for torso
+         (list :rarm-torso ;; add for torso
                (cons :group-name "right_torso")
                (cons :action-name "/move_right_torso")
                (cons :target-link-name "r_wrist_roll_link")
                (cons :ik-service-name "/pr2_right_torso_kinematics/get_constraint_aware_ik")
                (cons :joint-list (append (send robot :rarm :joint-list) (send robot :torso :joint-list)))
                )
-         (list :left-torso ;; add for torso
+         (list :larm-torso ;; add for torso
                (cons :group-name "left_torso")
                (cons :action-name "/move_left_torso")
                (cons :target-link-name "l_wrist_roll_link")
