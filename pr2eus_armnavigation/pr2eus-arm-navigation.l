@@ -261,18 +261,19 @@
    (cds confkey &key (use-actual-seed t) (retry t) (get-scene t)
         (end-coords) ;; (list :rarm :end-coords)
         (frame-id default-frame-id) (timeout 2.0) &allow-other-keys)
-   (when get-scene (send self :get-planning-scene))
+   (let ((tgt-cds (send cds :copy-worldcoords)))
+     (when get-scene (send self :get-planning-scene))
 
-   (when end-coords ;; cds is target coords of end-coords
-     (let ((rcds (send self :get-robot-coords confkey)))
-       (setq cds (send cds :copy-worldcoords))
-       (send cds :transform
-             (send (send (send* robot end-coords) :worldcoords)
-                   :transformation rcds))))
+     (when end-coords ;; cds is target coords of end-coords
+       (let ((rcds (send self :get-robot-coords confkey)))
+         (send tgt-cds :transform
+               (send (send (send* robot end-coords) :worldcoords)
+                     :transformation rcds))))
 
-   (setq cds (send self :worldcoords->default-frame-relative cds))
-
-   (let* ((msg (ros::coords->tf-pose-stamped cds frame-id))
+   (setq tgt-cds (send self :worldcoords->default-frame-relative tgt-cds))
+   (pprint (list :end-coords end-coords))
+   (pprint (list :get-ik-for-pose tgt-cds))
+   (let* ((msg (ros::coords->tf-pose-stamped tgt-cds frame-id))
           (ret (send self :get-ik-for-pose-single msg confkey
                      :use-actual-seed use-actual-seed
                      :timeout timeout)))
@@ -288,6 +289,7 @@
                       (elt *arm-navigation-error-code-list* (- (send ret :error_code :val))))
        (if retry
            (send self :get-ik-for-pose cds confkey
+                 :end-coords end-coords :frame-id frame-id :get-scene get-scene
                  :retry nil :use-actual-seed (if use-actual-seed nil t)
                  :timeout timeout)
          (send ret :error_code :val)))
@@ -370,7 +372,7 @@
    (&rest args)
    (let ((env (get self :arm-planning-environment)))
      (when env
-       (send* env args))))
+       (forward-message-to env args))))
   (:parse-end-coords
    (arm use-torso)
    (let (confkey ed-lst)
