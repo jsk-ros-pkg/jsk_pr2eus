@@ -292,8 +292,9 @@
                  :end-coords end-coords :frame-id frame-id :get-scene get-scene
                  :retry nil :use-actual-seed (if use-actual-seed nil t)
                  :timeout timeout)
-         (send ret :error_code :val)))
-      )))
+         (send ret :error_code :val))
+       ));;/cond
+     )))
   (:planning-make-trajectory
    (confkey &key (angle-vector) (get-scene t) (use-scene t) (planning-time 5.0)
             (filter-time 4.0) (wait t) &allow-other-keys)
