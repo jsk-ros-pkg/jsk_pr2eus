@@ -74,7 +74,7 @@
    (move-arm joint-trajectory
              &key ((:diff-sum diff-sum) 0) ((:diff-thre diff-thre) 50)
              (show-trajectory t) (send-trajectory t)
-             ((:speed-scale speed-scale) 1.0))
+             ((:speed-scale speed-scale) 1.0) &allow-other-keys)
    (let* (joint-trajectory-points
           joints avs tms  (tm (ros::time -1)) link-coords-list
           (org-av (send robot :angle-vector))

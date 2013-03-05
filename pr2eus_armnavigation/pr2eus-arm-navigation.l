@@ -271,8 +271,7 @@
                      :transformation rcds))))
 
    (setq tgt-cds (send self :worldcoords->default-frame-relative tgt-cds))
-   (pprint (list :end-coords end-coords))
-   (pprint (list :get-ik-for-pose tgt-cds))
+
    (let* ((msg (ros::coords->tf-pose-stamped tgt-cds frame-id))
           (ret (send self :get-ik-for-pose-single msg confkey
                      :use-actual-seed use-actual-seed
@@ -296,11 +295,11 @@
        ));;/cond
      )))
   (:planning-make-trajectory
-   (confkey &key (angle-vector) (get-scene t) (use-scene t) (planning-time 5.0)
+   (confkey &key (set-angle-vector) (get-scene t) (use-scene t) (planning-time 5.0)
             (filter-time 4.0) (wait t) &allow-other-keys)
    (let (ret scene)
+     (if set-angle-vector (send robot :angle-vector set-angle-vector))
      (when get-scene (setq scene (send self :get-planning-scene)))
-     (if angle-vector (send robot :angle-vector angle-vector))
      (setq ret
            (send self :motion-plan confkey
                  :planning_time planning-time :filter_time filter-time
@@ -326,11 +325,11 @@
            :use-scene use-scene :wait wait :get-scene get-scene)
      ))
   (:planning-move-arm
-   (confkey &key (angle-vector) (get-scene t) (planning-time 5.0) (wait t)
+   (confkey &key (set-angle-vector) (get-scene t) (planning-time 5.0) (wait t)
             &allow-other-keys)
    (let (ret)
+     (if set-angle-vector (send robot :angle-vector set-angle-vector))
      (when get-scene (send self :get-planning-scene))
-     (if angle-vector (send robot :angle-vector angle-vector))
      (setq ret
            (send self :move-arm-to-goal confkey :planning_time planning-time :wait-result wait))
      (if ret (setq ret (send ret :get-result)))
@@ -407,10 +406,10 @@
        (setq confkey (car r))
        (setq ed-lst (cdr r)))
      (when env
-       (send env :robot :angle-vector av)
+       (send robot :angle-vector av)
        (setq ret
              (send* env :planning-make-trajectory
-                    cds confkey :end-coords ed-lst args)))
+                    confkey :end-coords ed-lst args)))
      ret))
   (:end-coords-make-trajectory
    (cds &rest args &key (move-arm :larm) (use-torso) &allow-other-keys)
