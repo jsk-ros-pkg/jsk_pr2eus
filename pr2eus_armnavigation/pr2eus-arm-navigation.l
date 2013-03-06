@@ -190,12 +190,18 @@
                       (let ((val (send res :error_code :val)))
                         (cond
                          ((> val 0) (setq ret nil) "Succeeded")
+                         ((= val 0) "service Aborted ??")
                          (t (elt *arm-navigation-error-code-list* (- val)))))))
      (if ret (return-from :motion-plan res))
 
      ;;filter
      (unless scene
        (setq scene (send self :get-planning-scene)))
+     ;; Are blew lines needed ???
+     (let ((hdr_traj (send res :trajectory :joint_trajectory :header))
+           (hdr_scene (send scene :planning_scene :robot_state :joint_state :header)))
+       (send hdr_traj :stamp (send hdr_scene :stamp)))
+
      (let ((req (instance arm_navigation_msgs::FilterJointTrajectoryWithConstraintsRequest :init
                           :group_name group_name
                           :start_state (send scene :planning_scene :robot_state)
@@ -208,8 +214,11 @@
                         (let ((val (send res :error_code :val)))
                           (cond
                            ((> val 0) "Succeeded")
-                           (t (elt *arm-navigation-error-code-list* (- val))))))))
-
+                           ((= val 0) (setf (get res :original-trajectory)
+                                            (send req :trajectory))
+                            "service Aborted ??")
+                           (t (elt *arm-navigation-error-code-list* (- val))))
+                        ))))
      res))
   (:move-arm-to-goal
    (confkey &key (tolerance_below 0.08) (tolerance_above 0.08)
@@ -306,8 +315,11 @@
                  :wait-result wait :scene (if use-scene scene)))
      (cond
       ((derivedp ret arm_navigation_msgs::FilterJointTrajectoryWithConstraintsResponse)
-       (if (> (send ret :error_code :val) 0)
-           (send ret :trajectory)))
+       (cond
+        ((> (send ret :error_code :val) 0)
+         (send ret :trajectory))
+        ((= (send ret :error_code :val) 0)
+         (get ret :original-trajectory))))
       (t
        nil))
      ))
@@ -406,10 +418,9 @@
        (setq confkey (car r))
        (setq ed-lst (cdr r)))
      (when env
-       (send robot :angle-vector av)
        (setq ret
              (send* env :planning-make-trajectory
-                    confkey :end-coords ed-lst args)))
+                    confkey :set-angle-vector av :end-coords ed-lst args)))
      ret))
   (:end-coords-make-trajectory
    (cds &rest args &key (move-arm :larm) (use-torso) &allow-other-keys)
@@ -424,17 +435,40 @@
                     cds confkey :end-coords ed-lst args)))
      ret))
   (:angle-vector-motion-plan
-   (av &rest args &key (move-arm :larm) &allow-other-keys)
+   (av &rest args &key (move-arm :larm) (reset-total-time 5000.0) &allow-other-keys)
    (let (traj)
      (setq traj (send* self :angle-vector-make-trajectory av args))
      (when traj
+       (when (< (send (send (car (last (send traj :points))) :time_from_start) :to-sec) 0.001)
+         (unless reset-total-time
+           (ros::ros-error "Trajectory has very short duration")
+           (return-from :angle-vector-motion-plan nil))
+         (ros::ros-warn "reset Trajectory Total time")
+         (setq traj (send self :trajectory-filter traj :total-time reset-total-time)))
        (send* self :joint-trajectory-to-angle-vector-list move-arm traj args)
        )))
   (:move-end-coords-plan
-   (coords &rest args &key (move-arm :larm) &allow-other-keys)
+   (coords &rest args &key (move-arm :larm) (reset-total-time 5000.0) &allow-other-keys)
    (let (traj)
      (setq traj (send* self :end-coords-make-trajectory coords args))
      (when traj
+       (when (< (send (send (car (last (send traj :points))) :time_from_start) :to-sec) 0.001)
+         (unless reset-total-time
+           (ros::ros-error "Trajectory has very short duration")
+           (return-from :angle-vector-motion-plan nil))
+         (ros::ros-warn "reset Trajectory Total time")
+         (setq traj (send self :trajectory-filter traj :total-time reset-total-time)))
        (send* self :joint-trajectory-to-angle-vector-list move-arm traj args)
        )))
+  (:trajectory-filter
+   (traj &key (copy) (total-time 5000.0))
+   (when copy
+     (setq traj (copy-object traj)))
+   (let* ((points (send traj :points))
+          (size (length points))
+          (time-step (/ 1 (float (1- size))))
+          (cntr 0))
+     (dolist (pt points)
+       (send pt :time_from_start (ros::time (* (/ total-time 1000) time-step))))
+     traj))
   )
