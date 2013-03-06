@@ -461,7 +461,11 @@
        (send* self :joint-trajectory-to-angle-vector-list move-arm traj args)
        )))
   (:trajectory-filter
-   (traj &key (copy) (total-time 5000.0))
+   (traj &key (copy) (total-time 5000.0) (minimum-time 0.001))
+   (when (and minimum-time
+              (> (send (send (car (last (send traj :points))) :time_from_start) :to-sec)
+                 minimum-time))
+     (return-from :trajectory-filter traj))
    (when copy
      (setq traj (copy-object traj)))
    (let* ((points (send traj :points))
@@ -469,6 +473,7 @@
           (time-step (/ 1 (float (1- size))))
           (cntr 0))
      (dolist (pt points)
-       (send pt :time_from_start (ros::time (* (/ total-time 1000) time-step))))
+       (send pt :time_from_start (ros::time (* (/ total-time 1000) cntr time-step)))
+       (incf cntr))
      traj))
   )
