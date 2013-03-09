@@ -102,9 +102,9 @@
      (dotimes (i (length jlist))
        (setq j (elt jlist i))
        (cond ((derivedp j linear-joint) ;; msec = mm / [m/sec]
-	      (setq tm (max tm (/ (elt diff-av i) (send j :max-joint-velocity)))))
+	      (setq tm (max tm (abs (/ (elt diff-av i) (send j :max-joint-velocity))))))
 	     ((derivedp j rotational-joint) ;; msec = deg2rad(deg) / [rad/s] / 0.001
-	      (setq tm (max tm (/ (deg2rad (elt diff-av i)) (send j :max-joint-velocity) 0.001)))))))
+	      (setq tm (max tm (abs (/ (deg2rad (elt diff-av i)) (send j :max-joint-velocity) 0.001))))))))
    ;; for simulation mode
    (unless joint-action-enable
      (if av
