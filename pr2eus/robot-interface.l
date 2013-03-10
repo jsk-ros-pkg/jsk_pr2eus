@@ -214,15 +214,12 @@
      (send self :spin-once))
    t)
   ;;
-  (:reference-vector
-   ()
-   (send self :state-vector :desired))
-  (:potentio-vector
-   () ;; not use this method, -> use update-robot-state and :state :potentio-vector
-   (send self :state-vector :actual))
-  (:error-vector
-   ()
-   (send self :state-vector :error))
+  (:worldcoords () (send robot :copy-worldcoords))
+  (:torque-vector () (send robot :torque-vector))
+  (:potentio-vector () (send robot :angle-vector))
+  (:reference-vector () (send self :state-vector :desired))
+  (:actual-vector () (send self :state-vector :actual))
+  (:error-vector () (send self :state-vector :error))
   (:state-vector
    (type &key ((:controller-actions ca) controller-actions)
 	 ((:controller-type ct) controller-type))
@@ -337,11 +334,9 @@
   (:state
    (&rest args)
    (send self :update-robot-state)
+   (unless args (return-from :state))
    (case (car args)
-     ((:angle-vector nil)
-      (ros::ros-warn "please use :state :potentio-vector~%")
-      (send self :state :potentio-vector))
-     (:potentio-vector
+     ((:potentio-vector :angle-vector)
       (send robot :angle-vector))
      (:torque-vector
       (send robot :torque-vector))
