@@ -444,6 +444,11 @@
   ;;
   ;;
   ;;
+  (:wait-torso (&optional (timeout 0))
+   (let ((act (find-if #'(lambda (x) (string= (send x :name) "torso_controller/joint_trajectory_action"))
+                       controller-actions)))
+     (when act
+       (send act :wait-for-result :timeout timeout))))
   )
 
 ;;;;;
