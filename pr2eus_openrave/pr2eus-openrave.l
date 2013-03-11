@@ -2,7 +2,7 @@
 (ros::load-ros-manifest "topic_tools")
 (ros::load-ros-manifest "pr2eus_openrave")
 (ros::load-ros-manifest "orrosplanning")
-(load "package://pr2eus/pr2-interface.l")
+(require :pr2-interface "package://pr2eus/pr2-interface.l")
 (ros::roseus "pr2eus_openrave")
 
 (ros::advertise "openrave_marker_array" visualization_msgs::MarkerArray 100)

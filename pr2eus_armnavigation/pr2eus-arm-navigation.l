@@ -4,7 +4,7 @@
 (ros::load-ros-manifest "arm_navigation_msgs")
 
 (ros::load-ros-manifest "pr2eus")
-(load "package://pr2eus/robot-interface.l")
+(require :robot-interface "package://pr2eus/robot-interface.l")
 
 (defvar *arm-navigation-error-code-list*
   (list
