@@ -470,9 +470,9 @@
   )
 
 ;; (list larm-v rarm-v)
-(defconstant *pr2-tuckarm-pose-rarm-free* (list #f( 5 70  105  -90 -70   -6  -20)
-                                                #f( 0 60  -80 -121 -50 -114 -160)))
-(defconstant *pr2-tuckarm-pose-larm-free* (list #f( 0 60   80 -121  50 -114  160)
+(defconstant *pr2-tuckarm-pose-rarm-free* (list #f( 5 70  105  -90 -70  -6 -20)
+                                                #f( 0 60  -80 -121 -15 -90  20)))
+(defconstant *pr2-tuckarm-pose-larm-free* (list #f( 0 60  -80 -121  15 -90  -20)
                                                 #f(-5 70 -105  -90  70   -6   20)))
 
 ;; check if current pose is tuckarm pose or not
