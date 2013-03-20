@@ -105,18 +105,18 @@
        (ros::publish "/joint_states" msg))
      msg))
   (:angle-vector
-   (av &optional (tm 3000) &key
-       ((:controller-actions ca) controller-actions)
-       ((:controller-type ct) controller-type))
+   (av &optional (tm 3000) (ctype controller-type))
    ;; check max-joint-velocity
-   (let ((jlist (send robot :joint-list)) j
-	 (diff-av (v- av (or (send self :state :potentio-vector) (send robot :angle-vector)))))
-     (dotimes (i (length jlist))
-       (setq j (elt jlist i))
-       (cond ((derivedp j linear-joint) ;; msec = mm / [m/sec]
-	      (setq tm (max tm (abs (/ (elt diff-av i) (send j :max-joint-velocity))))))
-	     ((derivedp j rotational-joint) ;; msec = deg2rad(deg) / [rad/s] / 0.001
-	      (setq tm (max tm (abs (/ (deg2rad (elt diff-av i)) (send j :max-joint-velocity) 0.001))))))))
+   (let ((idx 0)
+         (diff-av (v- av (or (send self :state :potentio-vector) (send robot :angle-vector)))))
+     (dolist (jt (send robot :joint-list))
+       (cond ((derivedp jt linear-joint) ;; msec = mm / [m/sec]
+              (setq tm (max tm (abs (/ (elt diff-av idx) (send jt :max-joint-velocity))))))
+             ((derivedp jt rotational-joint) ;; msec = deg2rad(deg) / [rad/s] / 0.001
+              (setq tm (max tm (abs (/ (deg2rad (elt diff-av idx))
+                                       (send jt :max-joint-velocity) 0.001))))))
+       (incf idx)
+       ))
    ;; for simulation mode
    (unless joint-action-enable
      (if av
@@ -129,19 +129,23 @@
 	   (if viewer (send viewer :draw-objects))))))
 
    (send robot :angle-vector av)
-   (mapcar
-    #'(lambda (action param)
-        (send self :send-ros-controller
-              action (cdr (assoc :joint-names param)) ;; action server and joint-names
-              0					      ;; start time
-              (list
-	       (list av				      ;; positions
-		     (instantiate float-vector (length av))  ;; velocities
-		     (/ tm 1000.0)))))			      ;; duration
-	ca (send self ct))
+   (let ((cacts (gethash ctype controller-table)))
+     (unless cacts
+       (warn ";; controller-type: ~A not found" ctype)
+       (return-from :angle-vector))
+     (mapcar
+      #'(lambda (action param)
+          (send self :send-ros-controller
+                action (cdr (assoc :joint-names param)) ;; action server and joint-names
+                0  ;; start time
+                (list
+                 (list av                                     ;; positions
+                       (instantiate float-vector (length av)) ;; velocities
+                       (/ tm 1000.0)))))                      ;; duration
+      cacts (send self ctype)))
    av)
   (:angle-vector-sequence
-   (avs &optional (tms (list 3000)))
+   (avs &optional (tms (list 3000)) (ctype controller-type))
    (send self :spin-once) ;; for :state :potentio-vector
    (let ((st 0) (traj-points nil)
          (av-prev (send self :state :potentio-vector)) av av-next
@@ -200,18 +204,25 @@
 	   (setq av-prev av)
 	   (incf st tm))
 	 ;;
-	 (mapcar
-	  #'(lambda (action param)
-	      (send self :send-ros-controller
-		    action (cdr (assoc :joint-names param)) ;; action server and joint-names
-		    0.1   ;; start time
-		    traj-points))
-	  controller-actions (send self controller-type))
-	 )))
-  (:wait-interpolation
-   ()
+         (let ((cacts (gethash ctype controller-table)))
+           (unless cacts
+             (warn ";; controller-type: ~A not found" ctype)
+             (return-from :angle-vector-sequence))
+           (mapcar
+            #'(lambda (action param)
+                (send self :send-ros-controller
+                      action (cdr (assoc :joint-names param)) ;; action server and joint-names
+                      0.1   ;; start time
+                      traj-points))
+            cacts (send self ctype)))
+         )))
+  (:wait-interpolation (&optional (ctype)) ;; controller-type
    (unless joint-action-enable (return-from :wait-interpolation nil))
-   (send-all controller-actions :wait-for-result))
+   (cond
+    (ctype
+     (let ((cacts (gethash ctype controller-table)))
+       (send-all cacts :wait-for-result)))
+    (t (send-all controller-actions :wait-for-result))))
   (:stop-motion (&key (stop-time 0))
    (let ((av (send self :state :potentio-vector)))
      (send self :angle-vector av stop-time)
