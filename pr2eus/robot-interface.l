@@ -30,7 +30,8 @@
   :super propertied-object
   :slots (robot objects robot-state joint-action-enable warningp
                 nodehandlename controller-type controller-actions
-		viewer groupname))
+                controller-table ;; hashtable :type -> (action)
+                viewer groupname))
 
 (defmethod robot-interface
   (:init
@@ -38,7 +39,7 @@
           ((:groupname nh) "robot_multi_queue") &allow-other-keys)
    (setq joint-action-enable t)
    (setq robot (cond ((derivedp r metaclass) (instance r :init))
-		     (t r)))
+                     (t r)))
    (setq groupname nh)
    (unless (ros::ok)
      (ros::roseus "default_robot_interface"))
@@ -47,44 +48,53 @@
    (defvar *tfl* (instance ros::transform-listener :init))
    (ros::subscribe "/joint_states" sensor_msgs::JointState
                    #'send self :ros-state-callback :groupname groupname)
-
+   ;;
+   (setq controller-table (make-hash-table :size 14 :test #'eq :rehash-size 1.2))
    (setq controller-type type)
-   (mapcar
-    #'(lambda (param)
-	(let* ((controller-action (cdr (assoc :controller-action param)))
-	       (action-type (cdr (assoc :action-type param)))
-	       (action (instance ros::simple-action-client :init controller-action action-type
-                                 :groupname groupname)))
-	  (push action controller-actions)))
-    (send self controller-type))
-   (nreverse controller-actions)
-
-   (dolist (action controller-actions)
-     (unless (and joint-action-enable (send action :wait-for-server 3))
-       (setq joint-action-enable nil)
-       (ros::ros-warn "~A is not respond, ~A-interface is disabled" action (send robot :name) )
-       (return)))
+   (setq controller-actions
+         (send self :add-controller controller-type :joint-enable-check t))
    ;;
-   (dolist (param (send self controller-type))
-     (let* ((controller-state (cdr (assoc :controller-state param)))
-	    (key (intern (string-upcase controller-state) *keyword-package*)))
-       (ros::subscribe controller-state
-                       pr2_controllers_msgs::JointTrajectoryControllerState
-                       #'send self :set-robot-state1 key :groupname groupname)
-     ))
-   ;;
-   (unless joint-action-enable
+   (unless joint-action-enable ;; simulation-mode
      (let ((old-viewer user::*viewer*))
        (when (and x::*display* (> x::*display* 0))
-	 (setq viewer (instance x::irtviewer :create :title (format nil "~A-interface" (send robot :name))))
-	 (send viewer :objects (list robot))
-	 (send viewer :look-all)
-	 (send self :objects objs)
-	 (if old-viewer (setq user::*viewer* old-viewer)))
-
+         (setq viewer (instance x::irtviewer :create :title (format nil "~A-interface" (send robot :name))))
+         (send viewer :objects (list robot))
+         (send viewer :look-all)
+         (send self :objects objs)
+         (if old-viewer (setq user::*viewer* old-viewer)))
        (ros::advertise "/joint_states" sensor_msgs::JointState 1)
        ))
    self)
+  ;;
+  (:add-controller (ctype &key (joint-enable-check))
+   (let (tmp-actions)
+     (mapcar
+      #'(lambda (param)
+          (let* ((controller-action (cdr (assoc :controller-action param)))
+                 (action-type (cdr (assoc :action-type param)))
+                 (action (instance ros::simple-action-client :init controller-action action-type
+                                   :groupname groupname)))
+            (push action tmp-actions)))
+      (send self ctype))
+     (setq tmp-actions (nreverse tmp-actions))
+     ;;
+     (dolist (action tmp-actions)
+       (unless (and joint-action-enable (send action :wait-for-server 3))
+         (ros::ros-warn "~A is not respond, ~A-interface is disabled" action (send robot :name))
+         (when joint-enable-check
+           (setq joint-action-enable nil)
+           (return))))
+     ;;
+     (dolist (param (send self ctype))
+       (let* ((controller-state (cdr (assoc :controller-state param)))
+              (key (intern (string-upcase controller-state) *keyword-package*)))
+         (ros::subscribe controller-state
+                         pr2_controllers_msgs::JointTrajectoryControllerState
+                         #'send self :set-robot-state1 key :groupname groupname)))
+     ;;
+     (setf (gethash ctype controller-table) tmp-actions)
+     tmp-actions
+     ))
   ;;
   (:publish-joint-state ;; for simulation mode (joint-action-enable is nil)
    (&optional (joint-list (send robot :joint-list)))
@@ -95,7 +105,9 @@
        (ros::publish "/joint_states" msg))
      msg))
   (:angle-vector
-   (av &optional (tm 3000) &key ((:controller-actions ca) controller-actions) ((:controller-type ct) controller-type))
+   (av &optional (tm 3000) &key
+       ((:controller-actions ca) controller-actions)
+       ((:controller-type ct) controller-type))
    ;; check max-joint-velocity
    (let ((jlist (send robot :joint-list)) j
 	 (diff-av (v- av (or (send self :state :potentio-vector) (send robot :angle-vector)))))
