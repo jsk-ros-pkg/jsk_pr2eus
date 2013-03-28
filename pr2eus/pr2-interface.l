@@ -32,6 +32,14 @@
           (move-base-action-name "move_base") &allow-other-keys)
    (send-super :init :robot pr2-robot :type type
                :groupname "pr2_interface")
+   ;; add controllers
+   (send self :add-controller :larm-controller)
+   (send self :add-controller :rarm-controller)
+   (send self :add-controller :head-controller)
+   (send self :add-controller :torso-controller)
+   ;;(send self :add-controller :midbody-controller)
+   ;;(send self :add-controller :fullbody-controller)
+
    ;;
    (ros::advertise "j_robotsound" sound_play::SoundRequest 5)
    ;;
@@ -191,17 +199,14 @@
 			      "torso_lift_joint"
 			      "head_pan_joint" "head_tilt_joint")))))
   ;;
-  (:controller-angle-vector
-   (av tm type)
-   (send self :angle-vector av tm
-		 :controller-actions (mapcar #'(lambda (param) (find (cdr (assoc :controller-action param)) controller-actions :key #'(lambda (x) (send x :name)) :test #'string=)) (send self type))
-		 :controller-type type))
+  (:controller-angle-vector (av tm type) ;; obsolate
+   (send self :angle-vector av tm type))
   (:larm-angle-vector (av tm)
-   (send self :controller-angle-vector av tm :larm-controller))
+   (send self :angle-vector av tm :larm-controller))
   (:rarm-angle-vector (av tm)
-   (send self :controller-angle-vector av tm :rarm-controller))
+   (send self :angle-vector av tm :rarm-controller))
   (:head-angle-vector (av tm)
-   (send self :controller-angle-vector av tm :head-controller))
+   (send self :angle-vector av tm :head-controller))
   ;;
   (:move-gripper
    (arm pos &key (effort 25) (wait t))
