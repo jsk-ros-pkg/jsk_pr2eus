@@ -89,7 +89,7 @@
     (send cp-req :detection_result (send od-res :detection))
     (send cp-req :reset_collision_models t)
     (send cp-req :reset_attached_models t)
-    (send cp-req :desired_frame "base_link")
+    (send cp-req :desired_frame "/base_link")
     (if (check-service-response cpsrv-name)
 	(setq cp-res (ros::service-call cpsrv-name cp-req))
       (return-from template-grasp-get-data nil))
@@ -139,7 +139,7 @@
     (send pickup-goal :goal :arm_name
 	  (if (eq arm :rarm) "right_arm" "left_arm"))
     (send direction :header :stamp (ros::time-now))
-    (send direction :header :frame_id "base_link")
+    (send direction :header :frame_id "/base_link")
     (send direction :vector :x 0)
     (send direction :vector :y 0)
     (send direction :vector :z 1)
@@ -248,23 +248,23 @@
                (elt hand-coords 0) (elt hand-coords 1) (elt hand-coords 3))
          :counter 601 :lifetime 10 :ns "hand")
         (when (and
-               ;; hand direction should be downword
+               ;;hand direction should be downword
 
-               ;; (>= (v. (send (send grasp-cds :worldcoords) :x-axis)
-               ;;         (float-vector 0 0 -1)) 0)
+               (>= (v. (send (send grasp-cds :worldcoords) :x-axis)
+                       (float-vector 0 0 -1)) 0)
 
-               ;; higher than table
+               ;;higher than table
 
-               ;; (> (elt (send grasp-cds :pos) 2)
-               ;;    (+ (* (send od-res :detection :table
-               ;;                :pose :pose :position :z) 1000) 30))
+               (> (elt (send grasp-cds :pos) 2)
+                  (+ (* (send od-res :detection :table
+                              :pose :pose :position :z) 1000) 30))
 
                ;; select correct hand pos from tablet
                ;; (if use-select (y-or-n-p) t)
                (if use-select (y-or-n-from-tablet) t)
                ;; solve motion-plan at OpenRAVE
-               ;; (setq orres (send *ri* :move-end-coords-plan pre-grasp-cds
-               ;;                   :move-arm arm :use-torso t :send-trajectory nil))
+               (setq orres (send *ri* :move-end-coords-plan pre-grasp-cds
+                                 :move-arm arm :use-torso t :send-trajectory nil))
                )
           (ros::ros-info "orres:~A" orres)
 
@@ -625,7 +625,7 @@ to	 (arm-id-raw (send msg :action :arm_id))
 	     (b (send points :box))
 	     (cb
 	      (apply #'make-cube (coerce (send b :diagonal) cons)))
-	     (header (instance std_msgs::header :init :stamp (ros::time-now) :frame_id "base_link")))
+	     (header (instance std_msgs::header :init :stamp (ros::time-now) :frame_id "/base_link")))
 	(send cb :translate c)
 	(send cb :worldcoords)
 	(push (wireframe->marker-msg cb header :id (incf cntr) :lifetime lifetime :color color :ns ns) mrk-list)
@@ -641,7 +641,7 @@ to	 (arm-id-raw (send msg :action :arm_id))
 	 point-list)
     (send mrk :header :stamp (ros::time-now))
     (send mrk :type image_view2::ImageMarker2::*LINE_STRIP3D*)
-    (send mrk :points3D :header :frame_id "base_link")
+    (send mrk :points3D :header :frame_id "/base_link")
 ;;    (send mrk :points3D :header :frame_id "base_footprint")
     (send mrk :lifetime (ros::Time lifetime))
     (send mrk :id counter)
@@ -675,7 +675,7 @@ to	 (arm-id-raw (send msg :action :arm_id))
 	  (send mrk :header :stamp (ros::time-now))
 	  ;;(send mrk :action image_view2::ImageMarker2::*ADD*)
 	  (send mrk :type image_view2::ImageMarker2::*LINE_LIST3D*)
-	  (send mrk :points3D :header :frame_id "base_link")
+	  (send mrk :points3D :header :frame_id "/base_link")
 	  (send mrk :lifetime (ros::Time lifetime))
 	  (send mrk :id cntr)
 	  (dolist (poly-vertex-list-eus (mapcan #'(lambda(eds) (send eds :vertices)) (send cb :edges)))
@@ -688,7 +688,7 @@ to	 (arm-id-raw (send msg :action :arm_id))
 	  (when use-text
 	    (send text-mrk :header :stamp (ros::time-now))
 	    (send text-mrk :type image_view2::ImageMarker2::*TEXT3D*)
-	    (send text-mrk :position3D :header :frame_id "base_link")
+	    (send text-mrk :position3D :header :frame_id "/base_link")
 	    (send text-mrk :position3D :point (ros::pos->tf-point c))
 	    (send text-mrk :scale 1.0)
 	    (send text-mrk :lifetime (ros::Time text-lifetime))
@@ -754,8 +754,8 @@ to	 (arm-id-raw (send msg :action :arm_id))
 ;;; and possible openRave usage boolean. XY-value are matched to
 ;;; XYZ-point in real world and the closest object from there is
 ;;; picked up with the correct grasp. Grasp selection is done interactively in tablet.
-(defun PickObjectExecute (x y arm &key (use-openrave nil))
-;;(defun PickObjectExecute (x y arm &key (use-openrave t))
+;;(defun PickObjectExecute (x y arm &key (use-openrave nil))
+(defun PickObjectExecute (x y arm &key (use-openrave t))
   (let* ((c (screenpoint-srvcall x y)) cpos target-num) ; c = XYZ point in real world
     (if (null c) (return-from PickObjectExecute nil))
     (setq cpos (send (send c :copy-worldcoords) :pos))
@@ -797,9 +797,9 @@ to	 (arm-id-raw (send msg :action :arm_id))
 
     (stop-visualize-object-rviz :ns "hand_traj" :topic-name "openrave_marker_array")
     ;; up
-    ;; (send *pr2* :angle-vector (send *ri* :state :potentio-vector))
-    ;; (send *pr2* arm :move-end-pos #f(0 0 100) :world :rotation-axis nil)
-    ;; (send *ri* :angle-vector (send *pr2* :angle-vector))
+    (send *pr2* :angle-vector (send *ri* :state :potentio-vector))
+    (send *pr2* arm :move-end-pos #f(0 0 100) :world :rotation-axis nil)
+    (send *ri* :angle-vector (send *pr2* :angle-vector))
 
     (ros::set-param "stop_tabletop" 0)
     ))
