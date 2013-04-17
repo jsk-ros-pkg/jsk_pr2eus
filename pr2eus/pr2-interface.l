@@ -33,10 +33,10 @@
    (send-super :init :robot pr2-robot :type type
                :groupname "pr2_interface")
    ;; add controllers
-   (send self :add-controller :larm-controller)
-   (send self :add-controller :rarm-controller)
-   (send self :add-controller :head-controller)
-   (send self :add-controller :torso-controller)
+   ;;(send self :add-controller :larm-controller)
+   ;;(send self :add-controller :rarm-controller)
+   ;;(send self :add-controller :head-controller)
+   ;;(send self :add-controller :torso-controller)
    ;;(send self :add-controller :midbody-controller)
    ;;(send self :add-controller :fullbody-controller)
 
@@ -98,12 +98,12 @@
   (:publish-joint-state () ;; overwrite for pr2
    (send-super :publish-joint-state (append (send robot :joint-list) (send robot :larm :gripper :joint-list) (send robot :rarm :gripper :joint-list))))
   ;;
-  (:wait-interpolation ;; overwrite for pr2
-   ()
+  (:wait-interpolation (&rest args);; overwrite for pr2
    (unless joint-action-enable (return-from :wait-interpolation nil))
    (let (result)
      (ros::ros-info "wait-interpolation debug: start")
    ;;  (setq result (send-all controller-actions :wait-for-result))
+     ;;(setq result (send-super* :wait-interpolation args))
      (dolist (ca controller-actions)
        (print ca)
        (push (send ca :wait-for-result) result))

@@ -216,13 +216,13 @@
                       traj-points))
             cacts (send self ctype)))
          )))
-  (:wait-interpolation (&optional (ctype)) ;; controller-type
+  (:wait-interpolation (&optional (ctype) (timeout 0)) ;; controller-type
    (unless joint-action-enable (return-from :wait-interpolation nil))
    (cond
     (ctype
      (let ((cacts (gethash ctype controller-table)))
-       (send-all cacts :wait-for-result)))
-    (t (send-all controller-actions :wait-for-result))))
+       (send-all cacts :wait-for-result timeout)))
+    (t (send-all controller-actions :wait-for-result timeout))))
   (:stop-motion (&key (stop-time 0))
    (let ((av (send self :state :potentio-vector)))
      (send self :angle-vector av stop-time)
@@ -253,7 +253,7 @@
 	      (key (intern (string-upcase ctrl) *keyword-package*))
 	      (msg (send self :state key))
 	      jn jangle jpos j)
-         ;; (print msg)
+         ;;(print (list ctrl key msg))
 	 (if (not msg)
 	     (return-from :state-vector nil))
 	 (dotimes (idx (length (send msg :joint_names)))
