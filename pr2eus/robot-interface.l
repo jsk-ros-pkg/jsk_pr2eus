@@ -221,8 +221,8 @@
    (cond
     (ctype
      (let ((cacts (gethash ctype controller-table)))
-       (send-all cacts :wait-for-result timeout)))
-    (t (send-all controller-actions :wait-for-result timeout))))
+       (send-all cacts :wait-for-result :timeout timeout)))
+    (t (send-all controller-actions :wait-for-result :timeout timeout))))
   (:stop-motion (&key (stop-time 0))
    (let ((av (send self :state :potentio-vector)))
      (send self :angle-vector av stop-time)
