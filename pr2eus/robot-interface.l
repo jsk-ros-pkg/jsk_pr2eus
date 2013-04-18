@@ -57,7 +57,9 @@
    (unless joint-action-enable ;; simulation-mode
      (let ((old-viewer user::*viewer*))
        (when (and x::*display* (> x::*display* 0))
-         (setq viewer (instance x::irtviewer :create :title (format nil "~A-interface" (send robot :name))))
+         (setq viewer (get (geo::find-viewer (send robot :name)) :pickviewer))
+         (unless viewer
+           (setq viewer (instance x::irtviewer :create :title (format nil "~A-interface" (send robot :name)) :view-name (send robot :name))))
          (send viewer :objects (list robot))
          (send viewer :look-all)
          (send self :objects objs)
