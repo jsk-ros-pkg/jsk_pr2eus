@@ -30,8 +30,9 @@
   (:init
    (&rest args &key (type :default-controller)
           (move-base-action-name "move_base") &allow-other-keys)
-   (send-super :init :robot pr2-robot :type type
-               :groupname "pr2_interface")
+   (send-super* :init :robot pr2-robot :type type
+                :groupname "pr2_interface"
+                args)
    ;; add controllers
    ;;(send self :add-controller :larm-controller)
    ;;(send self :add-controller :rarm-controller)
