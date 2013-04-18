@@ -400,7 +400,7 @@
   (:viewer (&rest args) (forward-message-to viewer args))
   (:objects (&optional objs)
 	    (when objs
-	      (setq objects (mapcar #'(lambda (o) (let ((p (send o :parent))) (if p (send p :dissoc o))(copy-object o)(if p (send p :assoc o)) o)) objs))
+	      (setq objects (mapcar #'(lambda (o) (let ((p (send o :parent))) (if p (send p :dissoc o)) (setq o (copy-object o)) (if p (send p :assoc o)) o)) objs))
 	      (mapcar #'(lambda (o) (setf (get o :GL-DISPLAYLIST-ID) nil)) (x::draw-things objects))
 	      (when viewer
                 (send viewer :objects (append (list robot) objects))
