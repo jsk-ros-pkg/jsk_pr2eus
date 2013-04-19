@@ -54,7 +54,7 @@
    (setq controller-actions
          (send self :add-controller controller-type :joint-enable-check t))
    ;;
-   (unless joint-action-enable ;; simulation-mode
+   (when (send self :simulation-modep)
      (let ((old-viewer user::*viewer*))
        (when (and x::*display* (> x::*display* 0))
          (setq viewer (get (geo::find-viewer (send robot :name)) :pickviewer))
@@ -103,7 +103,7 @@
    (let (msg names positions velocities efforts)
      (setq msg (joint-list->joint_state joint-list))
      (send msg :header :stamp (ros::time-now))
-     (unless joint-action-enable
+     (when (send self :simulation-modep)
        (ros::publish "/joint_states" msg))
      msg))
   (:angle-vector
@@ -120,7 +120,7 @@
        (incf idx)
        ))
    ;; for simulation mode
-   (unless joint-action-enable
+   (when (send self :simulation-modep)
      (if av
        (let* ((prev-av (send robot :angle-vector))
 	      (scale-av (send self :sub-angle-vector av prev-av)))
@@ -174,7 +174,7 @@
 		 )
 	     (fill vel 0))
 	   ;; for simulation mode
-	   (unless joint-action-enable
+           (when (send self :simulation-modep)
 	     (let* ((prev-av (send robot :angle-vector))
 		    (scale-av (send self :sub-angle-vector av prev-av)))
 	       (do ((curr-tm 0.0 (+ curr-tm 100.0)))
@@ -219,7 +219,8 @@
             cacts (send self ctype)))
          )))
   (:wait-interpolation (&optional (ctype) (timeout 0)) ;; controller-type
-   (unless joint-action-enable (return-from :wait-interpolation nil))
+   (when (send self :simulation-modep)
+     (return-from :wait-interpolation nil))
    (cond
     (ctype
      (let ((cacts (gethash ctype controller-table)))
@@ -271,7 +272,8 @@
   ;;
   (:send-ros-controller
    (action joint-names starttime trajpoints)
-   (unless joint-action-enable (return-from :send-ros-controller nil))
+   (when (send self :simulation-modep)
+     (return-from :send-ros-controller nil))
    (if (and warningp
 	    (yes-or-no-p (format nil "~C[3~CmAre you sure to move the real robot? (~A) ~C[0m" #x1b 49 (send action :name) #x1b)))
        (return-from :send-ros-controller nil))
@@ -409,6 +411,7 @@
                 (send viewer :look-all (list robot))))
 	    objects)
   (:joint-action-enable (&optional (e :dummy)) (if (not (eq e :dummy)) (setq joint-action-enable e)) joint-action-enable)
+  (:simulation-modep () (null joint-action-enable))
   (:warningp (&optional (w :dummy)) (if (not (eq w :dummy)) (setq warningp w)) warningp)
   (:spin-once () (ros::spin-once groupname))
   (:send-trajectory (joint-trajectory-msg
