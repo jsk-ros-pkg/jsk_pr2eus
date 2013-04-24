@@ -106,7 +106,6 @@
    ;;  (setq result (send-all controller-actions :wait-for-result))
      ;;(setq result (send-super* :wait-interpolation args))
      (dolist (ca controller-actions)
-       (print ca)
        (push (send ca :wait-for-result) result))
      (ros::ros-info "wait-interpolation debug: end")
      (setq result (reverse result))
@@ -455,6 +454,12 @@
                        controller-actions)))
      (when act
        (send act :wait-for-result :timeout timeout))))
+  
+  ;; appended by furushchev
+  (:cancel-all-goals ()
+	(send move-base-action :cancel-all-goals)
+	(send move-base-trajectory-action :cancel-all-goals)
+	(speak-jp "きゃんせるしました"))
   )
 
 ;;;;;
