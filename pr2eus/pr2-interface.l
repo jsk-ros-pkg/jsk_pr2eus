@@ -282,6 +282,12 @@
 	   (mapcar #'v- current origin))
        current)))
   ;;
+  (:go-stop ()
+   (when joint-action-enable
+     (send move-base-action :cancel-all-goals)
+     (send move-base-trajectory-action :cancel-all-goals)
+     (send self :go-velocity 0 0 0)
+     ))
   (:move-to
    (coords &key (retry 10) (frame-id "/world") (wait-for-server-timeout 5))
    (let (ret (count 0) (tm (ros::time-now))
@@ -454,12 +460,6 @@
                        controller-actions)))
      (when act
        (send act :wait-for-result :timeout timeout))))
-  
-  ;; appended by furushchev
-  (:cancel-all-goals ()
-	(send move-base-action :cancel-all-goals)
-	(send move-base-trajectory-action :cancel-all-goals)
-	(speak-jp "きゃんせるしました"))
   )
 
 ;;;;;
