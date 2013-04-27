@@ -14,8 +14,9 @@
 (ros::rate 10)
 (do-until-key
  (send *pr2* :angle-vector (send *ri* :state :potentio-vector))
- (send *irtviewer* :draw-objects :flush nil)
- (send *pr2* :draw-torque *viewer* :torque-vector (send *ri* :state :torque-vector) :flush t)
+ (when (boundp '*irtviewer*)
+   (send *irtviewer* :draw-objects :flush nil)
+   (send *pr2* :draw-torque *viewer* :torque-vector (send *ri* :state :torque-vector) :flush t))
  ;; larm jacobian
  (let ((target (send *pr2* :larm :end-coords)))
    (ros::ros-info "larm jacobian ~a"
@@ -57,4 +58,6 @@
 
  (ros::spin-once)
  (ros::sleep)
- (x::window-main-one))
+ (if (boundp '*irtviewer*)
+   (x::window-main-one))
+ )
