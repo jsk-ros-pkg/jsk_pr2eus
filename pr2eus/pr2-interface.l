@@ -462,6 +462,77 @@
        (send act :wait-for-result :timeout timeout))))
   )
 
+;;
+;;
+;; workaround for unintentional 360 joint rotation problem [#91]
+(defmethod pr2-interface
+  (:check-continuous-joint-move-over-180
+   (diff-av)
+   (let ((i 0) add-new-trajectory-point)
+     (dolist (j (send robot :joint-list))
+       ;; for continuous rotational joint
+       (when (and (> (- (send j :max-angle) (send j :min-angle)) 360)
+                  (> (abs (elt diff-av i)) 180))
+         (ros::ros-warn "continuous joint (~A) moves ~A degree, commanded joint differs from original trajectory to avoid unintentional 360 rotation" (send j :name) (elt diff-av i))
+         (setq add-new-trajectory-point t))
+       (incf i (send j :joint-dof)))
+     add-new-trajectory-point))
+  (:angle-vector
+   (av &optional (tm 3000) &rest args)
+   (unless (send self :simulation-modep)
+     (let (diff-av (i 0))
+       ;; use reference-vector to get last commanded joint and use :angle-vector to toruncate the joint limit to eus lisp style
+       (setq diff-av (v- av (send robot :angle-vector (send self :state :reference-vector))))
+       ;; use shortest path for contiuous joint
+       ;;
+       (when (send self :check-continuous-joint-move-over-180 diff-av)
+         (ros::ros-warn "original trajectory command :")
+         (ros::ros-warn "                       : ~A ~A" av tm)
+         (ros::ros-warn "new trajectory command :")
+         (ros::ros-warn "                       : ~A ~A" (v- av (scale 0.5 diff-av)) (* tm 0.5))
+         (ros::ros-warn "                       : ~A ~A" av (* tm 0.5))
+         (return-from :angle-vector
+           (send-super* :angle-vector-sequence
+                        (list (v- av (scale 0.5 diff-av)) av)
+                        (list (* tm 0.5) (* tm 0.5))
+                        args))) ;; when
+       )) ;; (send self :simulation-modep)
+   (send-super* :angle-vector av tm args)
+   )
+  (:angle-vector-sequence
+   (avs &optional (tms (list 3000)) &rest args)
+   (if (atom tms) (setq tms (make-list (length avs) :initial-element tms)))
+   (if (< (length tms) (length avs))
+       (setq tms (append tms (make-list (- (length avs) (length tms)) :initial-element (car (last tms))))))
+   (unless (send self :simulation-modep)
+     (let* ((prev-av (car avs))
+            (len-av (length prev-av))
+            (max-av (fill (instantiate float-vector len-av)  180))
+            (min-av (fill (instantiate float-vector len-av) -180))
+            diff-av (l 1))
+       ;; check if avs exceed 180 degree
+       ;;  pr2 controller choose shortest path
+       ;;  eus model uses -180 to 180
+       ;; if eus model moves a jonit from -180 to 180, pr2 should roatate them
+       (dolist (av (cdr avs))
+         ;; check if joint move more than 180 degree which has -inf/inf limit
+         (setq diff-av (v- av prev-av))
+         (when (send self :check-continuous-joint-move-over-180 diff-av)
+           (ros::ros-warn "original trajectory command :")
+           (ros::ros-warn "                       : ~A ~A" avs tms)
+           (setq avs (list-insert (v+ prev-av (scale 0.5 diff-av)) l avs))
+           (setf (elt tms l) (/ (elt tms l) 2))
+           (setq tms (list-insert (* (elt tms l) 1) l tms))
+           (ros::ros-warn "new trajectory command :")
+           (ros::ros-warn "                       : ~A ~A" avs tms)
+           )
+         ;;
+         (setq prev-av av)
+         (incf l))
+       )) ;; when simulation-modep
+     (send-super* :angle-vector-sequence avs tms args))
+  ) ;; pr2-interface
+
 ;;;;;
 ;;;;; utility functions pr2 robot
 ;;;;;
