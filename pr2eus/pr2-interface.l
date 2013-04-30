@@ -484,26 +484,24 @@
      add-new-trajectory-point))
   (:angle-vector
    (av &optional (tm 3000) &rest args)
-   (unless (send self :simulation-modep)
-     (let (diff-av (i 0))
-       ;; use reference-vector to get last commanded joint and use :angle-vector to toruncate the joint limit to eus lisp style
-       (setq diff-av (v- av (send robot :angle-vector (send self :state :reference-vector))))
-       ;; use shortest path for contiuous joint
-       ;;
-       (when (send self :check-continuous-joint-move-over-180 diff-av)
-         (ros::ros-warn "original trajectory command :")
-         (ros::ros-warn "                       : ~A ~A" av tm)
-         (ros::ros-warn "new trajectory command :")
-         (ros::ros-warn "                       : ~A ~A" (v- av (scale 0.5 diff-av)) (* tm 0.5))
-         (ros::ros-warn "                       : ~A ~A" av (* tm 0.5))
-         (return-from :angle-vector
-           (send-super* :angle-vector-sequence
-                        (list (v- av (scale 0.5 diff-av)) av)
-                        (list (* tm 0.5) (* tm 0.5))
-                        args))) ;; when
-       )) ;; (send self :simulation-modep)
-   (send-super* :angle-vector av tm args)
-   )
+   (let (diff-av (i 0))
+     ;; use reference-vector to get last commanded joint and use :angle-vector to toruncate the joint limit to eus lisp style
+     (setq diff-av (v- av (send robot :angle-vector (send self :state :reference-vector))))
+     ;; use shortest path for contiuous joint
+     ;;
+     (when (send self :check-continuous-joint-move-over-180 diff-av)
+       (ros::ros-warn "original trajectory command :")
+       (ros::ros-warn "                       : ~A ~A" av tm)
+       (ros::ros-warn "new trajectory command :")
+       (ros::ros-warn "                       : ~A ~A" (v- av (scale 0.5 diff-av)) (* tm 0.5))
+       (ros::ros-warn "                       : ~A ~A" av (* tm 0.5))
+       (return-from :angle-vector
+         (send-super* :angle-vector-sequence
+                      (list (v- av (scale 0.5 diff-av)) av)
+                      (list (* tm 0.5) (* tm 0.5))
+                      args))) ;; when
+     (send-super* :angle-vector av tm args)
+     ))
   (:angle-vector-sequence
    (avs &optional (tms (list 3000)) &rest args)
    (if (atom tms) (setq tms (make-list (length avs) :initial-element tms)))
