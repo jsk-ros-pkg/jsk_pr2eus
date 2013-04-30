@@ -622,10 +622,12 @@
 ;; navigation-client.l
 ;;
 
+;; reset local costmap and clear unknown grid around robot
 (defun clear-costmap ()
   (call-empty-service "/move_base_node/clear_costmaps")
   (call-empty-service "/move_base_node/clear_unknown_space"))
 
+;; change inflation range of local costmap
 (defun change-inflation-range (&optional (range 0.55))
   (let ((req (instance dynamic_reconfigure::ReconfigureRequest :init)))
     (send req :config :doubles
@@ -633,3 +635,9 @@
 			  :name "inflation_radius" :value range)))
     (ros::service-call "/move_base_node/local_costmap/set_parameters" req)
     ))
+
+;; do not use tilt laser
+(defun use-tilt-laser-obstacle-cloud (enable)
+  (unix::system
+   (format nil "rosrun topic_tools mux_select /tilt_laser_mux ~s"
+	   (if enable "ground_object_cloud" "empty_cloud"))))
