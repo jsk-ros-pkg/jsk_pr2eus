@@ -34,13 +34,18 @@
                 :groupname "pr2_interface"
                 args)
    ;; add controllers
-   ;;(send self :add-controller :larm-controller)
-   ;;(send self :add-controller :rarm-controller)
-   ;;(send self :add-controller :head-controller)
-   ;;(send self :add-controller :torso-controller)
-   ;;(send self :add-controller :midbody-controller)
-   ;;(send self :add-controller :fullbody-controller)
-
+   (dolist (l (list
+               (cons :larm-controller "l_arm_controller/joint_trajectory_action")
+               (cons :rarm-controller "r_arm_controller/joint_trajectory_action")
+               (cons :head-controller "head_traj_controller/joint_trajectory_action")
+               (cons :torso-controller "torso_controller/joint_trajectory_action")))
+     (let ((type (car l))
+           (name (cdr l))
+           action)
+       (setq action (find-if #'(lambda (ac) (string= name (send ac :name)))
+                             controller-actions))
+       (setf (gethash type controller-table) (list action))
+       ))
    ;;
    (ros::advertise "j_robotsound" sound_play::SoundRequest 5)
    ;;
