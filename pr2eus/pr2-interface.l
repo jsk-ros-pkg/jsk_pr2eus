@@ -4,6 +4,7 @@
 (require :pr2 "package://pr2eus/pr2.l")
 (require :pr2-utils "package://pr2eus/pr2-utils.l")
 (require :robot-interface "package://pr2eus/robot-interface.l")
+(ros::load-ros-manifest "topic_tools")
 
 ;;;
 ;;; pr2 robot interface
@@ -641,6 +642,7 @@
 
 ;; do not use tilt laser
 (defun use-tilt-laser-obstacle-cloud (enable)
-  (unix::system
-   (format nil "rosrun topic_tools mux_select /tilt_laser_mux ~s"
-	   (if enable "ground_object_cloud" "empty_cloud"))))
+  ;; check if we have service call
+  (let ((req (instance topic_tools::MuxSelectRequest :init
+                       :topic (if enable "ground_object_cloud" "empty_cloud"))))
+    (ros::service-call "/tilt_laser_mux/select" req)))
