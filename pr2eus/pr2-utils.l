@@ -35,8 +35,13 @@
      (unless move-target
        (setq move-target (send self move-arm :end-coords)))
      (unless link-list
-       (setq link-list (send self :link-list (send move-target :parent)
-                             (unless use-torso (car (send self move-arm))))))
+       (setq link-list
+             (if (consp target-coords) ;; dual arm
+                 (mapcar #'(lambda (target)
+                             (send self :link-list (send target :parent)))
+                             move-target)
+               (send self :link-list (send move-target :parent)
+                     (unless use-torso (car (send self move-arm)))))))
 
      ;; use torso
      (setq weight (instantiate float-vector (send self :calc-target-joint-dimension link-list))
