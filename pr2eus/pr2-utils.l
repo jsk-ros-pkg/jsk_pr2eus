@@ -38,7 +38,16 @@
        (setq link-list
              (if (consp target-coords) ;; dual arm
                  (mapcar #'(lambda (target)
-                             (send self :link-list (send target :parent)))
+                             ;; check if target's parent within limbs
+                             (let ((l target) move-arm)
+                               (while l
+                                 (cond ((memq l (send self :larm))
+                                        (setq move-arm :larm))
+                                       ((memq l (send self :rarm))
+                                        (setq move-arm :rarm)))
+                                 (setq l (send l :parent)))
+                               (send self :link-list (send target :parent)
+                                     (unless use-torso (car (send self move-arm))))))
                              move-target)
                (send self :link-list (send move-target :parent)
                      (unless use-torso (car (send self move-arm)))))))
