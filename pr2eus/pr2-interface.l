@@ -235,7 +235,7 @@
      (if wait (send-all clients :wait-for-result))
      ))
   (:start-grasp
-   (&optional (arm :arms) &key ((:gain g) 0.01))
+   (&optional (arm :arms) &key ((:gain g) 0.01) ((:objects objs) objects))
    (send self :move-gripper arm 0.0 :effort (* 2000 g) :wait t)
    (unless joint-action-enable
      (dolist (a (if (eq arm :arms) '(:larm :rarm) (list arm)))
@@ -247,7 +247,7 @@
 		     (send-all (send l :bodies) :worldcoords)
 		     (send-all (send l :bodies) :vertices))
 		 (send robot a :gripper :links))))))
-	 (dolist (obj objects)
+	 (dolist (obj objs)
 	   (when (and (find-method obj :faces)
 		      (not (= (pqp-collision-check grasp-convex obj) 0)))
 	     (if (send obj :parent) (send (send obj :parent) :dissoc obj))
