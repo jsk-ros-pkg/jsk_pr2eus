@@ -219,7 +219,7 @@
    (unless joint-action-enable
      (send robot arm :gripper :joint-angle (* pos 1000))
      (send self :publish-joint-state)
-     (if viewer (send viewer :draw-objects))
+     (if viewer (send self :draw-objects))
      (return-from :move-gripper nil))
    (let* (goal
 	  (clients (case arm
@@ -305,7 +305,7 @@
 	 (do ((curr-tm 0.0 (+ curr-tm 100.0)))
 	     ((> curr-tm 1000))
 	   (send robot :newcoords (midcoords (/ curr-tm 1000.0) orig-coords coords))
-	   (if viewer (send viewer :draw-objects))))
+	   (if viewer (send self :draw-objects))))
        (return-from :move-to t))
      (when (not (send move-base-action :wait-for-server wait-for-server-timeout))
        (return-from :move-to))
@@ -373,7 +373,7 @@
        (do ((curr-tm 0.0 (+ curr-tm 100.0)))
 	   ((> curr-tm 1000))
 	 (send robot :newcoords (midcoords (/ curr-tm 1000.0) orig-coords coords))
-	 (if viewer (send viewer :draw-objects))))
+	 (if viewer (send self :draw-objects))))
      (return-from :go-velocity t))
    (let ((goal (send self :move-trajectory x y d msec :stop stop)))
      (send move-base-trajectory-action :send-goal goal)
@@ -389,7 +389,7 @@
        (do ((curr-tm 0.0 (+ curr-tm 100.0)))
            ((> curr-tm 1000))
          (send robot :newcoords (midcoords (/ curr-tm 1000.0) orig-coords coords))
-         (if viewer (send viewer :draw-objects))))
+         (if viewer (send self :draw-objects))))
      (return-from :go-pos-unsafe t))
    (let (msec step goal (maxvel 0.3) (maxrad 0.5))
      ;; package://pr2_base_trajectory_action/config/pr2_base_link.yaml

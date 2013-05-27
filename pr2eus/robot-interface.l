@@ -61,7 +61,7 @@
          (unless viewer
            (setq viewer (instance x::irtviewer :create :title (format nil "~A-interface" (send robot :name)) :view-name (send robot :name))))
          (send viewer :objects (list robot))
-         (send viewer :look-all)
+         (send self :draw-objects)
          (send self :objects objs)
          (if old-viewer (setq user::*viewer* old-viewer)))
        (ros::advertise "/joint_states" sensor_msgs::JointState 1)
@@ -128,7 +128,7 @@
 	     ((>= curr-tm tm))
 	   (send robot :angle-vector (v+ prev-av (scale (/ curr-tm tm) scale-av)))
 	   (send self :publish-joint-state)
-	   (if viewer (send viewer :draw-objects))))))
+	   (if viewer (send self :draw-objects))))))
 
    (send robot :angle-vector av)
    (let ((cacts (gethash ctype controller-table)))
@@ -181,7 +181,7 @@
 		   ((>= curr-tm tm))
 		 (send robot :angle-vector (v+ prev-av (scale (/ curr-tm tm) scale-av)))
 		 (send self :publish-joint-state)
-		 (if viewer (send viewer :draw-objects)))))
+		 (if viewer (send self :draw-objects)))))
 	   ;;
 	   (send robot :angle-vector av)
 
@@ -408,8 +408,14 @@
 	      (mapcar #'(lambda (o) (setf (get o :GL-DISPLAYLIST-ID) nil)) (x::draw-things objects))
 	      (when viewer
                 (send viewer :objects (append (list robot) objects))
-                (send viewer :look-all (list robot))))
+                (send self :draw-objects)))
 	    objects)
+  (:draw-objects ()
+   (when viewer
+     (send viewer :look-all (send (geo::make-bounding-box (flatten (send-all (x::draw-things robot) :vertices))) :grow 0.3))
+     (send viewer :draw-objects)
+     (x::window-main-one)))
+  ;;
   (:joint-action-enable (&optional (e :dummy)) (if (not (eq e :dummy)) (setq joint-action-enable e)) joint-action-enable)
   (:simulation-modep () (null joint-action-enable))
   (:warningp (&optional (w :dummy)) (if (not (eq w :dummy)) (setq warningp w)) warningp)
