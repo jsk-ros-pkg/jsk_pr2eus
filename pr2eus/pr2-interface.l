@@ -302,7 +302,6 @@
 	     (map-goal-coords))
      (unless joint-action-enable
        (let ((orig-coords (send robot :copy-worldcoords)))
-	 (send coords :transform orig-coords :world) ;; this changes coords
 	 (do ((curr-tm 0.0 (+ curr-tm 100.0)))
 	     ((> curr-tm 1000))
 	   (send robot :newcoords (midcoords (/ curr-tm 1000.0) orig-coords coords))
