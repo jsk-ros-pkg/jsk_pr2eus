@@ -98,6 +98,8 @@
   (:state (&rest args) ;; overwrite for jsk_maps/pr2
    (case (car args)
      (:worldcoords
+      (unless joint-action-enable
+	(return-from :state (send self :worldcoords)))
       (send-super :state :worldcoords (or (cadr args) "/world")))
      (t
       (send-super* :state args))
