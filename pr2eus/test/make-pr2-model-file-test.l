@@ -39,9 +39,11 @@
 	      (assert
 	       (= (norm (send (send link-unstable :worldcoords) :difference-rotation (send link-stable :worldcoords))) 0.0)
 	       (format nil "check link orientation ~A ~A" link-unstable link-stable))
+              (unless (eps= (send link-unstable :weight) (send link-stable :weight))
+		(ros::ros-warn "check link weight ~16,12f ~16,12f" (send link-unstable :weight) (send link-unstable :weight)))
 	      (assert
-	       (= (send link-unstable :weight) (send link-stable :weight))
-	       (format nil "check link weight ~A ~A" link-unstable link-stable)))
+	       (eps= (send link-unstable :weight) (send link-stable :weight) 0.5)
+	       (format nil "check link weight ~A(~A) ~A(~A)" link-unstable (send link-unstable :weight) link-stable (send link-stable :weight))))
 	  (send *pr2-unstable* :links) (send *pr2-stable* :links))
   )
 
@@ -57,16 +59,22 @@
 	      ;;
 
 	      (unless (= (send joint-unstable :min-angle)  (send joint-stable :min-angle))
-		(ros::ros-warn "check min angle between unstable ~A and stable ~A of ~A" (send joint-unstable :min-angle) (send joint-stable :min-angle) (send joint-stable :name) ))
+		(warning-message 3 "check min angle between unstable ~16,12f and stable ~16,12f of ~A~%" (send joint-unstable :min-angle) (send joint-stable :min-angle) (send joint-stable :name) ))
 	      (unless (= (send joint-unstable :max-angle)  (send joint-stable :max-angle))
-		(ros::ros-warn "check max angle between unstable ~A and stable ~A of ~A" (send joint-unstable :max-angle) (send joint-stable :max-angle) (send joint-stable :name) ))
+		(warning-message 3 "check max angle between unstable ~16,12f and stable ~16,12f of ~A~%" (send joint-unstable :max-angle) (send joint-stable :max-angle) (send joint-stable :name) ))
 	      ;;
-	      (assert
+	      (unless
 	       (<= (- (send joint-unstable :min-angle)  (send joint-stable :min-angle)) 0)
-	       (format nil "check min angle between unstable ~A and stable ~A of ~A" (send joint-unstable :min-angle) (send joint-stable :min-angle) (send joint-stable :name) ))
-	      (assert
+	       (warning-message 3 "check min angle between unstable ~16,12f >= stable ~16,12f of ~A~%" (send joint-unstable :min-angle) (send joint-stable :min-angle) (send joint-stable :name) ))
+	      (unless
 	       (>= (- (send joint-unstable :max-angle)  (send joint-stable :max-angle)) 0)
-	       (format nil "check max angle between unstable ~A and stable ~A of ~A" (send joint-unstable :max-angle) (send joint-stable :max-angle) (send joint-stable :name) ))
+	       (warning-message 3 "check max angle between unstable ~16,12f >= stable ~16,12f of ~A~%" (send joint-unstable :max-angle) (send joint-stable :max-angle) (send joint-stable :name) ))
+	      (assert
+	       (eps= (- (send joint-unstable :min-angle)  (send joint-stable :min-angle)) 0.001)
+	       (format nil "check min angle between unstable ~16,12f and stable ~16,12f of ~A" (send joint-unstable :min-angle) (send joint-stable :min-angle) (send joint-stable :name) ))
+	      (assert
+	       (eps= (- (send joint-unstable :max-angle)  (send joint-stable :max-angle)) 0.001)
+	       (format nil "check max angle between unstable ~16,12f and stable ~16,12f of ~A" (send joint-unstable :max-angle) (send joint-stable :max-angle) (send joint-stable :name) ))
 	      )
 	  (send *pr2-unstable* :joint-list) (send *pr2-stable* :joint-list))
   )
@@ -124,15 +132,27 @@
       (assert camera-unstable
 	      (format nil "check camera ~A" camera-name))
       (when camera-unstable
-	(assert (= (norm (send camera-unstable :difference-position
+	(unless (= (norm (send camera-unstable :difference-position
 			     camera-stable)) 0.0)
-		(format nil "check camera position for ~A ~A ~A ~A" camera-name
+		(warning-message 3 "check camera position for ~A ~A ~A ~16,13f~%" camera-name
 			camera-unstable camera-stable
 			(norm (send camera-unstable :difference-position
 				    camera-stable))))
-	(assert (= (norm (send camera-unstable :difference-rotation
+	(assert (eps= (norm (send camera-unstable :difference-position
+			     camera-stable)) 0.0)
+		(format nil "check camera position for ~A ~A ~A ~16,13f" camera-name
+			camera-unstable camera-stable
+			(norm (send camera-unstable :difference-position
+				    camera-stable))))
+	(unless (= (norm (send camera-unstable :difference-rotation
 			       camera-stable)) 0.0)
-		(format nil "check camera rotation for ~A ~A ~A ~A" camera-name
+		(warning-message 3 "check camera rotation for ~A ~A ~A ~16,13f~%" camera-name
+			camera-unstable camera-stable
+			(norm (send camera-unstable :difference-rotation
+				    camera-stable))))
+	(assert (eps= (norm (send camera-unstable :difference-rotation
+			       camera-stable)) 0.0)
+		(format nil "check camera rotation for ~A ~A ~A ~16,13f" camera-name
 			camera-unstable camera-stable
 			(norm (send camera-unstable :difference-rotation
 				    camera-stable))))
@@ -145,9 +165,16 @@
 	(assert (= (send camera-unstable :fovy)
 		   (send camera-stable :fovy))
 		(format nil "check camera fovy for ~A" camera-name))
-	(assert (= (norm (v- (send camera-unstable :view-direction)
+	(unless (= (norm (v- (send camera-unstable :view-direction)
 			     (send camera-stable :view-direction))) 0.0)
-		(format nil "check camera view-direction for ~A ~A ~A ~A" camera-name
+		(warning-message 3 "check camera view-direction for ~A ~A ~A ~16,13f~%" camera-name
+			(send camera-unstable :view-direction)
+			(send camera-stable :view-direction)
+			(norm (v- (send camera-unstable :view-direction)
+				  (send camera-stable :view-direction)))))
+	(assert (eps= (norm (v- (send camera-unstable :view-direction)
+			     (send camera-stable :view-direction))) 0.0)
+		(format nil "check camera view-direction for ~A ~A ~A ~16,13f" camera-name
 			(send camera-unstable :view-direction)
 			(send camera-stable :view-direction)
 			(norm (v- (send camera-unstable :view-direction)
