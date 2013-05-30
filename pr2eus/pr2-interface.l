@@ -350,12 +350,14 @@
 		 (unix:sleep 1) ;; ???
 		 (send self :go-velocity x y d msec)
 		 (unix::usleep (* (round msec) 1000)))
-	     (ros::ros-error "too far from goal position (> 200mm)"))
+             (progn
+               (ros::ros-error "too far from goal position (> 200mm)")
+               (return-from :move-to nil)))
 	   (send *tfl* :wait-for-transform "/map" "/base_footprint" (ros::time-now) 5)
 	   (setq current-coords (send *tfl* :lookup-transform "/map" "/base_footprint" (ros::time 0)))
 	   (setq diff (send current-coords :transformation map-goal-coords))
 	   (ros::ros-warn ":move-to goal difference ~A" diff)
-	   )
+	   ) ;;  (do (i 2)
 	 ))
      ret))
   (:go-pos
