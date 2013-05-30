@@ -18,7 +18,7 @@
        (f fname_urdf :direction :output)
        (format f s))
 
-      (unix::system (format nil "rosrun collada_urdf_jsk_patch urdf_to_collada ~A ~A" fname_urdf fname_collada))
+      (unix::system (format nil "rosrun collada_urdf urdf_to_collada ~A ~A" fname_urdf fname_collada))
       (unix::system (format nil "rosrun euscollada collada2eus ~A ~A ~A" fname_collada fname_yaml fname_lisp))
 
       (warning-message 2 "load model file from parameter server /robot_description to ~A~%" fname_lisp)
