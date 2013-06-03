@@ -1,5 +1,6 @@
 <launch>
-  <rosparam command="load" file="$(find pr2eus)/test/pr1012_urdf.yaml" param="robot_description"/>
+  <arg name="PR2_NO" default="1012" />
+  <rosparam command="load" file="$(find pr2eus)/test/pr$(arg PR2_NO)_urdf.yaml" param="robot_description"/>
   <node name="pr2_camera_info" pkg="rosbag" type="play"
 	args="-l $(find pr2eus)/test/pr1012_camera_info.bag" />
   <test test-name="make_pr2_model_file_test" pkg="roseus" type="roseus"
