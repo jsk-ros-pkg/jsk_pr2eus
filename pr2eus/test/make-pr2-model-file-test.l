@@ -139,7 +139,7 @@
 			(norm (send camera-unstable :difference-position
 				    camera-stable))))
 	(assert (eps= (norm (send camera-unstable :difference-position
-			     camera-stable)) 0.0)
+			     camera-stable)) 1.0)
 		(format nil "check camera position for ~A ~A ~A ~16,13f" camera-name
 			camera-unstable camera-stable
 			(norm (send camera-unstable :difference-position
@@ -151,7 +151,7 @@
 			(norm (send camera-unstable :difference-rotation
 				    camera-stable))))
 	(assert (eps= (norm (send camera-unstable :difference-rotation
-			       camera-stable)) 0.0)
+			       camera-stable)) (deg2rad 1.0))
 		(format nil "check camera rotation for ~A ~A ~A ~16,13f" camera-name
 			camera-unstable camera-stable
 			(norm (send camera-unstable :difference-rotation
