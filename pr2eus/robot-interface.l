@@ -36,6 +36,7 @@
 (defmethod robot-interface
   (:init
    (&rest args &key ((:robot r)) ((:objects objs)) (type :default-controller)
+          (joint-state-topic "/joint_states") (use-tf2)
           ((:groupname nh) "robot_multi_queue") &allow-other-keys)
    (setq joint-action-enable t)
    (setq robot (cond ((derivedp r metaclass) (instance r :init))
@@ -45,8 +46,15 @@
      (ros::roseus "default_robot_interface"))
    (ros::create-nodehandle groupname)
    ;;
-   (defvar *tfl* (instance ros::transform-listener :init))
-   (ros::subscribe "/joint_states" sensor_msgs::JointState
+   (cond
+    (use-tf2
+     (unless (boundp '*tfl*)
+       (defvar *tfl* (instance ros::buffer-client :init))))
+    (t
+     (unless (boundp '*tfl*)
+       (defvar *tfl* (instance ros::transform-listener :init))))
+
+   (ros::subscribe joint-state-topic sensor_msgs::JointState
                    #'send self :ros-state-callback :groupname groupname)
    ;;
    (setq controller-table (make-hash-table :size 14 :test #'eq :rehash-size 1.2))
