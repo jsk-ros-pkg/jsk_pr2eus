@@ -1,0 +1,8 @@
+<launch>
+  <include file="$(find pr2_gazebo)/launch/pr2_empty_world.launch">
+    <arg name="gui" value="false" />
+  </include>
+  <test test-name="pr2_ri_test" pkg="roseus" type="roseus"
+	args="$(find pr2eus)/test/pr2-ri-test.l"
+        retry="3" />
+</launch>
