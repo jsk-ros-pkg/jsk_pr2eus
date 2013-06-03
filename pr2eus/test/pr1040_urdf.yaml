@@ -598,32 +598,31 @@
   head_mount_link\">\n    <inertial>\n      <mass value=\"0.1\"/>\n      <origin rpy=\"\
   0 0 0\" xyz=\"0 0 0\"/>\n      <inertia ixx=\"0.01\" ixy=\"0\" ixz=\"0\" iyy=\"\
   0.01\" iyz=\"0\" izz=\"0.01\"/>\n    </inertial>\n    <visual>\n      <origin rpy=\"\
-  0 0 0\" xyz=\"0 0 0\"/>\n      <geometry>\n        <mesh filename=\"package://pr2_description/meshes/sensors/kinect_prosilica_v0/115x100_swept_back--coarse.STL\"\
-  \ scale=\"0.001 0.001 0.001\"/>\n      </geometry>\n      <material name=\"gray\"\
-  >\n        <color rgba=\"0.5 0.5 0.5 1\"/>\n      </material>\n    </visual>\n \
-  \   <collision>\n      <origin rpy=\"0 0 0\" xyz=\"0 0 0\"/>\n      <geometry>\n\
-  \        <sphere radius=\"0.0005\"/>\n      </geometry>\n    </collision>\n  </link>\n\
-  \  <joint name=\"head_mount_kinect_ir_joint\" type=\"fixed\">\n    <parent link=\"\
-  head_mount_link\"/>\n    <child link=\"head_mount_kinect_ir_link\"/>\n    <origin\
-  \ rpy=\"0 0 0\" xyz=\"-0.032267 0.0125 0.136453\"/>\n  </joint>\n  <link name=\"\
-  head_mount_kinect_ir_link\">\n    <inertial>\n      <mass value=\"0.1\"/>\n    \
-  \  <origin rpy=\"0 0 0\" xyz=\"0 0 0\"/>\n      <inertia ixx=\"0.01\" ixy=\"0\"\
-  \ ixz=\"0\" iyy=\"0.01\" iyz=\"0\" izz=\"0.01\"/>\n    </inertial>\n    <visual>\n\
+  0 0 0\" xyz=\"0 0 0\"/>\n      <geometry>\n        <mesh filename=\"package://pr2_description/meshes/sensors/kinect_prosilica_v0/kinect_mount.dae\"\
+  />\n      </geometry>\n      <material name=\"gray\">\n        <color rgba=\"0.5\
+  \ 0.5 0.5 1\"/>\n      </material>\n    </visual>\n    <collision>\n      <origin\
+  \ rpy=\"0 0 0\" xyz=\"0 0 0\"/>\n      <geometry>\n        <sphere radius=\"0.0005\"\
+  />\n      </geometry>\n    </collision>\n  </link>\n  <joint name=\"head_mount_kinect_ir_joint\"\
+  \ type=\"fixed\">\n    <parent link=\"head_mount_link\"/>\n    <child link=\"head_mount_kinect_ir_link\"\
+  />\n    <origin rpy=\"0 0 0\" xyz=\"-0.032267 0.0125 0.136453\"/>\n  </joint>\n\
+  \  <link name=\"head_mount_kinect_ir_link\">\n    <inertial>\n      <mass value=\"\
+  0.1\"/>\n      <origin rpy=\"0 0 0\" xyz=\"0 0 0\"/>\n      <inertia ixx=\"0.01\"\
+  \ ixy=\"0\" ixz=\"0\" iyy=\"0.01\" iyz=\"0\" izz=\"0.01\"/>\n    </inertial>\n \
+  \   <visual>\n      <origin rpy=\"0 0 0\" xyz=\"0 0 0\"/>\n      <geometry>\n  \
+  \      <sphere radius=\"0.0005\"/>\n      </geometry>\n    </visual>\n    <collision>\n\
   \      <origin rpy=\"0 0 0\" xyz=\"0 0 0\"/>\n      <geometry>\n        <sphere\
-  \ radius=\"0.0005\"/>\n      </geometry>\n    </visual>\n    <collision>\n     \
-  \ <origin rpy=\"0 0 0\" xyz=\"0 0 0\"/>\n      <geometry>\n        <sphere radius=\"\
-  0.0005\"/>\n      </geometry>\n    </collision>\n  </link>\n  <joint name=\"head_mount_kinect_ir_optical_frame_joint\"\
-  \ type=\"fixed\">\n    <parent link=\"head_mount_kinect_ir_link\"/>\n    <child\
-  \ link=\"openni_depth_optical_frame\"/>\n    <origin rpy=\"-1.57079632679 0 -1.57079632679\"\
-  \ xyz=\"0 0 0\"/>\n  </joint>\n  <link name=\"openni_depth_optical_frame\"/>\n \
-  \ <gazebo reference=\"head_mount_kinect_ir_link\">\n    <sensor:camera name=\"head_mount_ir_sensor\"\
-  >\n      <imageFormat>L8</imageFormat>\n      <imageSize>640 480</imageSize>\n \
-  \     <hfov>57</hfov>\n      <nearClip>0.01</nearClip>\n      <farClip>5</farClip>\n\
-  \      <updateRate>1.0</updateRate>\n      <baseline>0.2</baseline>\n      <controller:gazebo_ros_openni_kinect\
-  \ name=\"head_mount_kinect_ir_link_controller\" plugin=\"libgazebo_ros_openni_kinect.so\"\
-  >\n        <alwaysOn>true</alwaysOn>\n        <updateRate>1.0</updateRate>\n   \
-  \     <cameraName>openni_depth</cameraName>\n        <imageTopicName>/openni/depth/image_raw</imageTopicName>\n\
-  \        <cameraInfoTopicName>/openni/depth/camera_info</cameraInfoTopicName>\n\
+  \ radius=\"0.0005\"/>\n      </geometry>\n    </collision>\n  </link>\n  <joint\
+  \ name=\"head_mount_kinect_ir_optical_frame_joint\" type=\"fixed\">\n    <parent\
+  \ link=\"head_mount_kinect_ir_link\"/>\n    <child link=\"openni_depth_optical_frame\"\
+  />\n    <origin rpy=\"-1.57079632679 0 -1.57079632679\" xyz=\"0 0 0\"/>\n  </joint>\n\
+  \  <link name=\"openni_depth_optical_frame\"/>\n  <gazebo reference=\"head_mount_kinect_ir_link\"\
+  >\n    <sensor:camera name=\"head_mount_ir_sensor\">\n      <imageFormat>L8</imageFormat>\n\
+  \      <imageSize>640 480</imageSize>\n      <hfov>57</hfov>\n      <nearClip>0.01</nearClip>\n\
+  \      <farClip>5</farClip>\n      <updateRate>1.0</updateRate>\n      <baseline>0.2</baseline>\n\
+  \      <controller:gazebo_ros_openni_kinect name=\"head_mount_kinect_ir_link_controller\"\
+  \ plugin=\"libgazebo_ros_openni_kinect.so\">\n        <alwaysOn>true</alwaysOn>\n\
+  \        <updateRate>1.0</updateRate>\n        <cameraName>openni_depth</cameraName>\n\
+  \        <imageTopicName>/openni/depth/image_raw</imageTopicName>\n        <cameraInfoTopicName>/openni/depth/camera_info</cameraInfoTopicName>\n\
   \        <depthImageTopicName>/openni/depth/image_raw</depthImageTopicName>\n  \
   \      <depthImageInfoTopicName>/openni/depth/camera_info</depthImageInfoTopicName>\n\
   \        <pointCloudTopicName>/openni/depth/points</pointCloudTopicName>\n     \
