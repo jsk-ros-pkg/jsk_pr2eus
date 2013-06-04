@@ -238,7 +238,6 @@
      ))
   (:start-grasp
    (&optional (arm :arms) &key ((:gain g) 0.01) ((:objects objs) objects))
-   (send self :move-gripper arm 0.0 :effort (* 2000 g) :wait t)
    (unless joint-action-enable
      (dolist (a (if (eq arm :arms) '(:larm :rarm) (list arm)))
        (let ((grasp-convex
@@ -255,13 +254,24 @@
 	     (if (send obj :parent) (send (send obj :parent) :dissoc obj))
 	     (send robot a :end-coords :assoc obj)))))
      (return-from :start-grasp nil))
-   (send self :update-robot-state) ;; update state of 'robot' 
-   (case arm
-	 (:larm (send robot :l_gripper_joint :joint-angle))
-	 (:rarm (send robot :r_gripper_joint :joint-angle))
-	 (t (list 
-	     (send robot :l_gripper_joint :joint-angle)
-	     (send robot :r_gripper_joint :joint-angle)))))
+   (let ((ret (send self :move-gripper arm 0.0 :effort (* 2000 g) :wait t))
+         (clients (case arm
+                    (:rarm (list r-gripper-action))
+                    (:larm (list l-gripper-action))
+                    (:arms (list r-gripper-action l-gripper-action))
+                    (t (ros::ros-warn "arm[~a] in :move-gripper is invalid type" arm))))
+         resend-goal)
+     (dolist (client clients)
+       (ros::ros-debug ";; :move-gripper check reached_goal ~A" (send (send client :get-result) :reached_goal))
+       (unless (send (send client :get-result) :reached_goal) ;; in case that reached_gal is fail, try one more time
+         (ros::ros-debug ";; :move-gripper ~A need to resend goal, position = ~A" (send client :name) (send (send client :get-result) :position))
+         (setq resend-goal t)))
+     (if resend-goal (send self :move-gripper arm 0.0 :effort (* 2000 g) :wait t))
+     (case arm
+       (:rarm (* 1000 (send (send r-gripper-action :get-result) :position)))
+       (:larm (* 1000 (send (send l-gripper-action :get-result) :position)))
+       (:arms (mapcar #'(lambda (c) (* 1000 (send (send c :get-result) :position))) (list r-gripper-action l-gripper-action))))
+     ))
   (:stop-grasp
    (&optional (arm :arms) &key (wait nil))
    (send self :move-gripper arm 0.09 :wait wait)
