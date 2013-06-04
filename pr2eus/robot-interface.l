@@ -52,7 +52,7 @@
        (defvar *tfl* (instance ros::buffer-client :init))))
     (t
      (unless (boundp '*tfl*)
-       (defvar *tfl* (instance ros::transform-listener :init))))
+       (defvar *tfl* (instance ros::transform-listener :init)))))
 
    (ros::subscribe joint-state-topic sensor_msgs::JointState
                    #'send self :ros-state-callback :groupname groupname)
