@@ -22,7 +22,7 @@
   (while (or (not (boundp '*ri*)) (send *ri* :simulation-modep))
     (setq *ri* (instance pr2-interface :init)))
 
-  (dotimes (i 20)
+  (dotimes (i 10)
     (send *ri* :move-gripper :arms 100.0 :effort 20 :wait t)
     (unix:sleep 1)
     (assert (< (setq r (send *ri* :start-grasp :rarm)) 10)
