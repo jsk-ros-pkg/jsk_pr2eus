@@ -238,6 +238,7 @@
      ))
   (:start-grasp
    (&optional (arm :arms) &key ((:gain g) 0.01) ((:objects objs) objects))
+   (send self :move-gripper arm 0.0 :effort (* 2000 g) :wait t)
    (unless joint-action-enable
      (dolist (a (if (eq arm :arms) '(:larm :rarm) (list arm)))
        (let ((grasp-convex
@@ -253,9 +254,15 @@
 		      (not (= (pqp-collision-check grasp-convex obj) 0)))
 	     (if (send obj :parent) (send (send obj :parent) :dissoc obj))
 	     (send robot a :end-coords :assoc obj)))))
-     (return-from :start-grasp nil))
-   (let ((ret (send self :move-gripper arm 0.0 :effort (* 2000 g) :wait t))
-         (clients (case arm
+     ;; (send self :update-robot-state) ;; update state of 'robot' for real robot
+     (return-from :start-grasp
+       (case arm
+         (:larm (send robot :l_gripper_joint :joint-angle))
+         (:rarm (send robot :r_gripper_joint :joint-angle))
+         (t (list
+             (send robot :l_gripper_joint :joint-angle)
+             (send robot :r_gripper_joint :joint-angle))))))
+   (let ((clients (case arm
                     (:rarm (list r-gripper-action))
                     (:larm (list l-gripper-action))
                     (:arms (list r-gripper-action l-gripper-action))
