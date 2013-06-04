@@ -16,6 +16,24 @@
   (makunbound '*ri*)
   )
 
+(deftest test-start-grasp
+  (setq *pr2* (pr2))
+
+  (while (or (not (boundp '*ri*)) (send *ri* :simulation-modep))
+    (setq *ri* (instance pr2-interface :init)))
+
+  (dotimes (i 20)
+    (send *ri* :move-gripper :arms 100.0 :effort 20 :wait t)
+    (unix:sleep 1)
+    (assert (< (setq r (send *ri* :start-grasp :rarm)) 10)
+            (format nil "~A check :start-grasp :rarm -> ~A" i r))
+    (assert (< (setq r (send *ri* :start-grasp :larm)) 10)
+            (format nil "~A check :start-grasp :larm -> ~A" i r))
+    (unix:sleep 1))
+
+  (makunbound '*ri*)
+  )
+
 (deftest test-tuckle-arm
   (dotimes (i 3)
     (while (or (not (boundp '*ri*)) (send *ri* :simulation-modep))
