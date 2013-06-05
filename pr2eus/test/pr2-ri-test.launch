@@ -3,5 +3,5 @@
     <arg name="gui" value="false" />
   </include>
   <test test-name="pr2_ri_test" pkg="roseus" type="roseus"
-	args="$(find pr2eus)/test/pr2-ri-test.l" />
+	args="$(find pr2eus)/test/pr2-ri-test.l" time-limit="300" />
 </launch>
