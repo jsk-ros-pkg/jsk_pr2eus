@@ -1,8 +1,18 @@
 <launch>
-  <include file="$(find pr2_gazebo)/launch/pr2_empty_world.launch">
-    <arg name="gui" value="false" />
-    <arg name="throttled" value="true" />
-  </include>
+  <!-- start up empty world : expand following launch files to respawn gazebo -->
+  <!-- include file="$(find pr2_gazebo)/launch/pr2_empty_world.launch" -->
+  <!-- include file="$(find gazebo_worlds)/launch/empty_world_paused.launch" -->
+  <!-- set use_sim_time flag -->
+  <param name="/use_sim_time" value="true" />
+
+  <!-- start empty world -->
+  <node name="gazebo" pkg="gazebo" type="gazebo" args="-u $(find gazebo_worlds)/worlds/empty_throttled.world" respawn="true" output="screen"/>
+
+
+  <!-- start pr2 robot -->
+  <include file="$(find pr2_gazebo)/launch/pr2.launch"/>
+
+  <!-- start test -->
   <test test-name="pr2_ri_test" pkg="roseus" type="roseus"
 	args="$(find pr2eus)/test/pr2-ri-test.l" time-limit="300" />
 </launch>
