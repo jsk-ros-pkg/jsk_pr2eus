@@ -269,25 +269,27 @@
                     (:arms (list (cons :r_gripper_joint r-gripper-action)
 				 (cons :l_gripper_joint l-gripper-action)))
                     (t (ros::ros-warn "arm[~a] in :move-gripper is invalid type" arm))))
-         aresult ajoint resend-goal)
+         aresult ajoint resend-goal ret)
      (send self :update-robot-state) ;; update state of 'robot' for real robot
      (dolist (client clients)
        (setq aresult (send (cdr client) :get-result)
 	     ajoint (send robot (car client)))
        (ros::ros-debug ";; :move-gripper check reached_goal ~A, position ~A, robot-body angle ~A" (send aresult :reached_goal) (* 1000 (send aresult :position)) (send ajoint :joint-angle))
        (unless (send aresult :reached_goal) ;; in case that reached_gal is fail, try one more time
-         (ros::ros-debug ";; :move-gripper ~A need to resend goal, position = ~A" (send ajoint :name) (* 1000 (send aresult :position)))
+         (ros::ros-debug ";; :move-gripper ~A need to resend goal, position = ~A, unreached" (send ajoint :name) (* 1000 (send aresult :position)))
          (setq resend-goal t))
        ;;
        (unless (eps= (* 1000 (send aresult :position)) (send ajoint :joint-angle) 2)
-         (ros::ros-debug ";; :move-gripper ~A need to resend goal, position = ~A/~A " (send ajoint :name) (* 1000 (send aresult :position)) (send ajoint :joint-angle))
+         (ros::ros-debug ";; :move-gripper ~A need to resend goal, position = ~A/~A, result and udpate-body differs" (send ajoint :name) (* 1000 (send aresult :position)) (send ajoint :joint-angle))
          (setq resend-goal t)))
      (if resend-goal (send self :move-gripper arm 0.0 :effort (* 2000 g) :wait t))
-     (case arm
-       (:rarm (* 1000 (send (send r-gripper-action :get-result) :position)))
-       (:larm (* 1000 (send (send l-gripper-action :get-result) :position)))
-       (:arms (mapcar #'(lambda (c) (* 1000 (send (send c :get-result) :position))) (list r-gripper-action l-gripper-action))))
-     ))
+     (setq ret
+           (case arm
+             (:rarm (* 1000 (send (send r-gripper-action :get-result) :position)))
+             (:larm (* 1000 (send (send l-gripper-action :get-result) :position)))
+             (:arms (mapcar #'(lambda (c) (* 1000 (send (send c :get-result) :position))) (list r-gripper-action l-gripper-action)))))
+     (ros::ros-debug ";; :move-gripper ~A returns ~A" (send ajoint :name) ret)
+     ret))
   (:stop-grasp
    (&optional (arm :arms) &key (wait nil))
    (send self :move-gripper arm 0.09 :wait wait)
