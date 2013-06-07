@@ -43,6 +43,16 @@
     (makunbound '*ri*)
     ))
 
+(deftest test-wait-interpolation-after-stop-grasp
+  (setq *pr2* (pr2))
+
+  (while (or (not (boundp '*ri*)) (send *ri* :simulation-modep))
+    (setq *ri* (instance pr2-interface :init)))
+  (send *ri* :stop-grasp :rarm :wait t)
+  (send *ri* :wait-interpolation)
+  (makunbound '*ri*)
+  )
+
 (run-all-tests)
 (exit)
 
