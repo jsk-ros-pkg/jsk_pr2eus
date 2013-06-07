@@ -1,0 +1,9 @@
+<launch>
+  <include file="$(find pr2_gazebo)/launch/pr2_empty_world.launch">
+    <arg name="gui" value="false" />
+    <arg name="throttled" value="true" />
+  </include>
+  <include file="$(find ee_cart_imped_launch)/launch/load_ee_cart_imped.launch" />
+  <test test-name="pr2_impedance_test" pkg="roseus" type="roseus"
+	args="$(find pr2eus_impedance)/test/test-impedance.l" time-limit="300" />
+</launch>

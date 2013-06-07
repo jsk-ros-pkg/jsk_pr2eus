@@ -1,0 +1,25 @@
+<package>
+  <description brief="pr2eus_impedance">
+
+     pr2eus_impedance
+
+  </description>
+  <author>Yusuke Furuta</author>
+  <author>Yohei Kakiuchi</author>
+
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/pr2eus_impedance</url>
+
+  <depend package="pr2eus"/>
+
+  <depend package="pr2_mechanism_msgs"/>
+
+  <depend package="ee_cart_imped_jsk_patch"/>
+  <depend package="ee_cart_imped_control"/>
+  <depend package="ee_cart_imped_action"/>
+  <depend package="ee_cart_imped_msgs"/>
+
+</package>
+
+
