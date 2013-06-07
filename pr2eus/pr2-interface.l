@@ -14,7 +14,7 @@
 (ros::roseus-add-msgs "move_base_msgs")
 (ros::roseus-add-msgs "nav_msgs")
 (ros::roseus-add-msgs "sound_play")
-(load "speak.l")
+(load "package://pr2eus/speak.l")
 
 (defmethod pr2-robot
   (:torque-vector
