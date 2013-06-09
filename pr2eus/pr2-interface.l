@@ -569,6 +569,43 @@
      (send-super* :angle-vector-sequence avs tms args))
   ) ;; pr2-interface
 
+(defmethod pr2-interface
+  (:angle-vector-with-constraint
+   (av1 &optional (tm 3000) (arm) &key (rotation-axis t) (translation-axis t) &rest args)
+   (let (av0 c0 c1 avs tms ret arm-av pav)
+     (setq pav (send robot :angle-vector))
+     (unless (memq arm '(:larm :rarm))
+       (warning-message 1 ":angle-vector-with-constraint arm=~A is not supported, use :larm or :rarm~%" arm)
+       (return-from :angle-vector-with-constraint nil))
+     (send robot :angle-vector av1)
+     (setq c1 (send robot arm :end-coords :copy-worldcoords))
+     (setq av0 (send robot :angle-vector (send self :state :reference-vector)))
+     (setq arm-av (send robot arm :angle-vector))
+     (setq c0 (send robot arm :end-coords :copy-worldcoords))
+     (dotimes (i 10)
+       (send robot :angle-vector (midpoint (/ (1+ i) 10.0) av0 av1))
+       (send robot arm :angle-vector arm-av)
+       (setq ret (send robot arm :inverse-kinematics (midcoords (/ (1+ i) 10.0) c0 c1)
+                       :rotation-axis rotation-axis :translation-axis translation-axis))
+       (unless ret
+         (warning-message 1 ":angle-vector-with-constraint ik failed~%")
+         (send robot :angle-vector pav)
+         (return-from :angle-vector-with-constraint nil))
+       (setq arm-av (send robot arm :angle-vector))
+       (push (send robot :angle-vector) avs)
+       (push (/ tm 10.0) tms))
+     (setq avs (reverse avs))
+     (unless joint-action-enable
+       (dolist (av avs)
+         (send robot :angle-vector av)
+         (if viewer (send self :draw-objects)))
+        (return-from :angle-vector-with-constraint avs))
+     (send-super :angle-vector-sequence avs tms) ;; avoid :check-continuous-joint-move-over-180
+     )) ; :angle-vector-with-constraint
+  ) ;; defmethod pr2-interface
+
+   
+
 ;;;;;
 ;;;;; utility functions pr2 robot
 ;;;;;
