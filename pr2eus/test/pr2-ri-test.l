@@ -59,7 +59,7 @@
   (let ((frame_id (case arm
                         (:larm "/l_gripper_tool_frame")
                         (:rarm "/r_gripper_tool_frame")))
-        c0 c1 rotate-flag)
+        c0 c1 rotate-flag ret)
     (ros::ros-info "check-arm-rotation ~A" av0)
     (ros::ros-info "                   ~A" av1)
     (when (and x::*display* (> x::*display* 0))
@@ -69,8 +69,11 @@
       (send *b* :translate #f(0 0 50))
       (send (send *pr2* arm :end-coords) :assoc *b*)
       (objects (list *pr2* *b*)))
+    (send *pr2* :angle-vector av1)
+    (setq c1 (send *pr2* arm :end-coords :copy-worldcoords))
     (send *pr2* :angle-vector av0)
     (setq c0 (send *pr2* arm :end-coords :copy-worldcoords))
+    (assert (< (norm (send c0 :difference-rotation c1 :rotation-axis :z)) pi/2) "~A -> ~A" c0 c1) ;; check if initial coords and last coords has same direction
     (dotimes (i 10)
       (send *pr2* :angle-vector (midpoint (/ i 10.0) av0 av1))
       (when (boundp '*irtviewer*)
@@ -79,14 +82,18 @@
       (if (> (norm (send c0 :difference-rotation c1)) pi/2)
           (setq rotate-flag t)))
     (when rotate-flag
-      (ros::ros-warn "                   : this is rotation motion, do not check with simulator")
+      (ros::ros-warn "                   : this is rotation motion, check with angle-vector-with-constraint")
+      (send *ri* :angle-vector av0 500)
+      (send *ri* :wait-interpolation)
+      (assert (send *ri* :angle-vector-with-constraint av1 5000 arm :rotation-axis :z) ":anlge-vector-with-constraint ~A" av1)
+      (send *ri* :wait-interpolation)
       (return-from check-arm-rotation nil))
 
     (ros::ros-warn "                   : this is NOT rotation motion, check with simulator")
 
-    (send *ri* :angle-vector av0)
+    (send *ri* :angle-vector av0 500)
     (send *ri* :wait-interpolation)
-    (send *ri* :angle-vector av1)
+    (send *ri* :angle-vector av1 5000)
     (setq c0 (send *tfl* :lookup-transform "/base_footprint" frame_id (ros::time 0)))
     (ros::ros-info "        end-coords : ~A" c0)
     (while (null (some #'identity (send-all (*ri* . controller-actions) :wait-for-result :timeout 0.01)))
@@ -123,6 +130,13 @@
   (check-arm-rotation :larm
                       #f(67.7477 42.8826 4.27682 59.283 -33.9308 71.4826 -18.4835 225.439 -60.0 74.0 -70.0 -120.0 -20.0 -30.0 180.0 0.0 0.0)
                       #f(67.7477 106.511 -17.9604 97.431 -118.365 225.343 -17.2478 30.768 -60.0 74.0 -70.0 -120.0 -20.0 -30.0 180.0 0.0 0.0))
+
+  ;; :angle-vector-with-constraint :arms
+  (dolist (arm '(:larm :rarm :arms))
+    (send *ri* :angle-vector #f(67.7477 42.8826 4.27682 59.283 -33.9308 71.4826 -18.4835 225.439 -60.0 74.0 -70.0 -120.0 -20.0 -30.0 180.0 0.0 0.0) 500)
+    (send *ri* :wait-interpolation)
+    (send *ri* :angle-vector-with-constraint #f(67.7477 106.511 -17.9604 97.431 -118.365 225.343 -17.2478 30.768 -60.0 74.0 -70.0 -120.0 -20.0 -30.0 180.0 0.0 0.0) 5000 arm)
+    (send *ri* :wait-interpolation))
   )
 
 
