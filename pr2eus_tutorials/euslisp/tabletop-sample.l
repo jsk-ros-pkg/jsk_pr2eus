@@ -16,6 +16,8 @@
 (ros::subscribe "/ObjectDetection" posedetection_msgs::ObjectDetection
                 #'detect-callback)
 
+;; initialize PR2 ROS-euslisp interface
+(pr2-init t)
 ;; goto initial pose
 (goto-init-pose)
 
@@ -79,12 +81,12 @@
     (when av-mid
       ;; 手を開く
       (send *ri* :stop-grasp arm)
-      (send *ri* :wait-interpolation) ;; ??
+      (send *ri* :wait-interpolation) ;; wait for finising action
 
       ;; 腕を動かす
       (send *ri* :angle-vector-sequence
             (list av-mid av-ed) (list 3800 1200))
-      (send *ri* :wait-interpolation)
+      (send *ri* :wait-interpolation) ;; wait for finising action
 
       ;; 手を閉じる
       (> (send *ri* :start-grasp arm) 8) ;; hand width is more than 8mm

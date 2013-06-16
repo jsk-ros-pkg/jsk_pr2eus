@@ -41,7 +41,6 @@
   (if wait (send *ri* :wait-interpolation)))
 
 (warn "
-(send *pr2* :reset-manip-pose)
-(send *ri* :angle-vector (send *pr2* :angle-vector) 5000)
-(send *ri* :cancle-angle-vector)
+(pr2-init)
+(goto-init-pose)
 ")
