@@ -520,22 +520,14 @@
      add-new-trajectory-point))
   (:angle-vector
    (av &optional (tm 3000) &rest args)
-   (let (diff-av (i 0))
+   (let (diff-av)
      ;; use reference-vector to get last commanded joint and use :angle-vector to toruncate the joint limit to eus lisp style
      (setq diff-av (v- av (send robot :angle-vector (send self :state :reference-vector))))
      ;; use shortest path for contiuous joint
      ;;
      (when (send self :check-continuous-joint-move-over-180 diff-av)
-       (ros::ros-warn "original trajectory command :")
-       (ros::ros-warn "                       : ~A ~A" av tm)
-       (ros::ros-warn "new trajectory command :")
-       (ros::ros-warn "                       : ~A ~A" (v- av (scale 0.5 diff-av)) (* tm 0.5))
-       (ros::ros-warn "                       : ~A ~A" av (* tm 0.5))
        (return-from :angle-vector
-         (send-super* :angle-vector-sequence
-                      (list (v- av (scale 0.5 diff-av)) av)
-                      (list (* tm 0.5) (* tm 0.5))
-                      args))) ;; when
+         (send* self :angle-vector-sequence (list av) (list tm) args))) ;; when
      (send-super* :angle-vector av tm args)
      ))
   (:angle-vector-sequence
@@ -544,24 +536,29 @@
    (if (< (length tms) (length avs))
        (setq tms (append tms (make-list (- (length avs) (length tms)) :initial-element (car (last tms))))))
    (unless (send self :simulation-modep)
-     (let* ((prev-av (car avs))
+     (let* ((prev-av (send robot :angle-vector (send self :state :reference-vector)))
             (len-av (length prev-av))
             (max-av (fill (instantiate float-vector len-av)  180))
             (min-av (fill (instantiate float-vector len-av) -180))
-            diff-av (l 1))
-       ;; check if avs exceed 180 degree
-       ;;  pr2 controller choose shortest path
-       ;;  eus model uses -180 to 180
-       ;; if eus model moves a jonit from -180 to 180, pr2 should roatate them
-       (dolist (av (cdr avs))
+            diff-av (l 0) dist div)
+       (dolist (av avs)
          ;; check if joint move more than 180 degree which has -inf/inf limit
          (setq diff-av (v- av prev-av))
          (when (send self :check-continuous-joint-move-over-180 diff-av)
+           (setq dist (abs (geo::find-extream (coerce diff-av cons) #'abs #'>=)))
+           (setq div (round (/ dist 120.0)))
            (ros::ros-warn "original trajectory command :")
            (ros::ros-warn "                       : ~A ~A" avs tms)
-           (setq avs (list-insert (v+ prev-av (scale 0.5 diff-av)) l avs))
-           (setf (elt tms l) (/ (elt tms l) 2))
-           (setq tms (list-insert (* (elt tms l) 1) l tms))
+           (ros::ros-warn "  current angle vector : ~A" prev-av)
+           (ros::ros-warn "new trajectory command : dvi = ~A" div)
+           (dotimes (i div)
+             (ros::ros-warn "                       : ~A ~A" (midpoint (/ (+ i 1.0) div) prev-av av) (/ (elt tms l) div)))
+           (dotimes (i (1- div))
+             (setq avs (list-insert (midpoint (/ (+ i 1.0) div) prev-av av) (+ l i) avs)))
+           (setf (elt tms l) (/ (elt tms l) div))
+           (dotimes (i (1- div))
+             (setq tms (list-insert (elt tms l) l tms)))
+           (incf l (1- div))
            (ros::ros-warn "new trajectory command :")
            (ros::ros-warn "                       : ~A ~A" avs tms)
            )
