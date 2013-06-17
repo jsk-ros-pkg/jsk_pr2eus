@@ -159,7 +159,6 @@
    (send self :spin-once) ;; for :state :potentio-vector
    (let ((st 0) (traj-points nil)
          (av-prev (send self :state :potentio-vector)) av av-next
-         (offset (instantiate float-vector (length (send robot :angle-vector))))
          tm tm-next
          (vel (instantiate float-vector (length (car avs)))))
        (prog1 ;; angle-vector-sequence returns avs
@@ -192,22 +191,7 @@
 		 (if viewer (send self :draw-objects)))))
 	   ;;
 	   (send robot :angle-vector av)
-
-	   ;; add offset for rotational joint
-	   ;; eus: -180 - 180
-	   ;; joit trajectory points : -inf - + inf
-	   (when av-prev
-	     (let ((joint-list (send robot :joint-list)) (av-diff (v- av av-prev)) (i 0) j)
-	       (while (setq j (pop joint-list))
-		 (when (and (= (send j :min-angle) *-inf*) (= (send j :max-angle) *inf*))
-		   (cond ((> (elt av-diff i)  180.0)
-			  (incf (elt offset i) -360.0))
-			 ((< (elt av-diff i) -180.0)
-			  (incf (elt offset i)  360.0)
-			  )))
-		 (incf i)
-		 )))
-	   (push (list (v+ av offset)  ;; positions
+	   (push (list av
 		       (copy-seq vel)  ;; velocities
 		       (+ (/ (+ st tm) 1000.0) 0.2)) ;; tm + duration
 		 traj-points)
