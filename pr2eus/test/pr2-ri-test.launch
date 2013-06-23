@@ -4,6 +4,7 @@
   <!-- include file="$(find gazebo_worlds)/launch/empty_world_paused.launch" -->
   <!-- set use_sim_time flag -->
   <param name="/use_sim_time" value="true" />
+  <env name="DISPLAY" value=":0.0" />
 
   <!-- start empty world -->
   <node name="gazebo" pkg="gazebo" type="gazebo" args="$(find gazebo_worlds)/worlds/empty_throttled.world" respawn="true" output="screen"/>
