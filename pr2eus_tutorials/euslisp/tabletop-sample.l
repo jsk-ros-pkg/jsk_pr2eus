@@ -5,8 +5,6 @@
 (load "package://pr2eus_tutorials/euslisp/pr2main.l")
 ;; (load "package://pr2eus_tutorials/arm-navigation-sample.l")
 
-(setq *tfl* (instance ros::transform-listener :init))
-
 (defun detect-callback ( msg )
   (setq *msg* msg))
 
@@ -20,6 +18,11 @@
 (pr2-init t)
 ;; goto initial pose
 (goto-init-pose)
+(send *irtviewer* :draw-objects)
+
+;;
+(unless (boundp '*tfl*)
+  (setq *tfl* (instance ros::transform-listener :init)))
 
 ;; /ObjectDetection に出ている位置を受け取る
 (defun detect-one (&optional (timeout 500))
@@ -68,7 +71,7 @@
     ;;(setq av-ed (send *pr2* :angle-vector))
     ;; 物体をつかむ位置へ手先を持っていくIK(inverse kinematics/逆運動学)
     (let ((cds (send *pr2* arm :end-coords :copy-worldcoords)))
-      (send cds :translate (float-vector 15 0 10 )) ;; 10mm offset of centroid
+      (send cds :translate (float-vector 25 0 10 )) ;; 25mm offset of centroid
       (if (send *pr2* arm :inverse-kinematics cds :rotation-axis :z)
           (setq av-ed (send *pr2* :angle-vector))))
 
@@ -77,22 +80,25 @@
       (send cds :translate (float-vector -75 0 0)) ;; linear reach to object
       (if (send *pr2* arm :inverse-kinematics cds)
           (setq av-mid (send *pr2* :angle-vector))))
-
+    (send *irtviewer* :draw-objects)
     (when av-mid
       ;; 手を開く
       (send *ri* :stop-grasp arm)
       (send *ri* :wait-interpolation) ;; wait for finising action
-
       ;; 腕を動かす
       (send *ri* :angle-vector-sequence
             (list av-mid av-ed) (list 3800 1200))
       (send *ri* :wait-interpolation) ;; wait for finising action
 
       ;; 手を閉じる
-      (> (send *ri* :start-grasp arm) 8) ;; hand width is more than 8mm
+      ;;(> (send *ri* :start-grasp arm) 8) ;; hand width is more than 8mm
+      ;; gripper action not returned while have not reached goal position ???
+      (send *ri* :move-gripper arm 0.03 :wait nil)
+      (unix::usleep (* 2 1000 1000))
       )
     )
    (t nil))
+  (send *irtviewer* :draw-objects)
   ))
 
 (defun pickup-up (&key (arm :rarm))
@@ -100,8 +106,10 @@
   (send *pr2* arm :move-end-pos (float-vector 0 0 55) :world)
   (send *ri* :angle-vector (send *pr2* :angle-vector) 2500)
   (send *ri* :wait-interpolation)
+  (send *irtviewer* :draw-objects)
   ;; 元の姿勢に戻る
   (goto-init-pose)
+  (send *irtviewer* :draw-objects)
   )
 
 (warn ";;
