@@ -29,15 +29,17 @@
 (defclass robot-interface
   :super propertied-object
   :slots (robot objects robot-state joint-action-enable warningp
-                nodehandlename controller-type controller-actions
-                controller-table ;; hashtable :type -> (action)
+                controller-type controller-actions
+                namespace controller-table ;; hashtable :type -> (action)
                 viewer groupname))
 
 (defmethod robot-interface
   (:init
    (&rest args &key ((:robot r)) ((:objects objs)) (type :default-controller)
-          (use-tf2) ((:groupname nh) "robot_multi_queue") &allow-other-keys)
+          (use-tf2) ((:groupname nh) "robot_multi_queue") ((:namespace ns))
+          &allow-other-keys)
    (setq joint-action-enable t)
+   (setq namespace ns)
    (setq robot (cond ((derivedp r metaclass) (instance r :init))
                      (t r)))
    (setq groupname nh)
@@ -53,7 +55,8 @@
      (unless (boundp '*tfl*)
        (defvar *tfl* (instance ros::transform-listener :init)))))
 
-   (ros::subscribe "joint_states" sensor_msgs::JointState
+   (ros::subscribe (if namespace (format nil "~A/joint_states" namespace)
+                     "joint_states") sensor_msgs::JointState
                    #'send self :ros-state-callback :groupname groupname)
    ;;
    (setq controller-table (make-hash-table :size 14 :test #'eq :rehash-size 1.2))
@@ -71,7 +74,8 @@
          (send self :draw-objects)
          (send self :objects objs)
          (if old-viewer (setq user::*viewer* old-viewer)))
-       (ros::advertise "joint_states" sensor_msgs::JointState 1)
+       (ros::advertise (if namespace (format nil "~A/joint_states" namespace)
+                         "joint_states") sensor_msgs::JointState 1)
        ))
    self)
   ;;
@@ -81,7 +85,9 @@
       #'(lambda (param)
           (let* ((controller-action (cdr (assoc :controller-action param)))
                  (action-type (cdr (assoc :action-type param)))
-                 (action (instance ros::simple-action-client :init controller-action action-type
+                 (action (instance ros::simple-action-client :init
+                                   (if namespace (format nil "~A/~A" namespace controller-action)
+                                     controller-action) action-type
                                    :groupname groupname)))
             (push action tmp-actions)))
       (send self ctype))
@@ -97,7 +103,8 @@
      (dolist (param (send self ctype))
        (let* ((controller-state (cdr (assoc :controller-state param)))
               (key (intern (string-upcase controller-state) *keyword-package*)))
-         (ros::subscribe controller-state
+         (ros::subscribe (if namespace (format nil "~A/~A" namespace controller-state)
+                           controller-state)
                          pr2_controllers_msgs::JointTrajectoryControllerState
                          #'send self :set-robot-state1 key :groupname groupname)))
      ;;
@@ -111,7 +118,8 @@
      (setq msg (joint-list->joint_state joint-list))
      (send msg :header :stamp (ros::time-now))
      (when (send self :simulation-modep)
-       (ros::publish "joint_states" msg))
+       (ros::publish (if namespace (format nil "~A/joint_states" namespace)
+                       "joint_states") msg))
      msg))
   (:angle-vector
    (av &optional (tm 3000) (ctype controller-type))
