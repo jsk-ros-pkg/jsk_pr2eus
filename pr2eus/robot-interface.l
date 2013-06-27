@@ -36,8 +36,7 @@
 (defmethod robot-interface
   (:init
    (&rest args &key ((:robot r)) ((:objects objs)) (type :default-controller)
-          (joint-state-topic "/joint_states") (use-tf2)
-          ((:groupname nh) "robot_multi_queue") &allow-other-keys)
+          (use-tf2) ((:groupname nh) "robot_multi_queue") &allow-other-keys)
    (setq joint-action-enable t)
    (setq robot (cond ((derivedp r metaclass) (instance r :init))
                      (t r)))
@@ -54,7 +53,7 @@
      (unless (boundp '*tfl*)
        (defvar *tfl* (instance ros::transform-listener :init)))))
 
-   (ros::subscribe joint-state-topic sensor_msgs::JointState
+   (ros::subscribe "joint_states" sensor_msgs::JointState
                    #'send self :ros-state-callback :groupname groupname)
    ;;
    (setq controller-table (make-hash-table :size 14 :test #'eq :rehash-size 1.2))
@@ -72,7 +71,7 @@
          (send self :draw-objects)
          (send self :objects objs)
          (if old-viewer (setq user::*viewer* old-viewer)))
-       (ros::advertise "/joint_states" sensor_msgs::JointState 1)
+       (ros::advertise "joint_states" sensor_msgs::JointState 1)
        ))
    self)
   ;;
@@ -112,7 +111,7 @@
      (setq msg (joint-list->joint_state joint-list))
      (send msg :header :stamp (ros::time-now))
      (when (send self :simulation-modep)
-       (ros::publish "/joint_states" msg))
+       (ros::publish "joint_states" msg))
      msg))
   (:angle-vector
    (av &optional (tm 3000) (ctype controller-type))
