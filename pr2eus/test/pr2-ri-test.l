@@ -3,26 +3,19 @@
 
 (init-unit-test)
 
+(setq *pr2* (pr2))
+
+(while (or (not (boundp '*ri*)) (send *ri* :simulation-modep))
+  (setq *ri* (instance pr2-interface :init)))
+
 (deftest test-wait-interpolation
-  (setq *pr2* (pr2))
-
-  (while (or (not (boundp '*ri*)) (send *ri* :simulation-modep))
-    (setq *ri* (instance pr2-interface :init)))
-
-  (send *pr2* :reset-pose)
-  (send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
-  (send *ri* :wait-interpolation)
-
-  (makunbound '*ri*)
+  (assert (send *pr2* :reset-pose))
+  (assert (send *ri* :angle-vector (send *pr2* :angle-vector) 2000))
+  (assert (send *ri* :wait-interpolation))
   )
 
 (deftest test-start-grasp
-  (setq *pr2* (pr2))
-
-  (while (or (not (boundp '*ri*)) (send *ri* :simulation-modep))
-    (setq *ri* (instance pr2-interface :init)))
-
-  (dotimes (i 10)
+  (dotimes (i 3)
     (send *ri* :move-gripper :arms 100.0 :effort 20 :wait t)
     (unix:sleep 1)
     (assert (< (setq r (send *ri* :start-grasp :rarm)) 10)
@@ -30,27 +23,16 @@
     (assert (< (setq r (send *ri* :start-grasp :larm)) 10)
             (format nil "~A check :start-grasp :larm -> ~A" i r))
     (unix:sleep 1))
-
-  (makunbound '*ri*)
   )
 
 (deftest test-tuckle-arm
-  (dotimes (i 3)
-    (while (or (not (boundp '*ri*)) (send *ri* :simulation-modep))
-      (setq *ri* (instance pr2-interface :init)))
-    (pr2-tuckarm-pose :larm)
-    (pr2-tuckarm-pose :rarm)
-    (makunbound '*ri*)
-    ))
+  (assert (pr2-tuckarm-pose :larm))
+  (assert (pr2-tuckarm-pose :rarm))
+  )
 
 (deftest test-wait-interpolation-after-stop-grasp
-  (setq *pr2* (pr2))
-
-  (while (or (not (boundp '*ri*)) (send *ri* :simulation-modep))
-    (setq *ri* (instance pr2-interface :init)))
-  (send *ri* :stop-grasp :rarm :wait t)
-  (send *ri* :wait-interpolation)
-  (makunbound '*ri*)
+  (assert (send *ri* :stop-grasp :rarm :wait t))
+  (assert (send *ri* :wait-interpolation))
   )
 
 ;; test code for https://sourceforge.net/p/jsk-ros-pkg/tickets/91
@@ -85,7 +67,7 @@
       (ros::ros-warn "                   : this is rotation motion, check with angle-vector-with-constraint")
       (send *ri* :angle-vector av0 500)
       (send *ri* :wait-interpolation)
-      (assert (send *ri* :angle-vector-with-constraint av1 5000 arm :rotation-axis :z) ":anlge-vector-with-constraint ~A" av1)
+      (assert (send *ri* :angle-vector-with-constraint av1 2000 arm :rotation-axis :z) ":anlge-vector-with-constraint ~A" av1)
       (send *ri* :wait-interpolation)
       (return-from check-arm-rotation nil))
 
@@ -93,7 +75,7 @@
 
     (send *ri* :angle-vector av0 500)
     (send *ri* :wait-interpolation)
-    (send *ri* :angle-vector av1 5000)
+    (send *ri* :angle-vector av1 2000)
     (setq c0 (send *tfl* :lookup-transform "/base_footprint" frame_id (ros::time 0)))
     (ros::ros-info "        end-coords : ~A" c0)
     (while (null (some #'identity (send-all (*ri* . controller-actions) :wait-for-result :timeout 0.01)))
@@ -104,10 +86,6 @@
 
 
 (deftest test-arm-rotation
-  (setq *pr2* (pr2))
-
-  (while (or (not (boundp '*ri*)) (send *ri* :simulation-modep))
-    (setq *ri* (instance pr2-interface :init)))
 
   (check-arm-rotation :larm
                       #f(167.707 29.4094 -11.5979 30.2555 -21.9039 170.135 -32.6374 158.616 -30.7465 10.2422 -59.3904 -105.095 -89.2577 -28.9264 174.513 34.683 15.5661)
