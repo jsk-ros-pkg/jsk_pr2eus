@@ -299,7 +299,8 @@
    (unless joint-action-enable
      (dolist (a (if (eq arm :arms) '(:larm :rarm) (list arm)))
        (dolist (obj (send robot a :end-coords :descendants))
-	 (send robot arm :end-coords :dissoc obj)))))
+	 (send robot arm :end-coords :dissoc obj))))
+   t)
   ;;
   (:pr2-fingertip-callback
    (arm msg) ;; arm = :(r|l)arm-pressure
