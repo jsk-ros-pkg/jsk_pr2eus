@@ -96,7 +96,7 @@
 	      (frame-id (cdr (assoc :frame-id valid-camera)))
 	      (var (eval (intern (string-upcase camera-name)))))
 	 (format f "   ;; ~A ~A~%" var (send var :P))
-	 (format f "   (setq ~A (make-camera-from-ros-camera-info-aux ~A ~A ~A ~A :name :~A))~%~%" camera-name (send var :width) (send var :height) (send var :p) frame-id camera-path)))
+	 (format f "   (setq ~A (make-camera-from-ros-camera-info-aux ~A ~A ~A ~A_lk :name :~A))~%~%" camera-name (send var :width) (send var :height) (send var :p) frame-id camera-path)))
      (format f "   self)~%")
      (format f "~%")
      ;; accessor to camera
