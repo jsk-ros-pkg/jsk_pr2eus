@@ -371,7 +371,7 @@
      (t
       (let ((mm (find (car args) (remove-if-not #'(lambda (x) (substringp "-VECTOR" (string x))) (send self :methods)))))
         (if mm ;; if xx-vector method exists
-            (send self mm)
+            (send* self mm (cdr args))
           (let ((cur robot-state))
             (dolist (key args cur)
               (setq cur (cdr (assoc key cur))))))
