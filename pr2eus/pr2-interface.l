@@ -331,7 +331,7 @@
   (:move-to
    (coords &key (retry 10) (frame-id "/world") (wait-for-server-timeout 5))
    (let (ret (count 0) (tm (ros::time-now))
-	     (pose (ros::coords->tf-pose coords))
+	     (map-to-frame (send *tfl* :lookup-transform "/map" frame-id (ros::time 0)))
              (goal (instance move_base_msgs::MoveBaseActionGoal :init))
 	     (map-goal-coords))
      (unless joint-action-enable
@@ -346,12 +346,19 @@
      ;;
      (send goal :header :stamp tm)
      (send goal :goal :target_pose :header :stamp tm)
-     (send goal :goal :target_pose :header :frame_id frame-id)
-     (send goal :goal :target_pose :pose pose)
+     (if map-to-frame
+	 (progn
+	   (send goal :goal :target_pose :header :frame_id "/map")
+	   (send goal :goal :target_pose :pose
+		 (ros::coords->tf-pose (send (send coords :copy-worldcoords) :transform map-to-frame :world))))
+       (progn ;; fail to find "/map" to frame_id
+	   (send goal :goal :target_pose :header :frame_id frame-id)
+	   (send goal :goal :target_pose :pose (ros::coords->tf-pose coords))
+	 ))
      (while (and (null ret) (<= (inc count) retry))
        (if (> count 0) ;; retry
 	   (clear-costmap))
-       (ros::ros-info "move-to : send-goal to ~A (~d)" (send coords :worldpos) count)
+       (ros::ros-info "move-to : send-goal to ~A at ~A (~d)" (ros::tf-point->pos (send goal :goal :target_pose :pose :position)) (send goal :goal :target_pose :header :frame_id) count)
        (send move-base-action :send-goal goal)
        (send move-base-action :wait-for-result)
        (if (eq (send move-base-action :get-state) actionlib_msgs::GoalStatus::*succeeded*)
