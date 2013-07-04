@@ -391,6 +391,11 @@
 		 (unix::usleep (* (round msec) 1000)))
              (progn
                (ros::ros-error "too far from goal position (> 200mm)")
+	       ;; move-to suceeded buf away from 200 mm
+	       (ros::ros-error ":move-to try to send /move_base_simple/goal")
+	       (ros::advertise "/move_base_simple/goal" geometry_msgs::PoseStamped 1)
+	       (ros::publish "/move_base_simple/goal" (send goal :goal :target_pose))
+	       (unix:sleep 3)
                (return-from :move-to nil)))
 	   (send *tfl* :wait-for-transform "/map" "/base_footprint" (ros::time-now) 5)
 	   (setq current-coords (send *tfl* :lookup-transform "/map" "/base_footprint" (ros::time 0)))
