@@ -358,6 +358,8 @@
      (while (and (null ret) (<= (inc count) retry))
        (if (> count 0) ;; retry
 	   (clear-costmap))
+       (send goal :header :seq count)
+       (send goal :goal :target_pose :header :seq count)
        (ros::ros-info "move-to : send-goal to ~A at ~A (~d)" (ros::tf-point->pos (send goal :goal :target_pose :pose :position)) (send goal :goal :target_pose :header :frame_id) count)
        (send move-base-action :send-goal goal)
        (send move-base-action :wait-for-result)
@@ -394,6 +396,7 @@
 	       ;; move-to suceeded buf away from 200 mm
 	       (ros::ros-error ":move-to try to send /move_base_simple/goal")
 	       (ros::advertise "/move_base_simple/goal" geometry_msgs::PoseStamped 1)
+	       (send goal :goal :target_pose :header :seq (1+ count))
 	       (ros::publish "/move_base_simple/goal" (send goal :goal :target_pose))
 	       (unix:sleep 3)
                (return-from :move-to nil)))
