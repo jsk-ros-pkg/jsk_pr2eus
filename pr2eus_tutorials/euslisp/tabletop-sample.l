@@ -37,7 +37,7 @@
       (ros::spin-once)
       (ros::sleep)
       (if (> (incf cntr) timeout)
-          (return-from detect-one null)))
+          (return-from detect-one nil)))
 
     (setq trans-base->table
           (send *tfl* :lookup-transform
