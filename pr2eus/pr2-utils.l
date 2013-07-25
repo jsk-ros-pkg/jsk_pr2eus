@@ -6,8 +6,14 @@
 (defmethod pr2-robot
   (:select-target-arm
    (c)
-   (let ((v (send self :inverse-transform-vector (send c :worldpos))))
-     (if (> (elt v 1) 0) :larm :rarm)))
+   (cond ((consp c) ;; dual arm
+	  (let ((v0 (send self :inverse-transform-vector (send (car c) :worldpos)))
+		(v1 (send self :inverse-transform-vector (send (cadr c) :worldpos))))
+	    (if (> (elt v0 1) (elt v1 1)) (list :larm :rarm) (list :rarm :larm))))
+	 (t         ;; single arm
+	  (let ((v (send self :inverse-transform-vector (send c :worldpos))))
+	    (if (> (elt v 1) 0) :larm :rarm)) ;; check y-coords
+	  )))
   (:inverse-kinematics
    (target-coords &rest args &key (link-list) (move-arm)
                   (use-torso t) (move-target) (stop 300)
@@ -30,10 +36,12 @@
      ;; 2;do nothing, since move-arm is used to set link-list and move-target
      ;; 3;set move-coords and link-list from move-arm
      ;; 4;set link-list from move-arm and move-target
-     (unless (or move-arm (consp target-coords)) ;; move-arm cannot be used if target-coords is cons
+     (unless move-arm
        (setq move-arm (send self :select-target-arm target-coords)))
      (unless move-target
-       (setq move-target (send self move-arm :end-coords)))
+       (if (consp move-arm)
+	   (setq move-target (mapcar #'(lambda (arm) (send self arm :end-coords)) move-arm))
+	 (setq move-target (send self move-arm :end-coords))))
      (unless link-list
        (setq link-list
              (if (consp target-coords) ;; dual arm
