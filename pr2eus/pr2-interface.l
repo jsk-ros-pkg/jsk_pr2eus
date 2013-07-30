@@ -636,11 +636,6 @@
        (push (send robot :angle-vector) avs)
        (push (/ tm 10.0) tms))
      (setq avs (reverse avs))
-     (unless joint-action-enable
-       (dolist (av avs)
-         (send robot :angle-vector av)
-         (if viewer (send self :draw-objects)))
-        (return-from :angle-vector-with-constraint avs))
      (send-super :angle-vector-sequence avs tms) ;; avoid :check-continuous-joint-move-over-180
      )) ; :angle-vector-with-constraint
   ) ;; defmethod pr2-interface
