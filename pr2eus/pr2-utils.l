@@ -6,10 +6,14 @@
 (defmethod pr2-robot
   (:select-target-arm
    (c)
-   (cond ((consp c) ;; dual arm
+   (cond ((and (consp c) (= 2 (length c))) ;; dual arm
 	  (let ((v0 (send self :inverse-transform-vector (send (car c) :worldpos)))
 		(v1 (send self :inverse-transform-vector (send (cadr c) :worldpos))))
 	    (if (> (elt v0 1) (elt v1 1)) (list :larm :rarm) (list :rarm :larm))))
+         ((consp c) ;; single arm
+	  (let ((v (send self :inverse-transform-vector (send (car c) :worldpos))))
+	    (if (> (elt v 1) 0) :larm :rarm)) ;; check y-coords
+          )
 	 (t         ;; single arm
 	  (let ((v (send self :inverse-transform-vector (send c :worldpos))))
 	    (if (> (elt v 1) 0) :larm :rarm)) ;; check y-coords
