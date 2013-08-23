@@ -322,11 +322,12 @@
 	   (mapcar #'v- current origin))
        current)))
   ;;
-  (:go-stop ()
+  (:go-stop (&optional (force-stop t))
    (when joint-action-enable
      (send move-base-action :cancel-all-goals)
-     (send move-base-trajectory-action :cancel-all-goals)
-     (send self :go-velocity 0 0 0)
+     (prog1
+         (send move-base-trajectory-action :cancel-all-goals)
+       (if force-stop (send self :go-velocity 0 0 0)))
      ))
   (:move-to
    (coords &key (retry 10) (frame-id "/world") (wait-for-server-timeout 5))
