@@ -364,6 +364,10 @@
        (ros::ros-info "move-to : send-goal to ~A at ~A (~d)" (ros::tf-point->pos (send goal :goal :target_pose :pose :position)) (send goal :goal :target_pose :header :frame_id) count)
        (send move-base-action :send-goal goal)
        (send move-base-action :wait-for-result)
+       (when (eq (send move-base-action :get-state)
+                 actionlib_msgs::GoalStatus::*preempted*)
+         (setq ret nil)
+         (return))
        (if (eq (send move-base-action :get-state) actionlib_msgs::GoalStatus::*succeeded*)
            (setq ret t)))
      (ros::ros-info "move-to : ~A" (if ret 'succeeded 'failed))
@@ -389,9 +393,12 @@
 		       y (/ (elt (send diff :worldpos) 1) msec)
 		       d (/ (elt (car (rpy-angle (send diff :worldrot))) 0) (/ msec 1000)))
 		 (ros::ros-warn ":move-to -> :go-velocity x:~A y:~A d:~A msec:~A" x y d msec)
-		 (unix:sleep 1) ;; ???
-		 (send self :go-velocity x y d msec)
-		 (unix::usleep (* (round msec) 1000)))
+                 (unix:usleep (* 400 1000)) ;; ???
+                 (let ((acret (send self :go-velocity x y d msec :wait t)))
+                   (unless acret
+                     (return-from :move-to nil)))
+                 ;;(unix::usleep (* (round msec) 1000)) ;; why time wait
+                 )
              (progn
                (ros::ros-error "too far from goal position (> 200mm)")
 	       ;; move-to suceeded buf away from 200 mm
@@ -416,7 +423,7 @@
      (send self :move-to c :retry 1 :frame-id "/base_footprint")
      ))
   (:go-velocity
-   (x y d &optional (msec 1000) &key (stop t)) ;; [m/sec] [m/sec] [rad/sec]
+   (x y d &optional (msec 1000) &key (stop t) (wait)) ;; [m/sec] [m/sec] [rad/sec]
    (unless joint-action-enable
      (let ((orig-coords (send robot :copy-worldcoords))
 	   (coords (send robot :copy-worldcoords)))
@@ -428,7 +435,9 @@
 	 (if viewer (send self :draw-objects))))
      (return-from :go-velocity t))
    (let ((goal (send self :move-trajectory x y d msec :stop stop)))
-     (send move-base-trajectory-action :send-goal goal)
+     (prog1
+         (send move-base-trajectory-action :send-goal goal)
+       (if wait (send move-base-trajectory-action :wait-for-result)))
      ))
   (:go-pos-unsafe
    (x y &optional (d 0)) ;; [m] [m] [degree]
@@ -456,7 +465,11 @@
        (setq goal (send self :move-trajectory (* x step) (* y step)
                         (* (deg2rad d) step) msec :stop t))
        (send move-base-trajectory-action :send-goal goal)
-       (send move-base-trajectory-action :wait-for-result)
+       (let ((acret
+              (send move-base-trajectory-action :wait-for-result)))
+         (unless acret
+           (return-from :go-pos-unsafe nil))
+         (send move-base-trajectory-action :spin-once))
        (send self :spin-once)
        (send self :spin-once)
        (let ((goal-position (send (elt (send goal :goal :trajectory :points) 1) :positions)) ;; goal
@@ -475,7 +488,7 @@
          (ros::ros-info "                diff-pos ~A ~A, diff-angle ~A" x y d)
          ) ;; let
        ) ;; dotimes
-     ))
+     t))
   (:move-trajectory
    (x y d &optional (msec 1000) &key (stop t)) ;; [m/sec] [m/sec] [rad/sec]
    (send self :spin-once)
