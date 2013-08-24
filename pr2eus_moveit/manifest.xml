@@ -1,0 +1,14 @@
+<package>
+  <description brief="pr2eus_moveit">
+
+     pr2eus_moveit
+
+  </description>
+  <author>YoheiKakiuchi</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/pr2eus_moveit</url>
+
+</package>
+
+
