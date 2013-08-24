@@ -11,24 +11,6 @@
          scenetopic scene-topic)
    (ros::advertise topicname moveit_msgs::CollisionObject 100)
    (setq object-list (make-hash-table)))
-  (:get-planning-scene (&optional (components
-                                   (+ ;;moveit_msgs::PlanningSceneComponents::*SCENE_SETTINGS*
-                                      ;;moveit_msgs::PlanningSceneComponents::*ROBOT_STATE*
-                                      ;;moveit_msgs::PlanningSceneComponents::*ROBOT_STATE_ATTACHED_OBJECTS*
-                                      moveit_msgs::PlanningSceneComponents::*WORLD_OBJECT_NAMES*
-                                      moveit_msgs::PlanningSceneComponents::*WORLD_OBJECT_GEOMETRY*
-                                      moveit_msgs::PlanningSceneComponents::*OCTOMAP*
-                                      moveit_msgs::PlanningSceneComponents::*TRANSFORMS*
-                                      ;;moveit_msgs::PlanningSceneComponents::*ALLOWED_COLLISION_MATRIX*
-                                      ;;moveit_msgs::PlanningSceneComponents::*LINK_PADDING_AND_SCALING*
-                                      ;;moveit_msgs::PlanningSceneComponents::*OBJECT_COLORS*
-                                      )))
-   (let ((req (instance moveit_msgs::GetPlanningSceneRequest :init))
-         ret)
-     (send req :components :components components)
-     (setq ret (ros::service-call scenetopic req))
-     (if ret (send ret :scene))
-     ))
   (:add-object
    (obj &key (frame_id "base_footprint")) ;;
    (let ((msg (gethash obj object-list)))
@@ -154,7 +136,10 @@
    (setq object-list (make-hash-table))
    t)
   (:wipe-all ()
-   (let ((scene (send self :get-planning-scene)))
+   (let ((scene (get-planning-scene :scene-topic scenetopic
+                                    :components (+ moveit_msgs::PlanningSceneComponents::*WORLD_OBJECT_NAMES*
+                                                   moveit_msgs::PlanningSceneComponents::*WORLD_OBJECT_GEOMETRY*
+                                                   moveit_msgs::PlanningSceneComponents::*OCTOMAP*))))
      (when scene
        (dolist (msg (send scene :world :collision_objects))
          (send msg :header :stamp (ros::time-now))
@@ -171,6 +156,25 @@
      (ros::publish topicname msg)
      obj))
   )
+
+(defun get-planning-scene (&key (scene-topic "get_planning_scene")
+                                (components 1023))
+  ;;moveit_msgs::PlanningSceneComponents::*SCENE_SETTINGS*
+  ;;moveit_msgs::PlanningSceneComponents::*ROBOT_STATE*
+  ;;moveit_msgs::PlanningSceneComponents::*ROBOT_STATE_ATTACHED_OBJECTS*
+  ;;moveit_msgs::PlanningSceneComponents::*WORLD_OBJECT_NAMES*
+  ;;moveit_msgs::PlanningSceneComponents::*WORLD_OBJECT_GEOMETRY*
+  ;;moveit_msgs::PlanningSceneComponents::*OCTOMAP*
+  ;;moveit_msgs::PlanningSceneComponents::*TRANSFORMS*
+  ;;moveit_msgs::PlanningSceneComponents::*ALLOWED_COLLISION_MATRIX*
+  ;;moveit_msgs::PlanningSceneComponents::*LINK_PADDING_AND_SCALING*
+  ;;moveit_msgs::PlanningSceneComponents::*OBJECT_COLORS*
+  (let ((req (instance moveit_msgs::GetPlanningSceneRequest :init))
+        ret)
+    (send req :components :components components)
+    (setq ret (ros::service-call scene-topic req))
+    (if ret (send ret :scene))
+    ))
 
 (defun make-collision-map (vox-center-3dp-lst &key (stamp (ros::time-now))
                                               (frame "base_footprint") (grid-size 30))
