@@ -1,7 +1,41 @@
 (ros::load-ros-manifest "pr2eus_moveit")
 
 (require :robot-interface "package://pr2eus/robot-interface.l")
-(require :collision-object-publisher "package://pr2_moveit/euslisp/collision-object-publisher.l")
+(require :collision-object-publisher "package://pr2eus_moveit/euslisp/collision-object-publisher.l")
+
+(defvar *moveit-error-code-list*
+  (list
+   (cons 1 "SUCCESS")
+   (cons 99999 "FAILURE")
+   ;;
+   (cons -1 "PLANNING_FAILED")
+   (cons -2 "INVALID_MOTION_PLAN")
+   (cons -3 "MOTION_PLAN_INVALIDATED_BY_ENVIRONMENT_CHANGE")
+   (cons -4 "CONTROL_FAILED")
+   (cons -5 "UNABLE_TO_AQUIRE_SENSOR_DATA")
+   (cons -6 "TIMED_OUT")
+   (cons -7 "PREEMPTED")
+   ;; planning & kinematics request errors
+   (cons -10 "START_STATE_IN_COLLISION")
+   (cons -11 "START_STATE_VIOLATES_PATH_CONSTRAINTS")
+   ;;
+   (cons -12 "GOAL_IN_COLLISION")
+   (cons -13 "GOAL_VIOLATES_PATH_CONSTRAINTS")
+   (cons -14 "GOAL_CONSTRAINTS_VIOLATED")
+   ;;
+   (cons -15 "INVALID_GROUP_NAME")
+   (cons -16 "INVALID_GOAL_CONSTRAINTS")
+   (cons -17 "INVALID_ROBOT_STATE")
+   (cons -18 "INVALID_LINK_NAME")
+   (cons -19 "INVALID_OBJECT_NAME")
+   ;; system errors
+   (cons -21 "FRAME_TRANSFORM_FAILURE")
+   (cons -22 "COLLISION_CHECKING_UNAVAILABLE")
+   (cons -23 "ROBOT_STATE_STALE")
+   (cons -24 "SENSOR_INFO_STALE")
+   ;; kinematics errors
+   (cons -31 "NO_IK_SOLUTION")
+   ))
 
 (defclass moveit_environment
   :super propertied-object
@@ -18,15 +52,17 @@
 ;; group-name -> joint-list, target-link
 (defmethod moveit_environment
   (:init
-   (&key ((:scene-service sc-srv) "/environment_server/set_planning_scene_diff")
-         ((:planning-service pl-srv) "ompl_planning/plan_kinematic_path")
+   (&key ((:scene-service sc-srv) "/get_planning_scene")
+         ((:planning-service pl-srv) "/plan_kinematic_path")
          ((:robot rb) *pr2*) (frame-id "base_footprint") ;; frame-id needs to be contained in robot_model
          (multi-dof-joint-name "virtual_joint")
          (multi-dof-frame-id "odom_combined"))
    (setq scene-service sc-srv
          planning-service pl-srv
          robot rb
-         default-frame-id frame-id)
+         default-frame-id frame-id
+         multi-dof-name multi-dof-joint-name
+         multi-dof-frame multi-dof-frame-id)
    (setq default-link (send self :search-link-from-name frame-id))
    (setq config-list (send self :default-configuration))
    self)
@@ -34,8 +70,8 @@
   (:search-link-from-name
    (link-name)
    (cond
-    ((find-method robot (intern (string-upcase (format nil "~A_lk")) *keyword-package*))
-     (send robot (intern (string-upcase (format nil "~A_lk")) *keyword-package*)))
+    ((find-method robot (intern (string-upcase (format nil "~A_lk" link-name)) *keyword-package*))
+     (send robot (intern (string-upcase (format nil "~A_lk" link-name)) *keyword-package*)))
     ((find-method robot (intern (string-upcase link-name) *keyword-package*))
      (send robot (intern (string-upcase link-name) *keyword-package*)))
     (t
@@ -67,39 +103,53 @@
   (:get-group-tip-coords (confkey) ;; get-robot-coords
    (let ((link-inst(cdr (assoc :target-link (cdr (assoc confkey config-list))))))
      (send link-inst :copy-worldcoords)))
-#|
-  (:get-planning-scene
-   (&key (collision-operations (instance arm_navigation_msgs::OrderedCollisionOperations :init))
-         (link-padding))
-   (let ((planning_scene_req
-          (instance arm_navigation_msgs::SetPlanningSceneDiffRequest :init)))
-     (send planning_scene_req :planning_scene_diff :link_padding link-padding)
-     (send planning_scene_req :operations collision-operations)
-     (ros::service-call planning-scene-service planning_scene_req))
-   )
-  (:get-ik-for-pose-single
-   (pose_stamped confkey &key (timeout 2.0) (use-actual-seed t))
-   (let ((ik-req (instance kinematics_msgs::GetConstraintAwarePositionIKrequest :init))
-         (link-name (cdr (assoc :target-link-name (cdr (assoc confkey config-list)))))
+  (:get-planning-scene (&optional (components 1023))
+   (get-planning-scene :scene-service scene-service :components components))
+  (:get-ik-for-pose
+   (cds confkey &key (use-actual-seed t) (retry t)
+        (end-coords) ;; (list :rarm :end-coords)
+        (frame-id default-frame-id) (timeout 0.05)
+        (attempts) (avoid-collision t) &allow-other-keys)
+   (let ((tgt-cds (send cds :copy-worldcoords))
+         (group-name (cdr (assoc :group-name (cdr (assoc confkey config-list)))))
          (joint-list (cdr (assoc :joint-list (cdr (assoc confkey config-list)))))
-         (ik-service-name (cdr (assoc :ik-service-name (cdr (assoc confkey config-list)))))
-         ik-res)
-     (unless (and link-name ik-service-name)
-       ;; error
-       (ros::ros-error "configuration not found ~A" (list confkey link-name ik-service-name))
-       (return-from :get-ik-for-pose-single))
-     (send ik-req :ik_request :ik_link_name link-name)
-     (send ik-req :ik_request :pose_stamped pose_stamped)
-     (let (names positions)
-       (send ik-req :ik_request :ik_seed_state :joint_state
-             (joint-list->joint_state joint-list
-                                      :position (if use-actual-seed nil 0.0)
-                                      :effort nil :velocity nil))
-       (send ik-req :timeout (ros::time timeout))
-       (setq ik-res (ros::service-call ik-service-name ik-req)))
-     (unless ik-res
-       (ros::ros-info ";; IK service failed"))
-     ik-res))
+         scene rstate constraints)
+     (when use-actual-seed
+       (setq scene (send self :get-planning-scene))
+       (when scene (setq rstate (send scene :robot_state))))
+
+     (when end-coords ;; cds is target coords of end-coords
+       (let ((rcds (send self :get-group-tip-coords confkey)))
+         (send tgt-cds :transform
+               (send (send (send* robot end-coords) :worldcoords)
+                     :transformation rcds))))
+
+     (setq tgt-cds (send self :worldcoords->default-frame-relative tgt-cds))
+
+     (let* ((msg (ros::coords->tf-pose-stamped tgt-cds frame-id))
+            (req (instance moveit_msgs::GetPositionIKRequest :init
+                           :ik_request
+                           (instance moveit_msgs::PositionIKRequest :init
+                                     :group_name group-name
+                                     :avoid_collisions avoid-collision
+                                     :constraints (if constraints constraints
+                                                    (instance moveit_msgs::constraints :init))
+                                     :robot_state (if rstate rstate
+                                                    (instance moveit_msgs::RobotState :init))
+                                     :attempts (if attempts attempts 0)
+                                     :timeout (ros::time timeout)
+                                     :pose_stamped msg)))
+            (res (ros::service-call "/compute_ik" req)))
+       (cond
+        ((= (send res :error_code) 1) ;; success
+         ;; have to do apply multi-dof-joint ...
+         (apply-robot_state (send res :solution :joint_state) robot))
+        (t
+         (warn ";; ik error at ~A~%"
+               (assoc (send res :error_code) *moveit-error-code-list*))))
+       (send robot :angle-vector)
+       )))
+#|
   (:motion-plan
    (confkey &key (tolerance_below 0.08) (tolerance_above 0.08) (scene)
             (planning_time 5.0) (filter_time 4.0) (wait-result t))
@@ -210,44 +260,6 @@
                       (send arm-action-client :get-goal-status-text)))
      arm-action-client
      ))
-  ;;; wrapper
-  (:get-ik-for-pose
-   (cds confkey &key (use-actual-seed t) (retry t) (get-scene t)
-        (end-coords) ;; (list :rarm :end-coords)
-        (frame-id default-frame-id) (timeout 2.0) &allow-other-keys)
-   (let ((tgt-cds (send cds :copy-worldcoords)))
-     (when get-scene (send self :get-planning-scene))
-
-     (when end-coords ;; cds is target coords of end-coords
-       (let ((rcds (send self :get-robot-coords confkey)))
-         (send tgt-cds :transform
-               (send (send (send* robot end-coords) :worldcoords)
-                     :transformation rcds))))
-
-   (setq tgt-cds (send self :worldcoords->default-frame-relative tgt-cds))
-
-   (let* ((msg (ros::coords->tf-pose-stamped tgt-cds frame-id))
-          (ret (send self :get-ik-for-pose-single msg confkey
-                     :use-actual-seed use-actual-seed
-                     :timeout timeout)))
-     (cond
-      ((null ret) -255)
-      ((= (send ret :error_code :val) 1)
-       (ros::ros-info ";; success IK")
-       (apply-joint_state (send ret :solution :joint_state) robot)
-       nil)
-      (t
-       (ros::ros-info ";; IK error at ~A / ~A"
-                      (send ret :error_code :val)
-                      (elt *arm-navigation-error-code-list* (- (send ret :error_code :val))))
-       (if retry
-           (send self :get-ik-for-pose cds confkey
-                 :end-coords end-coords :frame-id frame-id :get-scene get-scene
-                 :retry nil :use-actual-seed (if use-actual-seed nil t)
-                 :timeout timeout)
-         (send ret :error_code :val))
-       ));;/cond
-     )))
   (:planning-make-trajectory
    (confkey &key (set-angle-vector) (get-scene t) (use-scene t) (planning-time 5.0)
             (filter-time 4.0) (wait t) &allow-other-keys)
