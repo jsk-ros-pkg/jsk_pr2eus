@@ -112,7 +112,7 @@
          (list :arms ;; not implemented yet
                (cons :group-name "arms")
                (cons :target-link
-                     (liit (send self :search-link-from-name "l_wrist_roll_link")
+                     (list (send self :search-link-from-name "l_wrist_roll_link")
                            (send self :search-link-from-name "r_wrist_roll_link")))
                (cons :joint-list (append (send robot :larm :joint-list)
                                          (send robot :rarm :joint-list)))
@@ -195,12 +195,13 @@
                                      :pose_stamped msg)))
             (res (ros::service-call "/compute_ik" req)))
        (cond
-        ((= (send res :error_code) 1) ;; success
+        ((= (send res :error_code :val) 1) ;; success
          ;; have to do apply multi-dof-joint ...
-         (apply-robot_state (send res :solution :joint_state) robot))
+         (apply-joint_state (send res :solution :joint_state) robot))
         (t
          (warn ";; ik error at ~A~%"
-               (assoc (send res :error_code) *moveit-error-code-list*))))
+               (assoc (send res :error_code :val) *moveit-error-code-list*))
+         (return-from :get-ik-for-pose nil)))
        (send robot :angle-vector)
        )))
 #|
