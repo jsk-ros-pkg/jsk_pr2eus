@@ -96,7 +96,61 @@
                (cons :target-link
                      (send self :search-link-from-name "l_wrist_roll_link"))
                (cons :joint-list (send robot :larm :joint-list))
-               )))
+               )
+         (list :rarm-torso
+               (cons :group-name "right_arm_and_torso")
+               (cons :target-link
+                     (send self :search-link-from-name "r_wrist_roll_link"))
+               (cons :joint-list (append (send robot :torso :joint-list) (send robot :rarm :joint-list)))
+               )
+         (list :larm-torso
+               (cons :group-name "left_arm_and_torso")
+               (cons :target-link
+                     (send self :search-link-from-name "l_wrist_roll_link"))
+               (cons :joint-list (append (send robot :torso :joint-list) (send robot :larm :joint-list)))
+               )
+         (list :arms ;; not implemented yet
+               (cons :group-name "arms")
+               (cons :target-link
+                     (liit (send self :search-link-from-name "l_wrist_roll_link")
+                           (send self :search-link-from-name "r_wrist_roll_link")))
+               (cons :joint-list (append (send robot :larm :joint-list)
+                                         (send robot :rarm :joint-list)))
+               )
+#| ;; sample of pr2_moveit_config/config/pr2.srdf
+    <group name="base">
+        <joint name="world_joint" />
+    </group>
+    <group name="left_arm">
+        <chain base_link="torso_lift_link" tip_link="l_wrist_roll_link" />
+    </group>
+    <group name="left_arm_and_torso">
+        <chain base_link="base_link" tip_link="l_wrist_roll_link" />
+    </group>
+    <group name="right_arm">
+        <chain base_link="torso_lift_link" tip_link="r_wrist_roll_link" />
+    </group>
+    <group name="right_arm_and_torso">
+        <chain base_link="base_link" tip_link="r_wrist_roll_link" />
+    </group>
+    <group name="arms">
+        <group name="left_arm" />
+        <group name="right_arm" />
+    </group>
+    <group name="head">
+        <joint name="head_pan_joint" />
+        <joint name="head_tilt_joint" />
+    </group>
+    <group name="torso">
+        <joint name="torso_lift_joint" />
+    </group>
+    <group name="whole_body">
+        <group name="base" />
+        <group name="arms" />
+        <group name="torso"/>
+    <group/>
+|#
+         ))
   (:worldcoords->default-frame-relative (wcds)
    (send (send default-link :worldcoords) :transformation
          (send wcds :worldcoords)))
