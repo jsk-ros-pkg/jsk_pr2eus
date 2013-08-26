@@ -2,13 +2,13 @@
 
 (defclass collision-object-publisher
   :super propertied-object
-  :slots (object-list topicname scenetopic))
+  :slots (object-list topicname scene-srv))
 
 (defmethod collision-object-publisher
-  (:init (&key (topic-name "collision_object") (scene-topic "get_planning_scene"))
+  (:init (&key (topic-name "collision_object") (scene-service "get_planning_scene"))
    (unless (ros::ok) (ros::roseus "publish_collision_eusobj"))
    (setq topicname topic-name
-         scenetopic scene-topic)
+         scene-srv scene-service)
    (ros::advertise topicname moveit_msgs::CollisionObject 100)
    (setq object-list (make-hash-table)))
   (:add-object
@@ -136,7 +136,7 @@
    (setq object-list (make-hash-table))
    t)
   (:wipe-all ()
-   (let ((scene (get-planning-scene :scene-topic scenetopic
+   (let ((scene (get-planning-scene :scene-topic scene-srv
                                     :components (+ moveit_msgs::PlanningSceneComponents::*WORLD_OBJECT_NAMES*
                                                    moveit_msgs::PlanningSceneComponents::*WORLD_OBJECT_GEOMETRY*
                                                    moveit_msgs::PlanningSceneComponents::*OCTOMAP*))))
@@ -157,7 +157,7 @@
      obj))
   )
 
-(defun get-planning-scene (&key (scene-topic "get_planning_scene")
+(defun get-planning-scene (&key (scene-service "get_planning_scene")
                                 (components 1023))
   ;;moveit_msgs::PlanningSceneComponents::*SCENE_SETTINGS*
   ;;moveit_msgs::PlanningSceneComponents::*ROBOT_STATE*
@@ -172,7 +172,7 @@
   (let ((req (instance moveit_msgs::GetPlanningSceneRequest :init))
         ret)
     (send req :components :components components)
-    (setq ret (ros::service-call scene-topic req))
+    (setq ret (ros::service-call scene-service req))
     (if ret (send ret :scene))
     ))
 
