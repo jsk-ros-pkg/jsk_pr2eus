@@ -204,72 +204,62 @@
          (return-from :get-ik-for-pose nil)))
        (send robot :angle-vector)
        )))
-#|
   (:motion-plan
-   (confkey &key (tolerance_below 0.08) (tolerance_above 0.08) (scene)
-            (planning_time 5.0) (filter_time 4.0) (wait-result t))
-   (let ((group_name (cdr (assoc :group-name (cdr (assoc confkey config-list)))))
-         (joint-list (cdr (assoc :joint-list (cdr (assoc confkey config-list)))))
-         (gl (instance arm_navigation_msgs::GetMotionPlanRequest :init))
-         res (ret t))
-     (unless (and group_name joint-list)
-       ;; error
-       (ros::ros-error "configuration not found ~A" (list confkey group_name joint-list))
-       (return-from :motion-plan))
+   (confkey &key (scene)
+            (group-name (cdr (assoc :group-name (cdr (assoc confkey config-list)))))
+            (joint-list (cdr (assoc :joint-list (cdr (assoc confkey config-list)))))
+            (planning-attempts 1) (planning-time 5.0) (tolerance-below 0.001) (tolerance-above 0.001)
+            )
+   (let ((mpr (instance moveit_msgs::motionplanrequest :init))
+         res)
      ;;
-     (send gl :motion_plan_request :group_name group_name)
-     (send gl :motion_plan_request :num_planning_attempts 1)
-     (send gl :motion_plan_request :allowed_planning_time (ros::Time planning_time))
-     (send gl :motion_plan_request :planner_id planner-id)
-
-     (send gl :motion_plan_request :goal_constraints :joint_constraints
-           (mapcar #'(lambda (j)
-                       (let* ((n (send j :name))
-                              (nm (if (symbolp n) (symbol-name n) n)))
-                         (instance arm_navigation_msgs::JointConstraint :init
-                                   :joint_name nm
-                                   :position (send j :ros-joint-angle)
-                                   :tolerance_above tolerance_above
-                                   :tolerance_below tolerance_below)
-                         )) joint-list))
-     ;; call service
-     (setq res (ros::service-call arm-planning-service-name gl))
-
-     (when (and res wait-result)
-       (ros::ros-info ";; plan service result -> ~A"
-                      (let ((val (send res :error_code :val)))
-                        (cond
-                         ((> val 0) (setq ret nil) "Succeeded")
-                         ((= val 0) "service Aborted ??")
-                         (t (elt *arm-navigation-error-code-list* (- val)))))))
-     (if ret (return-from :motion-plan res))
-
-     ;;filter
      (unless scene
        (setq scene (send self :get-planning-scene)))
-     ;; Are blew lines needed ???
-     (let ((hdr_traj (send res :trajectory :joint_trajectory :header))
-           (hdr_scene (send scene :planning_scene :robot_state :joint_state :header)))
-       (send hdr_traj :stamp (send hdr_scene :stamp)))
 
-     (let ((req (instance arm_navigation_msgs::FilterJointTrajectoryWithConstraintsRequest :init
-                          :group_name group_name
-                          :start_state (send scene :planning_scene :robot_state)
-                          :trajectory (send res :trajectory :joint_trajectory)
-                          :goal_constraints (send gl :motion_plan_request :goal_constraints)
-                          :allowed_time (ros::Time filter_time))))
-       (setq res (ros::service-call "/trajectory_filter_server/filter_trajectory_with_constraints" req))
-       (when (and res wait-result)
-         (ros::ros-info ";; filter service result -> ~A"
-                        (let ((val (send res :error_code :val)))
-                          (cond
-                           ((> val 0) "Succeeded")
-                           ((= val 0) (setf (get res :original-trajectory)
-                                            (send req :trajectory))
-                            "service Aborted ??")
-                           (t (elt *arm-navigation-error-code-list* (- val))))
-                        ))))
-     res))
+     (send mpr :workspace_parameters :header :stamp (ros::time-now))
+     (send mpr :workspace_parameters :header :frame_id multi-dof-frame);;
+     ;;
+     (send mpr :workspace_parameters :max_corner :x 1.0)
+     (send mpr :workspace_parameters :max_corner :y 1.0)
+     (send mpr :workspace_parameters :max_corner :z 1.0)
+     (send mpr :workspace_parameters :min_corner :x -1.0)
+     (send mpr :workspace_parameters :min_corner :y -1.0)
+     (send mpr :workspace_parameters :min_corner :z -1.0)
+     ;;
+     (send mpr :start_state (send scene :robot_state))
+
+     (send mpr :goal_constraints
+      (list
+       (instance moveit_msgs::constraints :init :name ""
+                 :joint_constraints
+                 (mapcar #'(lambda (jn)
+                             (instance moveit_msgs::jointconstraint :init
+                                       :joint_name (send jn :name)
+                                       :position (send jn :ros-joint-angle)
+                                       :tolerance_above tolerance-above
+                                       :tolerance_below tolerance-below
+                                       :weight 1.0))
+                         joint-list))))
+
+     (send mpr :planner_id "") ;; ??
+     (send mpr :group_name group-name)
+     (send mpr :num_planning_attempts planning-attempts)
+     (send mpr :allowed_planning_time planning-time)
+     (setq res
+           (ros::service-call planning-service
+                              (instance moveit_msgs::GetMotionPlanRequest
+                                        :init :motion_plan_request mpr)))
+     (cond
+      ((= (send res :motion_plan_response :error_code :val) 1) ;; success
+       ;; have to do apply multi-dof-joint ...
+       (send res :motion_plan_response))
+      (t
+       (warn ";; motion plan error at ~A~%"
+             (assoc (send res :motion_plan_response :error_code :val)
+                    *moveit-error-code-list*))
+       (return-from :motion-plan nil)))
+     ))
+#|
   (:move-arm-to-goal
    (confkey &key (tolerance_below 0.08) (tolerance_above 0.08)
             (planning_time 5.0) (wait-result t))
