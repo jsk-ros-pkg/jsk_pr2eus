@@ -37,7 +37,7 @@
    (cons -31 "NO_IK_SOLUTION")
    ))
 
-(defclass moveit_environment
+(defclass moveit-environment
   :super propertied-object
   :slots (config-list
           scene-service
@@ -50,7 +50,7 @@
 ;; frame-id
 ;; multi-dof-joint name/frame-id
 ;; group-name -> joint-list, target-link
-(defmethod moveit_environment
+(defmethod moveit-environment
   (:init
    (&key ((:scene-service sc-srv) "/get_planning_scene")
          ((:planning-service pl-srv) "/plan_kinematic_path")
