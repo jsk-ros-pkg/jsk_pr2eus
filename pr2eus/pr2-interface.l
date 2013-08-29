@@ -707,30 +707,35 @@
 (defun pr2-tuckarm-pose (&rest args)
   (let* ((current-arm (check-tuckarm-pose :thre 40)) ;; nil rarm larm
          (free-arm (or (car args) current-arm :larm))
-		 (msec 500))
+         (msec 500))
     (when (not (eq current-arm free-arm))
-	  (progn
-		(setq msec 2000)
-		(send *pr2* :larm :angle-vector #f( 25 0 0 -121 0 -6 0))
-		(send *pr2* :rarm :angle-vector #f(-25 0 0 -121 0 -6 0))
-		(send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
-		(send *ri* :wait-interpolation)))
-    (if (eq free-arm :larm)
-        (progn
-		  (send *pr2* :rarm :angle-vector (cadr *pr2-tuckarm-pose-larm-free*))
-		  (send *ri* :rarm-angle-vector (send *pr2* :angle-vector) msec))
-	  (progn
-		(send *pr2* :larm :angle-vector (car *pr2-tuckarm-pose-rarm-free*))
-		(send *ri* :larm-angle-vector (send *pr2* :angle-vector) msec)))
-    (send *ri* :wait-interpolation)
-    (if (eq free-arm :larm)
-        (progn
-		  (send *pr2* :larm :angle-vector (car *pr2-tuckarm-pose-larm-free*))
-		  (send *ri* :larm-angle-vector (send *pr2* :angle-vector) msec))
       (progn
-		(send *pr2* :rarm :angle-vector (cadr *pr2-tuckarm-pose-rarm-free*))
-		(send *ri* :rarm-angle-vector (send *pr2* :angle-vector) msec)))
-    (send *ri* :wait-interpolation)
+        (setq msec 2000)
+        (send *pr2* :larm :angle-vector #f( 25 0 0 -121 0 -6 0))
+        (send *pr2* :rarm :angle-vector #f(-25 0 0 -121 0 -6 0))
+        (send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
+        (unless (some #'identity (send *ri* :wait-interpolation))
+          (return-from pr2-tuckarm-pose))
+        ))
+    (if (eq free-arm :larm)
+        (progn
+          (send *pr2* :rarm :angle-vector (cadr *pr2-tuckarm-pose-larm-free*))
+          (send *ri* :rarm-angle-vector (send *pr2* :angle-vector) msec))
+      (progn
+        (send *pr2* :larm :angle-vector (car *pr2-tuckarm-pose-rarm-free*))
+        (send *ri* :larm-angle-vector (send *pr2* :angle-vector) msec)))
+    (unless (some #'identity (send *ri* :wait-interpolation))
+      (return-from pr2-tuckarm-pose))
+    (if (eq free-arm :larm)
+        (progn
+          (send *pr2* :larm :angle-vector (car *pr2-tuckarm-pose-larm-free*))
+          (send *ri* :larm-angle-vector (send *pr2* :angle-vector) msec))
+      (progn
+        (send *pr2* :rarm :angle-vector (cadr *pr2-tuckarm-pose-rarm-free*))
+        (send *ri* :rarm-angle-vector (send *pr2* :angle-vector) msec)))
+    (unless (some #'identity (send *ri* :wait-interpolation))
+      (return-from pr2-tuckarm-pose))
+    t
     ))
 
 ;; send pr2 to move to reset pose
