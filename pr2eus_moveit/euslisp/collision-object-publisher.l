@@ -74,6 +74,7 @@
        (let ((org-cds (send obj :copy-worldcoords)))
          (send obj :reset-coords)
          (send obj :worldcoords)
+         (send-all (send obj :bodies) :worldcoords)
          (let ((fs (body-to-faces obj))
                (geom (instance shape_msgs::mesh :init))
                idx-lst vertices (cntr 0))
