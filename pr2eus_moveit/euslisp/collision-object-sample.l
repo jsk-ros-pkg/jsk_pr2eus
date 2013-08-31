@@ -12,17 +12,28 @@
 
   (send *bottle* :translate #f(-100.0 140.0 705.0))
 
-  (send *sr* :fix-leg-to-coords (make-coords :pos #f(-450 0 0)))
   (send *sr* :angle-vector #f(0.0 -20.0 0.0 47.0 -27.0 0.0 30.0 -10.0 0.0 -60.0 9.0 -6.5 25.0 0.0 -20.0 0.0 47.0 -27.0 0.0 30.0 10.0 0.0 -60.0 -9.0 -6.5 -25.0 0.0 0.0 0.0))
-  ;; (send *ri* :angle-vector (send *sr* :angle-vector) 6000)
-  ;;(objects (list *table* *bottle* *sr*))
+  (send *sr* :fix-leg-to-coords (make-coords :pos #f(-450 0 0)))
+
+  (objects (list *table* *bottle* *sr*))
+  )
+
+(defun init-pose ()
+  (send *sr* :angle-vector #f(0.0 -20.0 0.0 47.0 -27.0 0.0 30.0 -10.0 0.0 -60.0 9.0 -6.5 25.0 0.0 -20.0 0.0 47.0 -27.0 0.0 30.0 10.0 0.0 -60.0 -9.0 -6.5 -25.0 0.0 0.0 0.0))
+  (send *sr* :fix-leg-to-coords (make-coords :pos #f(-450 0 0)))
+  (send *ri* :angle-vector (send *sr* :angle-vector) 6000)
+  )
+
+(defun pub-objects ()
   (pub-obj *table*)
   (pub-obj *bottle*)
   )
 
+(defun clear-objects ()
+  (send *co* :clear-all)
+  )
+
 (defun pub-obj (obj) ;; need link
-  (let ((cds
-         (send (send *sr* :waist_link0_lk) :transformation (send obj :worldcoords)))
-        (org-cds (send obj :copy-worldcoords)))
+  (let ((cds (send (send *sr* :waist_link0_lk) :transformation (send obj :worldcoords))))
     (send *co* :add-object obj :frame_id "WAIST_LINK0" :relative-pose cds)
     obj))
