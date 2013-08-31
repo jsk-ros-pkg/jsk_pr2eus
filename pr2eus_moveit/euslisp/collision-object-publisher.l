@@ -12,7 +12,7 @@
    (ros::advertise topicname moveit_msgs::CollisionObject 100)
    (setq object-list (make-hash-table)))
   (:add-object
-   (obj &key (frame_id "base_footprint")) ;;
+   (obj &key (frame_id "base_footprint"))
    (let ((msg (gethash obj object-list)))
      (when msg (return-from :add-object)))
    (let* ((id (symbol-string (gensym "COLOBJ")))
@@ -105,13 +105,13 @@
                ))
            (send geom :triangles
                  (mapcar #'(lambda (idx)
-                             (instance shape_msgs::MeshTriangle :init :vertix_indices idx))
+                             (instance shape_msgs::MeshTriangle :init :vertex_indices idx))
                          (nreverse idx-lst)))
            (send geom :vertices (nreverse vertices))
            (let ((m (send colobj :meshes))
-                 (mp (send colobj :meshes_poses)))
+                 (mp (send colobj :mesh_poses)))
              (send colobj :meshes (append m (list geom)))
-             (send colobj :meshes (append mp (list (ros::coords->tf-pose (send obj :worldcoords))))))
+             (send colobj :mesh_poses (append mp (list (ros::coords->tf-pose org-cds)))))
            )
          (send obj :transform org-cds)
          (send obj :worldcoords)))
