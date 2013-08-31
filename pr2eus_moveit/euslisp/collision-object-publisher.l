@@ -12,7 +12,7 @@
    (ros::advertise topicname moveit_msgs::CollisionObject 100)
    (setq object-list (make-hash-table)))
   (:add-object
-   (obj &key (frame_id "base_footprint"))
+   (obj &key (frame_id "base_footprint") (relative-pose))
    (let ((msg (gethash obj object-list)))
      (when msg (return-from :add-object)))
    (let* ((id (symbol-string (gensym "COLOBJ")))
@@ -39,7 +39,7 @@
          (send colobj :primitive_poses
                (append pose
                        (list
-                        (ros::coords->tf-pose (send obj :worldcoords)))))))
+                        (ros::coords->tf-pose (if relative-pose relative-pose (send obj :worldcoords))))))))
       ((and (derivedp obj body) (eq (car (send obj :body-type)) :cube))
        (let ((geom (send colobj :primitives))
              (pose (send colobj :primitive_poses)))
@@ -55,7 +55,7 @@
          (send colobj :primitive_poses
                (append pose
                        (list
-                        (ros::coords->tf-pose (send obj :worldcoords)))))))
+                        (ros::coords->tf-pose (if relative-pose relative-pose (send obj :worldcoords))))))))
       ((and (derivedp obj body) (eq (car (send obj :body-type)) :gdome))
        (let ((geom (send colobj :primitives))
              (pose (send colobj :primitive_poses)))
@@ -69,7 +69,7 @@
          (send colobj :primitive_poses
                (append pose
                        (list
-                        (ros::coords->tf-pose (send obj :worldcoords)))))))
+                        (ros::coords->tf-pose (if relative-pose relative-pose (send obj :worldcoords))))))))
       ((find-method obj :faces)
        (let ((org-cds (send obj :copy-worldcoords)))
          (send obj :reset-coords)
@@ -111,7 +111,9 @@
            (let ((m (send colobj :meshes))
                  (mp (send colobj :mesh_poses)))
              (send colobj :meshes (append m (list geom)))
-             (send colobj :mesh_poses (append mp (list (ros::coords->tf-pose org-cds)))))
+             (send colobj :mesh_poses (append mp (list
+                                                  (ros::coords->tf-pose (if relative-pose
+                                                                            relative-pose org-cds))))))
            )
          (send obj :transform org-cds)
          (send obj :worldcoords)))
