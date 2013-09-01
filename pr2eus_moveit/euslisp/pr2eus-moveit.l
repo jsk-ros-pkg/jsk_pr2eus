@@ -42,6 +42,7 @@
   :slots (config-list
           scene-service
           planning-service
+          execute-service
           robot
           default-frame-id default-link
           multi-dof-name multi-dof-frame
@@ -54,17 +55,21 @@
   (:init
    (&key ((:scene-service sc-srv) "/get_planning_scene")
          ((:planning-service pl-srv) "/plan_kinematic_path")
+         ((:execute-service ex-srv) "/execute_kinematic_path")
          ((:robot rb) *pr2*) (frame-id "base_footprint") ;; frame-id needs to be contained in robot_model
          (multi-dof-joint-name "virtual_joint")
          (multi-dof-frame-id "odom_combined"))
    (setq scene-service sc-srv
          planning-service pl-srv
+         execute-service ex-srv
          robot rb
          default-frame-id frame-id
          multi-dof-name multi-dof-joint-name
          multi-dof-frame multi-dof-frame-id)
    (setq default-link (send self :search-link-from-name frame-id))
    (setq config-list (send self :default-configuration))
+   (unless (ros::ok)
+     (ros::roseus "pr2eus_moveit_environment"))
    self)
   (:robot (&rest args) (forward-message-to robot args))
   (:search-link-from-name
@@ -155,7 +160,7 @@
    (send (send default-link :worldcoords) :transformation
          (send wcds :worldcoords)))
   (:get-group-tip-coords (confkey) ;; get-robot-coords
-   (let ((link-inst(cdr (assoc :target-link (cdr (assoc confkey config-list))))))
+   (let ((link-inst (cdr (assoc :target-link (cdr (assoc confkey config-list))))))
      (send link-inst :copy-worldcoords)))
   (:get-planning-scene (&optional (components 1023))
    (get-planning-scene :scene-service scene-service :components components))
@@ -204,6 +209,12 @@
          (return-from :get-ik-for-pose nil)))
        (send robot :angle-vector)
        )))
+  (:execute-trajectory
+   (msg &optional (wait nil))
+   (let ((req (instance moveit_msgs::ExecuteKnownTrajectoryRequest :init
+                        :trajectory msg)))
+     (send req :wait_for_execution wait)
+     (ros::service-call execute-service req)))
   (:motion-plan
    (confkey &key (scene)
             (group-name (cdr (assoc :group-name (cdr (assoc confkey config-list)))))
