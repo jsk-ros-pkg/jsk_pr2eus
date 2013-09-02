@@ -72,6 +72,14 @@
      (ros::roseus "pr2eus_moveit_environment"))
    self)
   (:robot (&rest args) (forward-message-to robot args))
+  (:sync-robot-model (rb &optional (change-argument nil))
+   (let ((r-from (if change-argument robot rb))
+         (r-to   (if change-argument rb robot)))
+     (send r-to :reset-coords)
+     (send r-to :transform (send r-from :worldcoords))
+     (send r-to :angle-vector (send r-from :angle-vector))
+     (send r-to :worldcoords)
+     r-to))
   (:search-link-from-name
    (link-name)
    (cond
