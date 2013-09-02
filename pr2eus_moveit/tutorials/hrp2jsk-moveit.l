@@ -1,17 +1,17 @@
 (require :pr2eus-moveit "package://pr2eus_moveit/euslisp/pr2eus-moveit.l")
-(require :samplerobot-interface
-         "package://hrpsys_ros_bridge_tutorials/euslisp/samplerobot-interface.l")
+(require :hrp2jsk-interface
+         "package://jsk_hrpsys_ros_bridge/euslisp/hrp2jsk-interface.l")
 (load "package://pr2eus_moveit/tutorials/collision-object-sample.l")
 
-(defclass samplerobot-moveit-environment
+(defclass hrp2jsk-moveit-environment
   :super moveit-environment
   :slots ())
 
-(defmethod samplerobot-moveit-environment
+(defmethod hrp2jsk-moveit-environment
   (:init
-   (&key ((:robot rb) (samplerobot)))
+   (&key ((:robot rb) (hrp2jsk)))
    (send-super :init :robot rb
-               :frame-id "WAIST_LINK0"
+               :frame-id "BODY"
                :multi-dof-joint-name "virtual_joint"
                :multi-dof-frame-id   "/odom")
    )
@@ -20,14 +20,14 @@
                (cons :group-name "rarm")
                (cons :target-link
                      (send self :search-link-from-name "RARM_LINK6"))
-               (cons :joint-list (remove (send robot :rarm_wrist_r)
+               (cons :joint-list (remove (send robot :rarm_joint7) ;; gripper
                                          (send robot :rarm :joint-list)))
                )
          (list :larm
                (cons :group-name "larm")
                (cons :target-link
                      (send self :search-link-from-name "LARM_LINK6"))
-               (cons :joint-list (remove (send robot :larm_wrist_r)
+               (cons :joint-list (remove (send robot :larm_joint7) ;; gripper
                                          (send robot :larm :joint-list)))
                )
          (list :rarm-torso
@@ -35,7 +35,7 @@
                (cons :target-link
                      (send self :search-link-from-name "RARM_LINK6"))
                (cons :joint-list (append (send robot :torso :joint-list)
-                                         (remove (send robot :rarm_wrist_r)
+                                         (remove (send robot :rarm_joint7)
                                                  (send robot :rarm :joint-list))))
                )
          (list :larm-torso
@@ -43,9 +43,8 @@
                (cons :target-link
                      (send self :search-link-from-name "LARM_LINK6"))
                (cons :joint-list (append (send robot :torso :joint-list)
-                                         (remove (send robot :larm_wrist_r)
-                                                 (send robot :larm :joint-list))))
-               )
+                                         (remove (send robot :larm_joint7)
+                                                 (send robot :larm :joint-list)))))
          )
    )
   )
@@ -58,29 +57,38 @@
     (send *ri* :remove-joint-group "larm")
     (unix::usleep (* 100 1000))
     (send *ri* :add-joint-group "larm"
-          (list "LARM_SHOULDER_P" "LARM_SHOULDER_R" "LARM_SHOULDER_Y" "LARM_ELBOW" "LARM_WRIST_Y" "LARM_WRIST_P"))
+          (list "LARM_JOINT0" "LARM_JOINT1" "LARM_JOINT2" "LARM_JOINT3" "LARM_JOINT4" "LARM_JOINT5" "LARM_JOINT6"))
     (unix::usleep (* 100 1000))
     ))
 
 (defun open-gripper (&optional (arm :larm))
-  (send *sr* arm :wrist-r :joint-angle -40))
+  (send *hrp2jsk* arm :thumb-r :joint-angle -50))
 (defun close-gripper (&optional (arm :larm))
-  (send *sr* arm :wrist-r :joint-angle -12))
+  (send *hrp2jsk* arm :thumb-r :joint-angle -20))
 
-(defun init-pose ()
-  (send *sr* :angle-vector #f(0.0 -20.0 0.0 47.0 -27.0 0.0 30.0 -10.0 0.0 -60.0 9.0 -6.5 25.0 0.0 -20.0 0.0 47.0 -27.0 0.0 30.0 15.0 0.0 -60.0 -9.0 -6.5 -40.0 0.0 0.0 0.0))
-  (open-gripper :larm)
-  (send *sr* :fix-leg-to-coords (make-coords :pos #f(-450 0 0)))
-  (send *ri* :angle-vector (send *sr* :angle-vector) 6000)
-  )
+#|
+(require :hrp2jsk-interface
+         "package://jsk_hrpsys_ros_bridge/euslisp/hrp2jsk-interface.l")
+(hrp2jsk-init)
+(setq *robot* *hrp2jsk*)
+(send *ri* :angle-vector (send *robot* :angle-vector) 6000)
+
+(send *ri* :set-auto-balancer-param :default-zmp-offsets (list (float-vector 12 0 0) (float-vector 12 0 0)))
+;;(send *ri* :set-st-param :k-tpcc-p #f(2.5 2.5) :k-tpcc-x #f(5 5) :k-brot-p #f(5 5) :k-brot-tc #f(0.1 0.1))
+(send *ri* :set-gait-generator-param :default-double-support-ratio 0.2 :default-step-time 1.0 :default-step-height 0.08 :stride-parameter #f(0.15 0.04 30))
+
+(progn (send *ri* :start-st)
+       (send *ri* :go-pos 4 0 0)
+       (send *ri* :stop-st))
+|#
 
 #|
 ;; pr2eus_moveit
-(samplerobot-init)
-
+(hrp2jsk-init)
+(setq *robot* *hrp2jsk*)
 (send *robot* :angle-vector (send *ri* :state :reference-vector))
 
-(setq *me* (instance samplerobot-moveit-environment :init))
+(setq *me* (instance hrp2jsk-moveit-environment :init))
 (send *me* :robot :angle-vector (send *ri* :state :reference-vector))
 
 (setq cds (send *me* :robot :larm :end-coords :copy-worldcoords))
@@ -93,14 +101,14 @@
 
 #|
 moveit_demo
-(samplerobot-init)
+(hrp2jsk-init)
 (setq *robot* *sr*)
 (init-pose)
 (init-collision-demo)
 (pub-objects)
 (objects (append (list *robot*) (objects)))
 (send *robot* :angle-vector (send *ri* :state :reference-vector))
-(send *irtviewer* :draw-objects)
+
 ;;
 (setq larm-target #s(coordinates plist nil rot #2f((0.968121 0.247905 0.035856) (-0.247379 0.968742 -0.018505) (-0.039323 0.009045 0.999186)) pos #f(-81.4698 172.586 808.425)))
 (setq *me* (instance samplerobot-moveit-environment :init))
@@ -120,12 +128,11 @@ execute plan in rviz
 (send *irtviewer* :draw-objects)
 (sync-larm)
 
-(close-gripper)
+(open-gripper)
 (send *ri* :angle-vector (send *robot* :angle-vector) 2000)
 
 (send *robot* :angle-vector (send *ri* :state :reference-vector))
 (send *robot* :larm :inverse-kinematics
       (send (send *robot* :larm :end-coords :copy-worldcoords) :translate #f(0 0 100) :world))
-(send *irtviewer* :draw-objects)
 (send *ri* :angle-vector (send *robot* :angle-vector) 3000)
 |#
