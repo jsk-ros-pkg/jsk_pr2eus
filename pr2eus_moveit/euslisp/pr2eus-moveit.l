@@ -362,3 +362,97 @@
   (let ((base (send robot (intern (string-upcase lname) *keyword-package*))))
     (send (send base :worldcoords) :transformation
           (send wcds :worldcoords))))
+
+(defmethod robot-interface
+  (:set-moveit-environment (&optional mv-env)
+   (when mv-env (setf (get self :moveit-environment) mv-env))
+   (get self :moveit-planning-environment))
+  (:planning-environment (&rest args)
+   (let ((env (get self :moveit-planning-environment)))
+     (when env (forward-message-to env args))))
+  (:parse-end-coords (arm use-torso)
+   (let (confkey ed-lst)
+     (cond
+      ((eq arm :rarm)
+       (setq confkey (if use-torso :rarm-torso :rarm))
+       (setq  ed-lst (list :rarm :end-coords)))
+      (t
+       (setq confkey (if use-torso :larm-torso :larm))
+       (setq  ed-lst (list :larm :end-coords))))
+     (cons confkey ed-lst)))
+  (:collision-aware-ik
+   (cds &rest args &key (move-arm :larm) (use-torso) &allow-other-keys)
+   (let* ((r (send self :parse-end-coords move-arm use-torso))
+          (confkey (car r))
+          (ed-lst (cdr r))
+          ret)
+     (setq ret
+           (send self :planning-environment
+                 :get-ik-for-pose cds confkey :end-coords ed-lst))
+     ;; check return value
+     ret))
+  (:angle-vector-make-trajectory
+   (av &rest args &key (move-arm :larm) (use-torso) &allow-other-keys)
+   (let* ((r (send self :parse-end-coords move-arm use-torso))
+          (confkey (car r))
+          (ed-lst (cdr r))
+          ret)
+     (setq ret
+           (send self :planning-environment
+                 :planning-make-trajectory confkey
+                 :set-angle-vector av :end-coords ed-lst args))
+     ret))
+  (:end-coords-make-trajectory
+   (cds &rest args &key (move-arm :larm) (use-torso) &allow-other-keys)
+   (let* ((r (send self :parse-end-coords move-arm use-torso))
+          (confkey (car r))
+          (ed-lst (cdr r))
+          ret)
+     (setq ret
+             (send self :planning-environment
+                   :planning-make-trajectory-to-coords
+                   cds confkey :end-coords ed-lst args))
+     ret))
+  (:angle-vector-motion-plan
+   (av &rest args &key (move-arm :larm) (reset-total-time 5000.0) &allow-other-keys)
+   (let (traj)
+     (setq traj (send* self :angle-vector-make-trajectory av args))
+     (when traj
+       (when (< (send (send (car (last (send traj :points))) :time_from_start) :to-sec) 0.001)
+         (unless reset-total-time
+           (ros::ros-error "Trajectory has very short duration")
+           (return-from :angle-vector-motion-plan nil))
+         (ros::ros-warn "reset Trajectory Total time")
+         (setq traj (send self :trajectory-filter traj :total-time reset-total-time)))
+       (send* self :joint-trajectory-to-angle-vector-list move-arm traj args)
+       )))
+  (:move-end-coords-plan
+   (coords &rest args &key (move-arm :larm) (reset-total-time 5000.0) &allow-other-keys)
+   (let (traj)
+     (setq traj (send* self :end-coords-make-trajectory coords args))
+     (when traj
+       (when (< (send (send (car (last (send traj :points))) :time_from_start) :to-sec) 0.001)
+         (unless reset-total-time
+           (ros::ros-error "Trajectory has very short duration")
+           (return-from :angle-vector-motion-plan nil))
+         (ros::ros-warn "reset Trajectory Total time")
+         (setq traj (send self :trajectory-filter traj :total-time reset-total-time)))
+       (send* self :joint-trajectory-to-angle-vector-list move-arm traj args)
+       )))
+  (:trajectory-filter ;; simple trajectory for zero duration
+   (traj &key (copy) (total-time 5000.0) (minimum-time 0.001))
+   (when (and minimum-time
+              (> (send (send (car (last (send traj :points))) :time_from_start) :to-sec)
+                 minimum-time))
+     (return-from :trajectory-filter traj))
+   (when copy
+     (setq traj (copy-object traj)))
+   (let* ((points (send traj :points))
+          (size (length points))
+          (time-step (/ 1 (float (1- size))))
+          (cntr 0))
+     (dolist (pt points)
+       (send pt :time_from_start (ros::time (* (/ total-time 1000) cntr time-step)))
+       (incf cntr))
+     traj))
+  )
