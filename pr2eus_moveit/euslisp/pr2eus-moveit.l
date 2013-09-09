@@ -175,14 +175,15 @@
   (:get-ik-for-pose
    (cds confkey &key (use-actual-seed t) (retry t)
         (end-coords) ;; (list :rarm :end-coords)
-        (frame-id default-frame-id) (timeout 0.05)
+        (frame-id default-frame-id) (timeout 0.05) (scene)
         (attempts) (avoid-collision t) &allow-other-keys)
    (let ((tgt-cds (send cds :copy-worldcoords))
          (group-name (cdr (assoc :group-name (cdr (assoc confkey config-list)))))
          (joint-list (cdr (assoc :joint-list (cdr (assoc confkey config-list)))))
          scene rstate constraints)
      (when use-actual-seed
-       (setq scene (send self :get-planning-scene))
+       (unless scene
+         (setq scene (send self :get-planning-scene)))
        (when scene (setq rstate (send scene :robot_state))))
 
      (when end-coords ;; cds is target coords of end-coords
@@ -207,6 +208,10 @@
                                      :timeout (ros::time timeout)
                                      :pose_stamped msg)))
             (res (ros::service-call "/compute_ik" req)))
+       (when (and retry (/= (send res :error_code :val) 1))
+         (send req :ik_request :attempts (if attemps (* 2 attemps) 2))
+         (send req :ik_request :timeout (ros::time (* 2 timeout)))
+         (setq res (ros::service-call "/compute_ik" req)))
        (cond
         ((= (send res :error_code :val) 1) ;; success
          ;; have to do apply multi-dof-joint ...
@@ -222,12 +227,15 @@
    (let ((req (instance moveit_msgs::ExecuteKnownTrajectoryRequest :init
                         :trajectory msg)))
      (send req :wait_for_execution wait)
-     (ros::service-call execute-service req)))
+     (ros::service-call execute-service req)
+     ;; parse req
+     ))
   (:motion-plan
    (confkey &key (scene)
             (group-name (cdr (assoc :group-name (cdr (assoc confkey config-list)))))
             (joint-list (cdr (assoc :joint-list (cdr (assoc confkey config-list)))))
             (planning-attempts 1) (planning-time 5.0) (tolerance-below 0.001) (tolerance-above 0.001)
+            (workspace-x 1.0) (workspace-y 1.0) (workspace-z 1.0) &allow-other-keys
             )
    (let ((mpr (instance moveit_msgs::motionplanrequest :init))
          res)
@@ -238,12 +246,12 @@
      (send mpr :workspace_parameters :header :stamp (ros::time-now))
      (send mpr :workspace_parameters :header :frame_id multi-dof-frame);;
      ;;
-     (send mpr :workspace_parameters :max_corner :x 1.0)
-     (send mpr :workspace_parameters :max_corner :y 1.0)
-     (send mpr :workspace_parameters :max_corner :z 1.0)
-     (send mpr :workspace_parameters :min_corner :x -1.0)
-     (send mpr :workspace_parameters :min_corner :y -1.0)
-     (send mpr :workspace_parameters :min_corner :z -1.0)
+     (send mpr :workspace_parameters :max_corner :x workspace-x)
+     (send mpr :workspace_parameters :max_corner :y workspace-y)
+     (send mpr :workspace_parameters :max_corner :z workspace-z)
+     (send mpr :workspace_parameters :min_corner :x (- workspace-x))
+     (send mpr :workspace_parameters :min_corner :y (- workspace-y))
+     (send mpr :workspace_parameters :min_corner :z (- workspace-z))
      ;;
      (send mpr :start_state (send scene :robot_state))
 
@@ -278,115 +286,76 @@
                     *moveit-error-code-list*))
        (return-from :motion-plan nil)))
      ))
-#|
-  (:move-arm-to-goal
-   (confkey &key (tolerance_below 0.08) (tolerance_above 0.08)
-            (planning_time 5.0) (wait-result t))
-   (let ((arm-action-client (cdr (assoc :action (cdr (assoc confkey config-list)))))
-         (group_name (cdr (assoc :group-name (cdr (assoc confkey config-list)))))
-         (joint-list (cdr (assoc :joint-list (cdr (assoc confkey config-list)))))
-         (gl (instance arm_navigation_msgs::MoveArmGoal :init)))
-     (unless (and arm-action-client group_name joint-list)
-       ;; error
-       (ros::ros-error "configuration not found ~A"
-                       (list confkey arm-action-client group_name joint-list))
-       (return-from :move-arm-to-goal))
-
-      ;; (send gl :planning_scene_diff :link_padding link_padding)
-      ;; (send gl :operations collision_operations)
-     (send gl :motion_plan_request :group_name group_name)
-     (send gl :motion_plan_request :num_planning_attempts 1)
-     (send gl :motion_plan_request :allowed_planning_time (ros::Time planning_time))
-     (send gl :motion_plan_request :planner_id planner-id)
-     (send gl :planner_service_name arm-planning-service-name)
-
-     (send gl :motion_plan_request :goal_constraints :joint_constraints
-           (mapcar #'(lambda (j)
-                       (let* ((n (send j :name))
-                              (nm (if (symbolp n) (symbol-name n) n)))
-                         (instance arm_navigation_msgs::JointConstraint :init
-                                   :joint_name nm
-                                   :position (send j :ros-joint-angle)
-                                   :tolerance_above tolerance_above
-                                   :tolerance_below tolerance_below)
-                         )) joint-list))
-     ;; send goal
-     (send arm-action-client :send-goal
-           (instance arm_navigation_msgs::MoveArmActionGoal :init :goal gl))
-
-     (when wait-result
-       (send arm-action-client :wait-for-result)
-       (ros::ros-info ";; action result -> ~A / ~A / ~A"
-                      (ros::goal-status-to-string (send arm-action-client :get-state))
-                      (let ((val (send (send arm-action-client :get-result) :error_code :val)))
-                        (if (> val 0) "Succeeded"
-                          (elt *arm-navigation-error-code-list* (- val))))
-                      (send arm-action-client :get-goal-status-text)))
-     arm-action-client
-     ))
+  (:move-arm-to-goal (confkey &rest args &key (wait) &allow-other-keys)
+   (let ((ret (send* self :motion-plan args)))
+     (when ret
+       (send self :execute-trajectory (send ret :trajectory) :wait wait))))
   (:planning-make-trajectory
-   (confkey &key (set-angle-vector) (get-scene t) (use-scene t) (planning-time 5.0)
-            (filter-time 4.0) (wait t) &allow-other-keys)
-   (let (ret scene)
+   (confkey &key (set-angle-vector) (scene) (use-scene t) (planning-time 5.0)
+            (planning-attemps 3) (retry) &allow-other-keys)
+   (let (ret)
      (if set-angle-vector (send robot :angle-vector set-angle-vector))
-     (when get-scene (setq scene (send self :get-planning-scene)))
+     (unless scene (setq scene (send self :get-planning-scene)))
      (setq ret
            (send self :motion-plan confkey
-                 :planning_time planning-time :filter_time filter-time
-                 :wait-result wait :scene (if use-scene scene)))
-     (cond
-      ((derivedp ret arm_navigation_msgs::FilterJointTrajectoryWithConstraintsResponse)
-       (cond
-        ((> (send ret :error_code :val) 0)
-         (send ret :trajectory))
-        ((= (send ret :error_code :val) 0)
-         (get ret :original-trajectory))))
-      (t
-       nil))
+                 :planning-time planning-time :planning-attemps planning-attemps
+                 :scene (if use-scene scene)))
+     (when (and retry (not ret)) ;; retry
+       (when get-scene (setq scene (send self :get-planning-scene)))
+       (setq ret
+             (send self :motion-plan confkey
+                   :planning-time (* 2 planning-time)
+                   :planning-attemps (* 2 planning-attemps)
+                   :scene (if use-scene scene))))
+     ret
      ))
   (:planning-make-trajectory-to-coords
    (cds confkey &key (end-coords) ;; (list :rarm :end-coords)
-        (planning-time 5.0) (wait t) (get-scene t) (frame-id default-frame-id)
-        (filter-time 4.0) (use-scene t) &allow-other-keys)
-   (let (ret scene)
-     (when get-scene (setq scene (send self :get-planning-scene)))
-     (when (send self :get-ik-for-pose cds confkey :end-coords end-coords
-                 :use-actual-seed t :retry t :frame-id frame-id)
-       (return-from :planning-make-trajectory-to-coords nil))
-     (send self :planning-make-trajectory confkey
-           :planning-time planning-time :filter-time filter-time
-           :use-scene use-scene :wait wait :get-scene get-scene)
-     ))
-  (:planning-move-arm
-   (confkey &key (set-angle-vector) (get-scene t) (planning-time 5.0) (wait t)
-            &allow-other-keys)
-   (let (ret)
-     (if set-angle-vector (send robot :angle-vector set-angle-vector))
-     (when get-scene (send self :get-planning-scene))
-     (setq ret
-           (send self :move-arm-to-goal confkey :planning_time planning-time :wait-result wait))
-     (if ret (setq ret (send ret :get-result)))
-     (cond
-      ((null ret)
-       ;;(warn "~%");; error
-       -255)
-      ((= (send ret :error_code :val) 1) nil)
-      (t
-       (ros::ros-error "~A" (elt *arm-navigation-error-code-list* (- (send ret :error_code :val))))
-       (send ret :error_code :val)
-       ))))
-  (:planning-move-arm-to-coords
-   (cds confkey &key (end-coords) ;; (list :rarm :end-coords)
-        (planning-time 5.0) (wait t) (get-scene t) (frame-id default-frame-id)
+        (planning-time 5.0) (scene) (frame-id default-frame-id)
+        (planning-attemps 3) (retry) (use-scene t)
         &allow-other-keys)
    (let (ret)
-     (when get-scene (send self :get-planning-scene))
-     (when (steq ret (send self :get-ik-for-pose cds confkey :end-coords end-coords
-                           :use-actual-seed t :retry t :frame-id frame-id))
-       (return-from :planning-move-arm-to-coords ret))
-     (send self :planning-move-arm confkey :planning-time planning-time :wait wait) ;; get-scene ?
+     (unless scene (setq scene (send self :get-planning-scene)))
+     (when (send self :get-ik-for-pose cds confkey :end-coords end-coords
+                 :use-actual-seed t :retry retry :frame-id frame-id :scene scene)
+       (return-from :planning-make-trajectory-to-coords nil))
+     (send self :planning-make-trajectory confkey
+           :planning-time planning-time :planning-attemps planning-attemps
+           :use-scene use-scene :scene scene :retry retry)
      ))
-|#
+  (:planning-move-arm
+   (confkey &key (set-angle-vector) (scene) (use-scene t) (planning-time 5.0)
+            (planning-attemps 3) (retry) (wait t) &allow-other-keys)
+   (let (ret)
+     (if set-angle-vector (send robot :angle-vector set-angle-vector))
+     (unless scene (setq scene (send self :get-planning-scene)))
+     (setq ret
+           (send self :move-arm-to-goal confkey :scene (if use-scene scene)
+                 :planning-attemps planning-attemps
+                 :planning-time planning-time :wait wait))
+     (when (and retry (not ret)) ;; retry
+       (if scene (setq scene (send self :get-planning-scene))) ;; override scene
+       (setq ret
+             (send self :move-arm-to-goal confkey :scene (if use-scene scene)
+                   :planning-attemps (* 2 planning-attemps)
+                   :planning-time (* 2 planning-time) :wait wait))
+       )
+     ret
+     ))
+  (:planning-move-arm-to-coords
+   (cds confkey &key (end-coords) ;; (list :rarm :end-coords)
+        (planning-time 5.0) (scene) (frame-id default-frame-id)
+        (planning-attemps 3) (retry) (use-scene t) (wait t)
+        &allow-other-keys)
+   (let (ret)
+     (unless scene (setq scene (send self :get-planning-scene)))
+     (when (send self :get-ik-for-pose cds confkey :end-coords end-coords
+                 :use-actual-seed t :retry retry :frame-id frame-id :scene scene)
+       (return-from :planning-move-arm-to-coords nil))
+     (send self :planning-move-arm confkey
+           :planning-time planning-time :planning-attemps planning-attemps
+           :use-scene use-scene :wait wait :scene scene)
+     ))
   )
 
 (defun worldcoords->link-relative (wcds &key ((:link lname) "ROOT") (robot *pr2*))
