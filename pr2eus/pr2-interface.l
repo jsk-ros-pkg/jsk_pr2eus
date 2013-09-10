@@ -714,8 +714,7 @@
         (send *pr2* :larm :angle-vector #f( 25 0 0 -121 0 -6 0))
         (send *pr2* :rarm :angle-vector #f(-25 0 0 -121 0 -6 0))
         (send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
-        (unless (some #'identity (send *ri* :wait-interpolation))
-          (return-from pr2-tuckarm-pose))
+        (send *ri* :wait-interpolation)
         ))
     (if (eq free-arm :larm)
         (progn
@@ -724,8 +723,7 @@
       (progn
         (send *pr2* :larm :angle-vector (car *pr2-tuckarm-pose-rarm-free*))
         (send *ri* :larm-angle-vector (send *pr2* :angle-vector) msec)))
-    (unless (some #'identity (send *ri* :wait-interpolation))
-      (return-from pr2-tuckarm-pose))
+    (send *ri* :wait-interpolation)
     (if (eq free-arm :larm)
         (progn
           (send *pr2* :larm :angle-vector (car *pr2-tuckarm-pose-larm-free*))
@@ -733,8 +731,7 @@
       (progn
         (send *pr2* :rarm :angle-vector (cadr *pr2-tuckarm-pose-rarm-free*))
         (send *ri* :rarm-angle-vector (send *pr2* :angle-vector) msec)))
-    (unless (some #'identity (send *ri* :wait-interpolation))
-      (return-from pr2-tuckarm-pose))
+    (send *ri* :wait-interpolation)
     t
     ))
 
