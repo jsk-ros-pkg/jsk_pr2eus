@@ -5,8 +5,6 @@
 (require :pr2-interface "package://pr2eus/pr2-interface.l")
 (ros::roseus "pr2eus_openrave")
 
-(ros::advertise "openrave_marker_array" visualization_msgs::MarkerArray 100)
-
 (defun remove-marker (id &key (ns "") (topic-name "marker_array"))
   (let*	((header (instance std_msgs::header :init :stamp (ros::time-now) :frame_id "base_footprint"))
 	 (msg (instance visualization_msgs::Marker :init :header header :ns ns))
@@ -70,58 +68,7 @@
            :diff-sum diff-sum :diff-thre diff-thre :speed-scale speed-scale
            :send-trajectory send-trajectory)
      ))
-  (:joint-trajectory-to-angle-vector-list
-   (move-arm joint-trajectory
-             &key ((:diff-sum diff-sum) 0) ((:diff-thre diff-thre) 50)
-             (show-trajectory t) (send-trajectory t)
-             ((:speed-scale speed-scale) 1.0) &allow-other-keys)
-   (let* (joint-trajectory-points
-          joints avs tms  (tm (ros::time -1)) link-coords-list
-          (org-av (send robot :angle-vector))
-          (dae-link-list
-           (send self :find-descendants-dae-links (send robot move-arm :root-link))))
-     ;; JointTrajectory to angle-vector
-     (if joint-trajectory
-         (setq joint-trajectory-points (send joint-trajectory :points)
-               joints (mapcar #'(lambda (x)
-                                  (send robot (intern (string-upcase x) *keyword-package*)))
-                              (send joint-trajectory :joint_names))))
-     ;;
-     (if (= (length joint-trajectory-points) 0)
-         (return-from :joint-trajectory-to-angle-vector-list nil))
-     (dolist (point joint-trajectory-points)
-       (mapc '(lambda (ajoint aposition)
-                (send ajoint :ros-joint-angle aposition))
-             joints (coerce (send point :positions) cons))
-       (push (send robot :angle-vector) avs)
-       (when (cadr avs)
-         (incf diff-sum (reduce #'+ (map float-vector #'(lambda(x) (abs x)) (v- (car avs) (cadr avs)))))
-         (when (> diff-sum diff-thre)
-           (setq diff-sum 0)
-           (when show-trajectory
-             (push (send-all (flatten (send-all dae-link-list :bodies)) :copy-worldcoords)
-                   link-coords-list))))
-       (push (* (send (ros::time- (send point :time_from_start) tm) :to-sec) 1000 speed-scale) tms)
-       (setq tm (send point :time_from_start))
-       )
-     (when show-trajectory
-       (push (send-all (flatten (send-all dae-link-list :bodies)) :copy-worldcoords)
-             link-coords-list)
-       ;; send visualization_msgs to rviz
-       ;; (send self :show-mesh-traj-with-color (send-all (flatten (send-all link-list :bodies)) :name) link-coords-list)
-       (send self :show-mesh-traj-with-color
-             (flatten (send-all dae-link-list :bodies))
-             link-coords-list :lifetime (+ (/ (apply #'+ tms) 1000.0) 10)))
-     (cond
-      (send-trajectory
-       (send robot :angle-vector (car (last avs)))
-       ;; send to *ri*
-       (send self :angle-vector-sequence (setq avs (reverse avs)) (setq tms (reverse tms))))
-      (t
-       (send robot :angle-vector org-av)
-       ))
-     (if joint-trajectory (list (reverse avs) (reverse tms)))
-     ))
+  ;;
   (:call-openrave-move-to-hand-position
    (coords manip-name hand-frame-id)
    (let ((req (instance orrosplanning::MoveToHandPositionRequest :init))
@@ -156,7 +103,7 @@
        (ros::service-call "collision_map_mux/select" mux-req))
 
      (if res (send res :traj))))
-
+  ;;
   (:call-openrave-move-manipulator
    (av manip-name)
    (let ((req (instance orrosplanning::MoveManipulatorRequest :init)) res)
@@ -171,67 +118,6 @@
 	 (setq res (ros::service-call "MoveManipulator" req))
        (ros::ros-warn "MoveManipulator did not respond"))
      (if res (send res :traj))))
-
-  (:show-goal-hand-coords
-   (coords move-arm)
-   (let* ((gripper-bodies
-	   (flatten (send-all (send robot move-arm :gripper :links) :bodies)))
-	  (gripper-coords
-	   (mapcar #'(lambda (gripper-link)
-		       (send (send coords :copy-worldcoords) :transform
-			     (send (send robot move-arm :end-coords) :transformation gripper-link)
-			     :local))
-		   gripper-bodies)))
-     (send self :show-mesh-traj-with-color
-     	   gripper-bodies (list gripper-coords)
-     	   :lifetime 0 :color #f(1 0 1) :ns "hand_traj")
-     (list gripper-bodies gripper-coords)))
-  (:find-descendants-dae-links
-   (l)
-   (unless l (return-from :find-descendants-dae-links nil))
-   (append (list l)
-           (mapcan #'(lambda (x) (send self :find-descendants-dae-links x)) (send l :child-links))))
-  (:show-mesh-traj-with-color
-   (link-body-list link-coords-list &key ((:lifetime lf) 20)
-                   (ns "robot_traj") ((:color col) #f(0.5 0.5 0.5)))
-   (let ((msg (instance visualization_msgs::MarkerArray :init))
-         (header (instance std_msgs::header :init
-                           :stamp (ros::time-now)
-                           :frame_id (send (car (send robot :links)) :name)))
-         (l (length link-coords-list)) markers-list alpha-list
-         (base-cds (send (car (send robot :links)) :copy-worldcoords)))
-     (setq base-cds (send base-cds :inverse-transformation))
-     (dotimes (i l)
-       (push (+ (/ (/ (1+ i) 2.0) l) 0.5) alpha-list))
-     (dotimes (i l)
-       (let (mrk markers)
-         (mapcar #'(lambda (abody acoords)
-                     (setq acoords (send (send acoords :copy-worldcoords) :transform base-cds :world))
-		     (cond ((send abody :name)
-			    (setq mrk (mesh->marker-msg
-				       acoords
-				       (send abody :name)
-				       header
-				       :mesh_use_embedded_materials nil :color col :alpha (elt alpha-list i))))
-			   (t
-			    (setq mrk (object->marker-msg
-				       abody
-				       header
-				       :coords acoords
-				       :color col
-				       :alpha (elt alpha-list i)
-				       ))))
-		     (send mrk :lifetime (ros::time lf))
-		     (send mrk :ns ns)
-		     (push mrk markers))
-		 link-body-list
-		 (elt link-coords-list i))
-	 (push markers markers-list)))
-     (setq markers-list (flatten markers-list))
-     (dotimes (x (length markers-list)) (send (elt markers-list x) :id x))
-     (send msg :markers markers-list)
-     (ros::publish "openrave_marker_array" msg)
-     ))
   )
 
 
