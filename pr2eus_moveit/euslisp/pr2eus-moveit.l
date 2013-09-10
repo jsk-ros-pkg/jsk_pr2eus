@@ -316,8 +316,8 @@
         &allow-other-keys)
    (let (ret)
      (unless scene (setq scene (send self :get-planning-scene)))
-     (when (send self :get-ik-for-pose cds confkey :end-coords end-coords
-                 :use-actual-seed t :retry retry :frame-id frame-id :scene scene)
+     (unless (send self :get-ik-for-pose cds confkey :end-coords end-coords
+                   :use-actual-seed t :retry retry :frame-id frame-id :scene scene)
        (return-from :planning-make-trajectory-to-coords nil))
      (send self :planning-make-trajectory confkey
            :planning-time planning-time :planning-attemps planning-attemps
@@ -349,8 +349,8 @@
         &allow-other-keys)
    (let (ret)
      (unless scene (setq scene (send self :get-planning-scene)))
-     (when (send self :get-ik-for-pose cds confkey :end-coords end-coords
-                 :use-actual-seed t :retry retry :frame-id frame-id :scene scene)
+     (unless (send self :get-ik-for-pose cds confkey :end-coords end-coords
+                   :use-actual-seed t :retry retry :frame-id frame-id :scene scene)
        (return-from :planning-move-arm-to-coords nil))
      (send self :planning-move-arm confkey
            :planning-time planning-time :planning-attemps planning-attemps
@@ -366,9 +366,9 @@
 (defmethod robot-interface
   (:set-moveit-environment (&optional mv-env)
    (when mv-env (setf (get self :moveit-environment) mv-env))
-   (get self :moveit-planning-environment))
+   (get self :moveit-environment))
   (:planning-environment (&rest args)
-   (let ((env (get self :moveit-planning-environment)))
+   (let ((env (get self :moveit-environment)))
      (when env (forward-message-to env args))))
   (:parse-end-coords (arm use-torso)
    (let (confkey ed-lst)
@@ -387,9 +387,8 @@
           (ed-lst (cdr r))
           ret)
      (setq ret
-           (send self :planning-environment
-                 :get-ik-for-pose cds confkey :end-coords ed-lst))
-     ;; check return value
+           (send* self :planning-environment
+                  :get-ik-for-pose cds confkey :end-coords ed-lst args))
      ret))
   (:angle-vector-make-trajectory
    (av &rest args &key (move-arm :larm) (use-torso) &allow-other-keys)
@@ -398,9 +397,9 @@
           (ed-lst (cdr r))
           ret)
      (setq ret
-           (send self :planning-environment
-                 :planning-make-trajectory confkey
-                 :set-angle-vector av :end-coords ed-lst args))
+           (send* self :planning-environment
+                  :planning-make-trajectory confkey
+                  :set-angle-vector av :end-coords ed-lst args))
      ret))
   (:end-coords-make-trajectory
    (cds &rest args &key (move-arm :larm) (use-torso) &allow-other-keys)
@@ -409,15 +408,16 @@
           (ed-lst (cdr r))
           ret)
      (setq ret
-             (send self :planning-environment
-                   :planning-make-trajectory-to-coords
-                   cds confkey :end-coords ed-lst args))
+             (send* self :planning-environment
+                    :planning-make-trajectory-to-coords
+                    cds confkey :end-coords ed-lst args))
      ret))
-  (:angle-vector-motion-plan
+  (:angle-vector-motion-plan ;;
    (av &rest args &key (move-arm :larm) (reset-total-time 5000.0) &allow-other-keys)
-   (let (traj)
-     (setq traj (send* self :angle-vector-make-trajectory av args))
-     (when traj
+   (let (traj ret)
+     (setq ret (send* self :angle-vector-make-trajectory av args))
+     (when ret
+       (setq traj (send ret :trajectory :joint_trajectory))
        (when (< (send (send (car (last (send traj :points))) :time_from_start) :to-sec) 0.001)
          (unless reset-total-time
            (ros::ros-error "Trajectory has very short duration")
@@ -426,11 +426,12 @@
          (setq traj (send self :trajectory-filter traj :total-time reset-total-time)))
        (send* self :joint-trajectory-to-angle-vector-list move-arm traj args)
        )))
-  (:move-end-coords-plan
-   (coords &rest args &key (move-arm :larm) (reset-total-time 5000.0) &allow-other-keys)
-   (let (traj)
-     (setq traj (send* self :end-coords-make-trajectory coords args))
-     (when traj
+  (:move-end-coords-plan ;;
+   (cds &rest args &key (move-arm :larm) (reset-total-time 5000.0) &allow-other-keys)
+   (let (traj ret)
+     (setq ret (send* self :end-coords-make-trajectory cds args))
+     (when ret
+       (setq traj (send ret :trajectory :joint_trajectory))
        (when (< (send (send (car (last (send traj :points))) :time_from_start) :to-sec) 0.001)
          (unless reset-total-time
            (ros::ros-error "Trajectory has very short duration")
