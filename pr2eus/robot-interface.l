@@ -1,14 +1,11 @@
 ;;;
 ;;; robot interface to ROS based pr2 system
 ;;;
-
-(require :eustf "package://roseus/euslisp/eustf.l")
-(require :actionlib "package://roseus/euslisp/actionlib.l")
-
 (ros::load-ros-manifest "roseus")
-(ros::roseus-add-msgs "pr2_msgs")
-(ros::roseus-add-msgs "sensor_msgs")
-(ros::roseus-add-msgs "pr2_controllers_msgs")
+(ros::load-ros-manifest "pr2_msgs")
+(ros::load-ros-manifest "pr2_controllers_msgs")
+;;(ros::roseus-add-msgs "sensor_msgs") ;; roseus depends on sensor_msgs
+;;(ros::roseus-add-msgs "visualization_msgs") ;; roseus depends on visualization_msgs
 
 ;; add ros-joint-angle method using meter/radian
 (defmethod rotational-joint
@@ -478,7 +475,7 @@
        (apply-trajectory_point joint-names (car (last points-lst)) robot)
        ) ;;; /when ilst
      ))
-  ) ;; ros-interface
+  ) ;; robot-interface
 
 ;;
 (defclass ros-interface
