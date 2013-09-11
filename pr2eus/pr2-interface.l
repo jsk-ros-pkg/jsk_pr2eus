@@ -452,7 +452,7 @@
          (send robot :newcoords (midcoords (/ curr-tm 1000.0) orig-coords coords))
          (if viewer (send self :draw-objects))))
      (return-from :go-pos-unsafe t))
-   (let (msec step goal (maxvel 0.3) (maxrad 0.5))
+   (let (msec step goal (maxvel 0.295) (maxrad 0.495) (counter 0))
      ;; package://pr2_base_trajectory_action/config/pr2_base_link.yaml
      ;; 80% of maxvel = 0.3[m/sec]
      ;; 80% of maxrad = 0.5[rad/sec]
@@ -460,8 +460,10 @@
                              (/ (abs (deg2rad d)) (* maxrad 0.8)))))
      (setq msec (max msec 1000))
      (setq step (/ 1000.0 msec))
-     (while (or (> (sqrt (+ (* x x) (* y y)))  0.03)
-                (> (abs d) 3)) ;; 3 cm and 3deg
+     (while (and (or (> (sqrt (+ (* x x) (* y y)))  0.025)
+                     (> (abs d) 2.5) ;; 3 cm and 3deg
+                     (= counter 0))  ;; try at least 1 time
+                 (< counter 3)) ;; magic number 3 times
        (setq goal (send self :move-trajectory (* x step) (* y step)
                         (* (deg2rad d) step) msec :stop t))
        (send move-base-trajectory-action :send-goal goal)
@@ -486,8 +488,9 @@
          (if (> d (* 360 0.8)) (setq d (- d 360)))
          (if (< d (* -360 0.8)) (setq d (+ d 360)))
          (ros::ros-info "                diff-pos ~A ~A, diff-angle ~A" x y d)
-         ) ;; let
-       ) ;; dotimes
+         )
+       (incf counter)
+       ) ;; while
      t))
   (:move-trajectory
    (x y d &optional (msec 1000) &key (stop t)) ;; [m/sec] [m/sec] [rad/sec]
