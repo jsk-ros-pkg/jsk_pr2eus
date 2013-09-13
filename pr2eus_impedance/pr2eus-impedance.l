@@ -49,7 +49,7 @@
       (send self :change-controller "r_arm_controller" "r_arm_cart_imped_controller")
       (send self :change-controller "l_arm_controller" "l_arm_cart_imped_controller")
       )))
-  (:stop-impedance 
+  (:stop-impedance
    (&optional (arm :rarm))
    (case arm
      (:rarm
@@ -65,6 +65,7 @@
 
   (:wait-impedance-trajectory
    (&optional (arm :rarm) (timeout 0))
+#|
    (send self :init-imped-action-client)
    (let ((r-arm-imped-action (send self :get 'r-arm-imped-action))
          (l-arm-imped-action (send self :get 'l-arm-imped-action)))
@@ -76,7 +77,12 @@
        (:arms
         (send r-arm-imped-action :wait-for-result :timeout timeout)
         (send l-arm-imped-action :wait-for-result :timeout timeout))
-       )))
+       )
+     )
+|#
+   ;; TODO: impedance controller immediately return
+   (send self :ros-wait timeout)
+   )
 
   (:cancel-all-impedance-trajectry
    (&optional (arm :rarm))
@@ -110,14 +116,24 @@
               (:larm
                (setq arm-client l-arm-imepd-action)))))
        (cond
-  	((<= wait 0)
-  	 (send arm-client :send-goal goal))
-  	(t
-  	 (send arm-client :send-goal-and-wait goal :timeout wait)))
+        ((not (numberp wait))
+         (send arm-client :send-goal goal)
+         (let ((tm 0.0))
+           (dolist (trj (send goal :goal :trajectory))
+             (incf tm (send (send trj :time_from_start) :to-sec)))
+           (ros::ros-info ";; wait ~A sec" tm)
+           (send self :ros-wait tm))
+         )
+        ((<= wait 0)
+         (send arm-client :send-goal goal))
+        (t
+         (send arm-client :send-goal goal)
+         (send self :ros-wait wait))
+        )
        )))
 
   (:add-impedance-trajectory
-   (goal coords ts &key (frame-id "base_footprint") 
+   (goal coords ts &key (frame-id "base_footprint")
          (target-force (float-vector 1000 1000 1000 20 20 20)) ;; target force or impedance gain
          (force-control (list nil nil nil nil nil nil)) ;;(t: force control, nil: impedance control)
          (control-rot (unit-matrix))) ;; force and impedance controll coords
@@ -157,6 +173,3 @@
      (send goal :goal :trajectory (append prev-goal (list addPoint)))
      ))
   ) ;; defmethod pr2-interface
-
-
-
