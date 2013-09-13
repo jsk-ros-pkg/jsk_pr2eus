@@ -487,7 +487,7 @@
      (if spin-self (send self :spin-once))
      (while t
        (when finish-check
-         (if (funcall #'finish-check self)
+         (if (funcall finish-check self)
            (return)))
        (let ((tdiff (ros::time- (ros::time-now) st)))
          (if (> (send tdiff :to-sec) tm)
