@@ -480,6 +480,22 @@
        (apply-trajectory_point joint-names (car (last points-lst)) robot)
        ) ;;; /when ilst
      ))
+  (:ros-wait (tm &key (spin) (spin-self) (finish-check)) ;; just wait in ros-time
+   (ros::rate 100) ;;
+   (let ((st (ros::time-now)))
+     (if spin (ros::spin-once))
+     (if spin-self (send self :spin-once))
+     (while t
+       (when finish-check
+         (if (funcall #'finish-check self)
+           (return)))
+       (let ((tdiff (ros::time- (ros::time-now) st)))
+         (if (> (send tdiff :to-sec) tm)
+             (return)))
+       (if spin (ros::spin-once))
+       (if spin-self (send self :spin-once))
+       (ros::sleep)))
+   t)
   ) ;; robot-interface
 ;; ros visualization methods
 (defmethod robot-interface
