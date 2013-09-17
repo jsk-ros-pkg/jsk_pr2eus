@@ -480,7 +480,7 @@
        (apply-trajectory_point joint-names (car (last points-lst)) robot)
        ) ;;; /when ilst
      ))
-  (:ros-wait (tm &key (spin) (spin-self) (finish-check)) ;; just wait in ros-time
+  (:ros-wait (tm &key (spin) (spin-self) (finish-check) &allow-other-keys) ;; just wait in ros-time
    (ros::rate 100) ;;
    (let ((st (ros::time-now)))
      (if spin (ros::spin-once))
