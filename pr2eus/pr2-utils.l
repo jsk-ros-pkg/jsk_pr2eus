@@ -64,15 +64,6 @@
                (send self :link-list (send move-target :parent)
                      (unless use-torso (car (send self move-arm)))))))
 
-     ;; use torso
-     (setq weight (instantiate float-vector (send self :calc-target-joint-dimension link-list))
-           union-link-list (send self :calc-union-link-list link-list)
-           torso-id (position (send self :torso_lift_joint) (send-all union-link-list :joint)))
-     (fill weight 1)
-     (when (and use-torso torso-id)
-       (if (not (numberp use-torso)) (setq use-torso 0.005))
-       (if torso-id (setf (elt weight torso-id) use-torso)))
-
      ;; use base
      (cond
       (use-base
@@ -91,12 +82,17 @@
               (float-vector (elt diff-pos-rot 0)
                             (elt diff-pos-rot 1)
                             (rad2deg (elt diff-pos-rot 5))))
-        (if (eq use-base t) (setq use-base 0.1))
         (send-super* :inverse-kinematics target-coords
                      :rthre rthre
                      :thre thre
                      :stop stop
-                     :weight (concatenate float-vector (float-vector use-base use-base use-base) weight)
+                     :additional-weight-list
+                     (list
+                      (list (send self :torso_lift_joint :child-link)
+                            (if (numberp use-torso) use-torso 0.005))
+                      (list (car (send self :links))
+                            (if (eq use-base t) 0.1 use-base))
+                      )
                      :link-list (car ll) ;; link-list
                      :move-target move-target
                     args)))
@@ -105,7 +101,11 @@
                     :rthre rthre
                     :thre thre
                     :stop stop
-                    :weight weight
+                    :additional-weight-list
+                    (list
+                     (list (send self :torso_lift_joint :child-link)
+                           (if (numberp use-torso) use-torso 0.005))
+                     )
                     :link-list link-list
                     :move-target move-target
                     args))
