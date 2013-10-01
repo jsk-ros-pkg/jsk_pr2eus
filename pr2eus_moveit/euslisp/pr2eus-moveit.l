@@ -457,3 +457,81 @@
        (incf cntr))
      traj))
   )
+
+(defun make-box-shape (x &optional y z)
+  (let ((dim (float-vector x (if y y x) (if z z x))))
+    (scale 0.001 dim dim)
+    (instance shape_msgs::SolidPrimitive :init :type shape_msgs::SolidPrimitive::*BOX*
+              :dimensions dim)))
+(defun make-sphere-shape (r)
+  (let ((dim (float-vector (* 0.001 r))))
+    (instance shape_msgs::SolidPrimitive :init :type shape_msgs::SolidPrimitive::*SPHERE*
+              :dimensions dim)))
+
+(defun make-bounding-volume (pose type x &optional y z)
+  (case type
+    (:box
+     (instance moveit_msgs::BoundingVolume :init
+               :primitives (list (make-box-shape x y z))
+               :primitive_poses (list (if pose pose (ros::identity-pose)))))
+    (:sphere
+     (instance moveit_msgs::BoundingVolume :init
+               :primitives (list (make-sphere-shape x))
+               :primitive_poses (list (if pose pose (ros::identity-pose)))))
+    ))
+
+(defun make-position-constraints (link_name target-coords &key (weight 1.0) (frame_id "world")
+                                            (ignore-volume-orientation)
+                                            (offset-position) (tolerance_r) (shape) (volume)
+                                            (tolerance_x 5) (tolerance_y 5) (tolerance_z 5)
+                                            &allow-other-keys)
+  (let ((pose (ros::coords->tf-pose target-coords)))
+    (if ignore-volume-orientation (send pose :orientation (ros::identity-quaternion)))
+    (instance moveit_msgs::PositionConstraint :init
+              :header (instance std_msgs::header :init :frame_id frame_id)
+              :link_name link_name
+              :target_point_offset
+              (let ((g (instance geometry_msgs::Vector3 :init)))
+                (when offset-position
+                  (send g :x (* 0.001 (elt offset-position 0)))
+                  (send g :y (* 0.001 (elt offset-position 0)))
+                  (send g :z (* 0.001 (elt offset-position 0))))
+                g)
+              :constraint_region
+              (cond
+               (volume volume)
+               (shape
+                (instance moveit_msgs::BoundingVolume :init
+                          :primitives (list shape)
+                          :primitive_poses (list pose)))
+               (tolerance_r
+                (make-bounding-volume pose :sphere tolerance_r))
+               (t
+                (make-bounding-volume pose :box tolerance_x tolerance_y tolerance_z)))
+              :weight weight)))
+
+(defun make-orientation-constraints (link_name target-coords &key (weight 1.0) (frame_id "world")
+                                               (tolerance_rx 0.015) (tolerance_ry 0.015) (tolerance_rz 0.015)
+                                               &allow-other-keys)
+  (instance moveit_msgs::OrientationConstraint :init
+            :header (instance std_msgs::header :init :frame_id frame_id)
+            :link_name link_name
+            :orientation (ros::rot->tf-quaternion (send target-coords :worldrot))
+            :absolute_x_axis_tolerance tolerance_rx
+            :absolute_y_axis_tolerance tolerance_ry
+            :absolute_z_axis_tolerance tolerance_rz
+            :weight weight))
+
+(defun make-pose-constraints (link_name target-coords
+                                        &rest args &key (name "") (use-position t) (use-orientation t)
+                                        &allow-other-keys)
+  (instance moveit_msgs::Constraints :init :name name
+            :position_constraints (if use-position
+                                      (list (apply #'make-position-constraints
+                                                   link_name target-coords args)))
+            :orientation_constraints (if use-orientation
+                                         (list (apply #'make-orientation-constraints
+                                                      link_name target-coords args))))
+  )
+
+(provide :pr2eus-moveit "pr2eus-moveit.l")
