@@ -235,8 +235,9 @@
             (group-name (cdr (assoc :group-name (cdr (assoc confkey config-list)))))
             (joint-list (cdr (assoc :joint-list (cdr (assoc confkey config-list)))))
             (planning-attempts 1) (planning-time 5.0) (tolerance-below 0.001) (tolerance-above 0.001)
-            (workspace-x 1.0) (workspace-y 1.0) (workspace-z 1.0) &allow-other-keys
-            )
+            (workspace-x 1.0) (workspace-y 1.0) (workspace-z 1.0) (additional_goal_constraints)
+            (goal_constraints) (extra_goal_constraints) (path_constraints) (trajectory_constraints)
+            &allow-other-keys)
    (let ((mpr (instance moveit_msgs::motionplanrequest :init))
          res)
      ;;
@@ -255,19 +256,34 @@
      ;;
      (send mpr :start_state (send scene :robot_state))
 
-     (send mpr :goal_constraints
-      (list
-       (instance moveit_msgs::constraints :init :name ""
-                 :joint_constraints
-                 (mapcar #'(lambda (jn)
-                             (instance moveit_msgs::jointconstraint :init
-                                       :joint_name (send jn :name)
-                                       :position (send jn :ros-joint-angle)
-                                       :tolerance_above tolerance-above
-                                       :tolerance_below tolerance-below
-                                       :weight 1.0))
-                         joint-list))))
-
+     (cond
+      (goal_constraints
+       (if (atom goal_constraints) (setq goal_constraints (list goal_constraints)))
+       (send mpr :goal_constraints goal_constraints))
+      (t
+       (send mpr :goal_constraints
+             (list
+              (instance moveit_msgs::constraints :init :name ""
+                        :joint_constraints
+                        (mapcar #'(lambda (jn)
+                                    (instance moveit_msgs::jointconstraint :init
+                                              :joint_name (send jn :name)
+                                              :position (send jn :ros-joint-angle)
+                                              :tolerance_above tolerance-above
+                                              :tolerance_below tolerance-below
+                                              :weight 1.0))
+                                joint-list))))
+       (if additional_goal_constraints
+           (send mpr :goal_constraints
+                 (merge-goal-constraints (flatten (list (send mpr :goal_constraints)
+                                                        additional_goal_constraints)))))
+       ))
+     (when extra_goal_constraints
+       (if (atom extra_goal_constraints)
+           (setq extra_goal_constraints (list extra_goal_constraints)))
+       (nconc (send mpr :goal_constraints) extra_constraints))
+     (if path_constraints (send mpr :path_constraints path_constraints))
+     (if trajectory_constraints (send mpr :trajectory_constraints trajectory_constraints))
      (send mpr :planner_id "") ;; ??
      (send mpr :group_name group-name)
      (send mpr :num_planning_attempts planning-attempts)
@@ -291,26 +307,26 @@
      (when ret
        (send self :execute-trajectory (send ret :trajectory) :wait wait))))
   (:planning-make-trajectory
-   (confkey &key (set-angle-vector) (scene) (use-scene t) (planning-time 5.0)
+   (confkey &rest args &key (set-angle-vector) (scene) (use-scene t) (planning-time 5.0)
             (planning-attemps 3) (retry) &allow-other-keys)
    (let (ret)
      (if set-angle-vector (send robot :angle-vector set-angle-vector))
      (unless scene (setq scene (send self :get-planning-scene)))
      (setq ret
-           (send self :motion-plan confkey
-                 :planning-time planning-time :planning-attemps planning-attemps
-                 :scene (if use-scene scene)))
+           (send* self :motion-plan confkey
+                  :planning-time planning-time :planning-attemps planning-attemps
+                  :scene (if use-scene scene) args))
      (when (and retry (not ret)) ;; retry
        (when get-scene (setq scene (send self :get-planning-scene)))
        (setq ret
-             (send self :motion-plan confkey
-                   :planning-time (* 2 planning-time)
-                   :planning-attemps (* 2 planning-attemps)
-                   :scene (if use-scene scene))))
+             (send* self :motion-plan confkey
+                    :planning-time (* 2 planning-time)
+                    :planning-attemps (* 2 planning-attemps)
+                    :scene (if use-scene scene) args)))
      ret
      ))
   (:planning-make-trajectory-to-coords
-   (cds confkey &key (end-coords) ;; (list :rarm :end-coords)
+   (cds confkey &rest args &key (end-coords) ;; (list :rarm :end-coords)
         (planning-time 5.0) (scene) (frame-id default-frame-id)
         (planning-attemps 3) (retry) (use-scene t)
         &allow-other-keys)
@@ -319,9 +335,9 @@
      (unless (send self :get-ik-for-pose cds confkey :end-coords end-coords
                    :use-actual-seed t :retry retry :frame-id frame-id :scene scene)
        (return-from :planning-make-trajectory-to-coords nil))
-     (send self :planning-make-trajectory confkey
+     (send self* :planning-make-trajectory confkey
            :planning-time planning-time :planning-attemps planning-attemps
-           :use-scene use-scene :scene scene :retry retry)
+           :use-scene use-scene :scene scene :retry retry args)
      ))
   (:planning-move-arm
    (confkey &key (set-angle-vector) (scene) (use-scene t) (planning-time 5.0)
@@ -533,5 +549,13 @@
                                          (list (apply #'make-orientation-constraints
                                                       link_name target-coords args))))
   )
+
+(defun merge-goal-constraints (const-list)
+  (instance moveit_msgs::Constraints :init
+            :name (apply #'concatenate string (send-all const-list :name))
+            :joint_constraints (flatten (send-all const-list :joint_constraints))
+            :position_constraints (flatten (send-all const-list :position_constraints))
+            :orientation_constraints  (flatten (send-all const-list :orientation_constraints))
+            :visibility_constraints (flatten (send-all const-list :visibility_constraints))))
 
 (provide :pr2eus-moveit "pr2eus-moveit.l")
