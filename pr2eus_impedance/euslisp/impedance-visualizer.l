@@ -1,6 +1,6 @@
 #!/usr/bin/env roseus
 (ros::roseus "impedance-visualizer")
-(ros::roseus-add-msgs "ee_cart_imped_msgs")
+(ros::load-ros-manifest "ee_cart_imped_msgs")
 
 (setq *node-name* "impedance_visualizer")
 (setq *r_arm_actual_force* "r_arm_actual_force")

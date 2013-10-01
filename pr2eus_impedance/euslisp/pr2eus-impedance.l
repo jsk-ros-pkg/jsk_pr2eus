@@ -1,7 +1,8 @@
-(ros::roseus-add-msgs "pr2_mechanism_msgs")
-(ros::roseus-add-msgs "ee_cart_imped_msgs")
+(ros::load-ros-manifest "pr2_mechanism_msgs")
+(ros::load-ros-manifest "ee_cart_imped_msgs")
 (require :pr2-interface "package://pr2eus/pr2-interface.l")
 
+;; roslaunch ee_cart_imped_launch load_ee_cart_imped.launch
 (defmethod robot-interface
   ;; FIX: this function should go to robot-inferface
   (:change-controller (stop-controller start-controller)
