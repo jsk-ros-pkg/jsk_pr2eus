@@ -2,17 +2,42 @@
 
 (defclass collision-object-publisher
   :super propertied-object
-  :slots (object-list topicname scene-srv))
+  :slots (object-list attached-list
+          topicname attached-topicname scene-srv))
 
 (defmethod collision-object-publisher
-  (:init (&key (topic-name "collision_object") (scene-service "get_planning_scene"))
+  (:init (&key (topic-name "collision_object")
+               (attached-topic-name "attached_collision_object")
+               (scene-service "get_planning_scene"))
    (unless (ros::ok) (ros::roseus "publish_collision_eusobj"))
    (setq topicname topic-name
+         attached-topicname attached-topic-name
          scene-srv scene-service)
    (ros::advertise topicname moveit_msgs::CollisionObject 100)
-   (setq object-list (make-hash-table)))
-  (:add-object
-   (obj &key (frame_id "base_footprint") (relative-pose))
+   (ros::advertise attached-topicname moveit_msgs::AttachedCollisionObject 100)
+   (setq object-list (make-hash-table))
+   (setq attached-object-list (make-hash-table))
+   self)
+  (:add-object (obj &rest args)
+   (let ((objmsg (send* self :make-object obj args)))
+     (setf (gethash obj object-list) objmsg)
+     (ros::publish topicname objmsg)
+     obj))
+  (:add-attached-object (obj link-name &rest args
+                             &key (touch-links) (weight 0) (detach-posture)
+                             &allow-other-keys)
+   (let ((objmsg (send* self :make-object obj args))
+         (msg (instance moveit_msgs::AttachedCollisionObject :init)))
+     (send msg :link_name link-name)
+     (send msg :object objmsg)
+     (send msg :touch_links touch-links)
+     (if detach-posture (send msg :detach_posture detach-posture))
+     (send msg :weight weight)
+     ;;
+     (ros::publish attached-topicname msg)
+     obj))
+  (:make-object
+   (obj &key (frame-id "base_footprint") (object-frame-id) (relative-pose) &allow-other-keys)
    (let ((msg (gethash obj object-list)))
      (when msg (return-from :add-object)))
    (let* ((id (symbol-string (gensym "COLOBJ")))
@@ -21,7 +46,7 @@
 
      (send colobj :operation moveit_msgs::CollisionObject::*ADD*)
 
-     (send colobj :header :frame_id frame_id)
+     (send colobj :header :frame_id frame-id)
      (send colobj :header :stamp (ros::time-now))
 
      (cond
@@ -129,10 +154,7 @@
        (warn ";; not supported object type~%")
        (return-from :add-object)
        ))
-
-     (setf (gethash obj object-list) colobj)
-     (ros::publish topicname colobj)
-     obj))
+     colobj))
   (:clear-all ()
    (dolist (obj (send object-list :list-keys))
      (send self :delete-object obj))
