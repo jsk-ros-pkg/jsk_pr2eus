@@ -160,9 +160,15 @@
      (send self :delete-object obj))
    (setq object-list (make-hash-table))
    t)
+  (:clear-attached-all ()
+   (dolist (obj (send attached-object-list :list-keys))
+     (send self :delete-attached-object obj))
+   (setq attached-object-list (make-hash-table))
+   t)
   (:wipe-all ()
    (let ((scene (get-planning-scene :scene-topic scene-srv
-                                    :components (+ moveit_msgs::PlanningSceneComponents::*WORLD_OBJECT_NAMES*
+                                    :components (+ moveit_msgs::PlanningSceneComponents::*ROBOT_STATE_ATTACHED_OBJECTS*
+                                                   moveit_msgs::PlanningSceneComponents::*WORLD_OBJECT_NAMES*
                                                    moveit_msgs::PlanningSceneComponents::*WORLD_OBJECT_GEOMETRY*
                                                    moveit_msgs::PlanningSceneComponents::*OCTOMAP*))))
      (when scene
@@ -170,7 +176,12 @@
          (send msg :header :stamp (ros::time-now))
          (send msg :operation :operation moveit_msgs::CollisionObject::*REMOVE*)
          (ros::publish topicname msg))
+       (dolist (msg (send scene :robot_state :attached_collision_objects))
+         (send msg :object :header :stamp (ros::time-now))
+         (send msg :object :operation moveit_msgs::CollisionObject::*REMOVE*)
+         (ros::publish attached-topicname msg))
        (setq object-list (make-hash-table))
+       (setq attached-object-list (make-hash-table))
        t)))
   (:delete-object (obj)
    (let ((msg (gethash obj object-list)))
@@ -179,6 +190,14 @@
      (send msg :operation moveit_msgs::CollisionObject::*REMOVE*)
      (remhash obj object-list)
      (ros::publish topicname msg)
+     obj))
+  (:delete-attached-object (obj)
+   (let ((msg (gethash obj attached-object-list)))
+     (unless msg (return-from :delete-attached-object))
+     (send msg :object :header :stamp (ros::time-now))
+     (send msg :object :operation moveit_msgs::CollisionObject::*REMOVE*)
+     (remhash obj attached-object-list)
+     (ros::publish attached-topicname msg)
      obj))
   )
 
