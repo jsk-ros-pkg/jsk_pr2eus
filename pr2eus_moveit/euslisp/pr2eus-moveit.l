@@ -43,6 +43,7 @@
           scene-service
           planning-service
           execute-service
+          query-planner-interface-service
           robot
           default-frame-id default-link
           multi-dof-name multi-dof-frame
@@ -56,12 +57,14 @@
    (&key ((:scene-service sc-srv) "/get_planning_scene")
          ((:planning-service pl-srv) "/plan_kinematic_path")
          ((:execute-service ex-srv) "/execute_kinematic_path")
+         ((:query-planner-interface-service qr-pl-srv) "/query_planner_interface")
          ((:robot rb) *pr2*) (frame-id "base_footprint") ;; frame-id needs to be contained in robot_model
          (multi-dof-joint-name "virtual_joint")
          (multi-dof-frame-id "odom_combined"))
    (setq scene-service sc-srv
          planning-service pl-srv
          execute-service ex-srv
+         query-planner-interface-service qr-pl-srv
          robot rb
          default-frame-id frame-id
          multi-dof-name multi-dof-joint-name
@@ -170,6 +173,11 @@
   (:get-group-tip-coords (confkey) ;; get-robot-coords
    (let ((link-inst (cdr (assoc :target-link (cdr (assoc confkey config-list))))))
      (send link-inst :copy-worldcoords)))
+  (:query-planner-interface ()
+   (let ((req (instance moveit_msgs::QueryPlannerInterfacesRequest :init))
+         ret)
+    (setq ret (ros::service-call query-planner-interface-service req))
+    ret))
   (:get-planning-scene (&optional (components 1023))
    (get-planning-scene :scene-service scene-service :components components))
   (:get-ik-for-pose
@@ -231,11 +239,11 @@
      ;; parse req
      ))
   (:motion-plan
-   (confkey &key (scene)
+   (confkey &key (scene) (planner-id "")
             (group-name (cdr (assoc :group-name (cdr (assoc confkey config-list)))))
             (joint-list (cdr (assoc :joint-list (cdr (assoc confkey config-list)))))
             (planning-attempts 1) (planning-time 5.0) (tolerance-below 0.001) (tolerance-above 0.001)
-            (workspace-x 1.0) (workspace-y 1.0) (workspace-z 1.0) (additional_goal_constraints)
+            (workspace-x 1.0) (workspace-y 1.0) (workspace-z 1.6) (additional_goal_constraints)
             (goal_constraints) (extra_goal_constraints) (path_constraints) (trajectory_constraints)
             &allow-other-keys)
    (let ((mpr (instance moveit_msgs::motionplanrequest :init))
@@ -284,7 +292,7 @@
        (nconc (send mpr :goal_constraints) extra_constraints))
      (if path_constraints (send mpr :path_constraints path_constraints))
      (if trajectory_constraints (send mpr :trajectory_constraints trajectory_constraints))
-     (send mpr :planner_id "") ;; ??
+     (send mpr :planner_id planner-id) ;; select from :query-planner-interface
      (send mpr :group_name group-name)
      (send mpr :num_planning_attempts planning-attempts)
      (send mpr :allowed_planning_time planning-time)
