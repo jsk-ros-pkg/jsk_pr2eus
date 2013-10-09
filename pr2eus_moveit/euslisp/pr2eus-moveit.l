@@ -239,13 +239,31 @@
      ;; parse req
      ))
   (:motion-plan
-   (confkey &key (scene) (planner-id "")
-            (group-name (cdr (assoc :group-name (cdr (assoc confkey config-list)))))
-            (joint-list (cdr (assoc :joint-list (cdr (assoc confkey config-list)))))
-            (planning-attempts 1) (planning-time 5.0) (tolerance-below 0.001) (tolerance-above 0.001)
-            (workspace-x 1.0) (workspace-y 1.0) (workspace-z 1.6) (additional_goal_constraints)
-            (goal_constraints) (extra_goal_constraints) (path_constraints) (trajectory_constraints)
+   (confkey &rest args
+            &key (joint-list (cdr (assoc :joint-list (cdr (assoc confkey config-list)))))
+            (tolerance-below 0.001) (tolerance-above 0.001)
             &allow-other-keys)
+   (let* ((group-name (cdr (assoc :group-name (cdr (assoc confkey config-list)))))
+          (const
+           (instance moveit_msgs::constraints :init :name ""
+                     :joint_constraints
+                     (mapcar #'(lambda (jn)
+                                 (instance moveit_msgs::jointconstraint :init
+                                           :joint_name (send jn :name)
+                                           :position (send jn :ros-joint-angle)
+                                           :tolerance_above tolerance-above
+                                           :tolerance_below tolerance-below
+                                           :weight 1.0))
+                             joint-list))))
+     (send* self :motion-plan-raw group-name
+            :goal_constraints (list const) args)
+     ))
+  (:motion-plan-raw
+   (group-name &key (scene) (planner-id "")
+               (planning-attempts 1) (planning-time 5.0)
+               (workspace-x 1.0) (workspace-y 1.0) (workspace-z 1.6) (additional_goal_constraints)
+               (goal_constraints) (extra_goal_constraints) (path_constraints) (trajectory_constraints)
+               &allow-other-keys)
    (let ((mpr (instance moveit_msgs::motionplanrequest :init))
          res)
      ;;
@@ -264,28 +282,14 @@
      ;;
      (send mpr :start_state (send scene :robot_state))
 
-     (cond
-      (goal_constraints
+     (when goal_constraints
        (if (atom goal_constraints) (setq goal_constraints (list goal_constraints)))
-       (send mpr :goal_constraints goal_constraints))
-      (t
-       (send mpr :goal_constraints
-             (list
-              (instance moveit_msgs::constraints :init :name ""
-                        :joint_constraints
-                        (mapcar #'(lambda (jn)
-                                    (instance moveit_msgs::jointconstraint :init
-                                              :joint_name (send jn :name)
-                                              :position (send jn :ros-joint-angle)
-                                              :tolerance_above tolerance-above
-                                              :tolerance_below tolerance-below
-                                              :weight 1.0))
-                                joint-list))))
+       (send mpr :goal_constraints goal_constraints)
        (if additional_goal_constraints
            (send mpr :goal_constraints
                  (merge-goal-constraints (flatten (list (send mpr :goal_constraints)
                                                         additional_goal_constraints)))))
-       ))
+       )
      (when extra_goal_constraints
        (if (atom extra_goal_constraints)
            (setq extra_goal_constraints (list extra_goal_constraints)))
