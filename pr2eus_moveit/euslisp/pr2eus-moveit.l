@@ -177,7 +177,9 @@
    (let ((req (instance moveit_msgs::QueryPlannerInterfacesRequest :init))
          ret)
     (setq ret (ros::service-call query-planner-interface-service req))
-    ret))
+    (when ret
+      (send ret :planner_interfaces))
+    ))
   (:get-planning-scene (&optional (components 1023))
    (get-planning-scene :scene-service scene-service :components components))
   (:get-ik-for-pose
@@ -312,7 +314,7 @@
        (warn ";; motion plan error at ~A~%"
              (assoc (send res :motion_plan_response :error_code :val)
                     *moveit-error-code-list*))
-       (return-from :motion-plan nil)))
+       (return-from :motion-plan-raw nil)))
      ))
   (:move-arm-to-goal (confkey &rest args &key (wait) &allow-other-keys)
    (let ((ret (send* self :motion-plan args)))
@@ -562,6 +564,43 @@
                                                       link_name target-coords args))))
   )
 
+(defun make-virtual-joint-constraints
+  (target-coords &key (joint-name "world_joint") (type :planner)
+                 (tolerance-above-list (float-vector 0.01 0.01 0.01 0.01 0.01 0.01))
+                 (tolerance-below-list (float-vector 0.01 0.01 0.01 0.01 0.01 0.01))
+                 (weight-list (float-vector 1 1 1 1 1 1)))
+  (let (constraints
+        (max-vec (coerce tolerance-above-list float-vector))
+        (min-vec (coerce tolerance-below-list float-vector))
+        (weight-vec (coerce weight-list float-vector)))
+    (push
+     (instance moveit_msgs::jointconstraint :init
+               :joint_name (format nil "~A/x" joint-name)
+               :position (* 0.001 (elt (send target-coords :worldpos) 0))
+               :tolerance_above (elt max-vec 0)
+               :tolerance_below (elt min-vec 0)
+               :weight (elt weight-vec 0))
+     constraints)
+    (push
+     (instance moveit_msgs::jointconstraint :init
+               :joint_name (format nil "~A/y" joint-name)
+               :position (* 0.001 (elt (send target-coords :worldpos) 1))
+               :tolerance_above (elt max-vec 1)
+               :tolerance_below (elt min-vec 1)
+               :weight (elt weight-vec 1))
+     constraints)
+    (push
+     (instance moveit_msgs::jointconstraint :init
+               :joint_name (format nil "~A/theta" joint-name)
+               :position (* 0.001 (elt (send target-coords :worldpos) 1))
+               :tolerance_above (elt max-vec 2)
+               :tolerance_below (elt min-vec 2)
+               :weight (elt weight-vec 2))
+     constraints)
+    (instance moveit_msgs::constraints :init :name ""
+              :joint_constraints constraints)
+    ))
+
 (defun merge-goal-constraints (const-list)
   (instance moveit_msgs::Constraints :init
             :name (apply #'concatenate string (send-all const-list :name))
@@ -569,5 +608,6 @@
             :position_constraints (flatten (send-all const-list :position_constraints))
             :orientation_constraints  (flatten (send-all const-list :orientation_constraints))
             :visibility_constraints (flatten (send-all const-list :visibility_constraints))))
+
 
 (provide :pr2eus-moveit "pr2eus-moveit.l")
