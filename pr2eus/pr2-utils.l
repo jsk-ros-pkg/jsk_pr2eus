@@ -28,6 +28,8 @@
                   (rthre (cond
                          ((atom target-coords) (deg2rad 5))
                          (t (make-list (length target-coords) :initial-element (deg2rad 5)))))
+		  (base-range (list :min #f(-30 -30 -30)
+				   :max #f( 30  30  30)))
                   &allow-other-keys)
    (let (weight union-link-list torso-id base-weight diff-pos-rot)
      ;;
@@ -75,9 +77,7 @@
        (with-append-root-joint
         (ll self link-list
             :joint-class omniwheel-joint
-            :joint-args
-            (list :min #f(-30 -30 -30)
-                  :max #f( 30  30  30)))
+            :joint-args base-range)
         (send (caar ll) :joint :joint-angle
               (float-vector (elt diff-pos-rot 0)
                             (elt diff-pos-rot 1)
