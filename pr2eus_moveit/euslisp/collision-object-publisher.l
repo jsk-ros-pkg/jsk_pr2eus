@@ -39,7 +39,7 @@
   (:make-object
    (obj &key (frame-id "base_footprint") (object-frame-id) (relative-pose) &allow-other-keys)
    (let ((msg (gethash obj object-list)))
-     (when msg (return-from :add-object)))
+     (when msg (return-from :make-object)))
    (let* ((id (symbol-string (gensym "COLOBJ")))
           (colobj (instance moveit_msgs::CollisionObject :init :id id))
           geom-lst pose-lst)
@@ -152,7 +152,7 @@
        )
       (t
        (warn ";; not supported object type~%")
-       (return-from :add-object)
+       (return-from :make-object)
        ))
      colobj))
   (:clear-all ()
@@ -166,7 +166,7 @@
    (setq attached-object-list (make-hash-table))
    t)
   (:wipe-all ()
-   (let ((scene (get-planning-scene :scene-topic scene-srv
+   (let ((scene (get-planning-scene :scene-service scene-srv
                                     :components (+ moveit_msgs::PlanningSceneComponents::*ROBOT_STATE_ATTACHED_OBJECTS*
                                                    moveit_msgs::PlanningSceneComponents::*WORLD_OBJECT_NAMES*
                                                    moveit_msgs::PlanningSceneComponents::*WORLD_OBJECT_GEOMETRY*
@@ -239,3 +239,13 @@
         (push bx lst)))
     (send cmap :boxes (nreverse lst))
     cmap))
+
+(defun publish-collision-object
+  (obj robot link-name &optional (collision-publisher *co*))
+  (let ((cds (send (send robot
+                         (intern (format nil "~A_LK" (string-upcase link-name))
+                                 *keyword-package*) :worldcoords)
+                   :transformation (send obj :worldcoords))))
+    (send collision-publisher :add-object obj
+          :frame-id link-name :relative-pose cds)
+    obj))
