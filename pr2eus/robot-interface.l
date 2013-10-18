@@ -667,11 +667,13 @@
     (if (/= (length vl) (length (send jointstate :name))) (setq vl nil)) ;; vl is not set
     (if (/= (length ef) (length (send jointstate :name))) (setq ef nil)) ;; ef is not set
     (dolist (jn (send jointstate :name))
-      (let ((j (send robot (intern (string-upcase jn) *keyword-package*))))
-        (send j :ros-joint-angle (elt ps cntr))
-        (if vl (send j :joint-velocity (elt vl cntr)))
-        (if ef (send j :joint-torque (elt ef cntr)))
-        (incf cntr)))
+      (let ((jk (intern (string-upcase jn) *keyword-package*)))
+        (when (find-method robot jk)
+          (let ((j (send robot jk)))
+            (send j :ros-joint-angle (elt ps cntr))
+            (if vl (send j :joint-velocity (elt vl cntr)))
+            (if ef (send j :joint-torque (elt ef cntr))))))
+      (incf cntr))
     ))
 
 (defun apply-trajectory_point (names trajpoint robot)
