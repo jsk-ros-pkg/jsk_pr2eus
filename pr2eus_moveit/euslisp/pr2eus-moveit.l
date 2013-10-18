@@ -219,7 +219,7 @@
                                      :pose_stamped msg)))
             (res (ros::service-call "/compute_ik" req)))
        (when (and retry (/= (send res :error_code :val) 1))
-         (send req :ik_request :attempts (if attemps (* 2 attemps) 2))
+         (send req :ik_request :attempts (if attempts (* 2 attempts) 2))
          (send req :ik_request :timeout (ros::time (* 2 timeout)))
          (setq res (ros::service-call "/compute_ik" req)))
        (cond
