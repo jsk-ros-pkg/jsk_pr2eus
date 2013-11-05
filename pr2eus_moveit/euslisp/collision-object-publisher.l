@@ -174,7 +174,7 @@
      (when scene
        (dolist (msg (send scene :world :collision_objects))
          (send msg :header :stamp (ros::time-now))
-         (send msg :operation :operation moveit_msgs::CollisionObject::*REMOVE*)
+         (send msg :operation moveit_msgs::CollisionObject::*REMOVE*)
          (ros::publish topicname msg))
        (dolist (msg (send scene :robot_state :attached_collision_objects))
          (send msg :object :header :stamp (ros::time-now))
