@@ -31,7 +31,7 @@
 		  (base-range (list :min #f(-30 -30 -30)
 				   :max #f( 30  30  30)))
                   &allow-other-keys)
-   (let (weight union-link-list torso-id base-weight diff-pos-rot)
+   (let (diff-pos-rot)
      ;;
      ;; move-arm     x o x x o o x o ;; only in this function
      ;; link-list    x x o x o x o o ;; defined in upper class
