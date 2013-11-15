@@ -442,15 +442,17 @@
      (send self :move-to c :retry 1 :frame-id "/base_footprint")
      ))
   (:go-velocity
-   (x y d &optional (msec 1000) &key (stop t) (wait)) ;; [m/sec] [m/sec] [rad/sec]
+   (x y d ;; [m/sec] [m/sec] [rad/sec]
+    &optional (msec 1000) ;; msec is total animation time [msec]
+    &key (stop t) (wait))
    (unless joint-action-enable
      (let ((orig-coords (send robot :copy-worldcoords))
 	   (coords (send robot :copy-worldcoords)))
-       (send coords :translate (float-vector (* x msec) (* y msec) 0))
-       (send coords :rotate (deg2rad (/ (* d msec) 1000.0)) :z)
+       (send coords :translate (float-vector (* x msec) (* y msec) 0)) ;; [m/sec] * [msec] = [mm]
+       (send coords :rotate (deg2rad (/ (* d msec) 1000.0)) :z) ;; [rad/sec] * [msec] / 1000 = [rad]->(deg2rad)->[deg]
        (do ((curr-tm 0.0 (+ curr-tm 100.0)))
-	   ((> curr-tm 1000))
-	 (send robot :newcoords (midcoords (/ curr-tm 1000.0) orig-coords coords))
+	   ((> curr-tm msec))
+	 (send robot :newcoords (midcoords (/ curr-tm (float msec)) orig-coords coords))
 	 (if viewer (send self :draw-objects))))
      (return-from :go-velocity t))
    (let ((goal (send self :move-trajectory x y d msec :stop stop)))
