@@ -71,7 +71,7 @@
        (when (and x::*display* (> x::*display* 0))
          (setq viewer (get (geo::find-viewer (send robot :name)) :pickviewer))
          (unless viewer
-           (setq viewer (instance x::irtviewer :create :title (format nil "~A-interface" (send robot :name)) :view-name (send robot :name))))
+           (setq viewer (instance x::irtviewer :create :title (format nil "~A Kinematics Simulator" (send robot :name)) :view-name (send robot :name) :draw-floor t)))
          (send viewer :objects (list robot))
          (send self :draw-objects)
          (send self :objects objs)
