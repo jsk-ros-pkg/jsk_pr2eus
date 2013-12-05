@@ -202,7 +202,7 @@
 	   (send robot :angle-vector av)
 	   (push (list av
 		       (copy-seq vel)  ;; velocities
-		       (+ (/ (+ st tm) 1000.0) 0.2)) ;; tm + duration
+		       (/ (+ st tm) 1000.0)) ;; tm + duration
 		 traj-points)
 	   (setq av-prev av)
 	   (incf st tm))
