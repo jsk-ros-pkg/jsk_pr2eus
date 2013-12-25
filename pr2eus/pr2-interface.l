@@ -14,6 +14,7 @@
 (ros::roseus-add-msgs "move_base_msgs")
 (ros::roseus-add-msgs "nav_msgs")
 (ros::roseus-add-msgs "sound_play")
+(ros::roseus-add-msgs "control_msgs")
 (load "package://pr2eus/speak.l")
 
 (defmethod pr2-robot
@@ -36,10 +37,10 @@
                 args)
    ;; add controllers
    (dolist (l (list
-               (cons :larm-controller "l_arm_controller/joint_trajectory_action")
-               (cons :rarm-controller "r_arm_controller/joint_trajectory_action")
-               (cons :head-controller "head_traj_controller/joint_trajectory_action")
-               (cons :torso-controller "torso_controller/joint_trajectory_action")))
+               (cons :larm-controller "l_arm_controller/follow_joint_trajectory")
+               (cons :rarm-controller "r_arm_controller/follow_joint_trajectory")
+               (cons :head-controller "head_traj_controller/follow_joint_trajectory")
+               (cons :torso-controller "torso_controller/follow_joint_trajectory")))
      (let ((type (car l))
            (name (cdr l))
            action)
@@ -131,9 +132,9 @@
    ()
    (list
 	(list
-	 (cons :controller-action "l_arm_controller/joint_trajectory_action")
+	 (cons :controller-action "l_arm_controller/follow_joint_trajectory")
 	 (cons :controller-state "l_arm_controller/state")
-	 (cons :action-type pr2_controllers_msgs::JointTrajectoryAction)
+	 (cons :action-type control_msgs::FollowJointTrajectoryAction)
 	 (cons :joint-names (list "l_shoulder_pan_joint"
 							  "l_shoulder_lift_joint" "l_upper_arm_roll_joint"
 							  "l_elbow_flex_joint" "l_forearm_roll_joint"
@@ -142,9 +143,9 @@
    ()
    (list
 	(list
-	 (cons :controller-action "r_arm_controller/joint_trajectory_action")
+	 (cons :controller-action "r_arm_controller/follow_joint_trajectory")
 	 (cons :controller-state "r_arm_controller/state")
-	 (cons :action-type pr2_controllers_msgs::JointTrajectoryAction)
+	 (cons :action-type control_msgs::FollowJointTrajectoryAction)
 	 (cons :joint-names (list "r_shoulder_pan_joint"
 							  "r_shoulder_lift_joint" "r_upper_arm_roll_joint"
 							  "r_elbow_flex_joint" "r_forearm_roll_joint"
@@ -153,17 +154,17 @@
    ()
    (list
 	(list
-	 (cons :controller-action "head_traj_controller/joint_trajectory_action")
+	 (cons :controller-action "head_traj_controller/follow_joint_trajectory")
 	 (cons :controller-state "head_traj_controller/state")
-	 (cons :action-type pr2_controllers_msgs::JointTrajectoryAction)
+	 (cons :action-type control_msgs::FollowJointTrajectoryAction)
 	 (cons :joint-names (list "head_pan_joint" "head_tilt_joint")))))
   (:torso-controller
    ()
    (list
 	(list
-	 (cons :controller-action "torso_controller/joint_trajectory_action")
+	 (cons :controller-action "torso_controller/follow_joint_trajectory")
 	 (cons :controller-state "torso_controller/state")
-	 (cons :action-type pr2_controllers_msgs::JointTrajectoryAction)
+	 (cons :action-type control_msgs::FollowJointTrajectoryAction)
 	 (cons :joint-names (list "torso_lift_joint")))))
   (:default-controller
    ()
@@ -551,7 +552,7 @@
   ;;
   ;;
   (:wait-torso (&optional (timeout 0))
-   (let ((act (find-if #'(lambda (x) (string= (send x :name) "torso_controller/joint_trajectory_action"))
+   (let ((act (find-if #'(lambda (x) (string= (send x :name) "torso_controller/follow_joint_trajectory"))
                        controller-actions)))
      (when act
        (send act :wait-for-result :timeout timeout))))
