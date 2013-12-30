@@ -1,6 +1,6 @@
-(require :pr2eus-moveit "package://pr2eus_moveit/euslisp/pr2eus-moveit.l")
 (require :samplerobot-interface
          "package://hrpsys_ros_bridge_tutorials/euslisp/samplerobot-interface.l")
+(require :pr2eus-moveit "package://pr2eus_moveit/euslisp/pr2eus-moveit.l")
 (load "package://pr2eus_moveit/tutorials/collision-object-sample.l")
 
 (defclass samplerobot-moveit-environment

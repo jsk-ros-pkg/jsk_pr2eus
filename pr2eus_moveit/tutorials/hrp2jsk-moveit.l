@@ -1,6 +1,6 @@
-(require :pr2eus-moveit "package://pr2eus_moveit/euslisp/pr2eus-moveit.l")
 (require :hrp2jsk-interface
          "package://jsk_hrpsys_ros_bridge/euslisp/hrp2jsk-interface.l")
+(require :pr2eus-moveit "package://pr2eus_moveit/euslisp/pr2eus-moveit.l")
 (load "package://pr2eus_moveit/tutorials/collision-object-sample.l")
 
 (defclass hrp2jsk-moveit-environment
