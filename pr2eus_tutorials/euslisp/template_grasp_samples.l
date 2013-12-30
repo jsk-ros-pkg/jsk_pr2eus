@@ -30,7 +30,7 @@
 
 ;;originally copied from roseus_tutorials/euslisp/tabletop-object-detector.l
 (defun tabletop-detect()
-  (let ((req (instance tabletop_object_detector::TabletopSegmentationRequest :init)) res ret msg)
+  (let ((req (instance tabletop_object_detector::TabletopSegmentationRequest :init)) res ret tableply msg)
     (setq res (ros::service-call "tabletop_segmentation" req))
     (unless res
       (ros::ros-warn ";; tabletop service failed")
@@ -44,12 +44,19 @@
 			(let ((r (make-eus-pointcloud-from-ros-msg1 p)))
 			  (setf (get r :header) (send p :header))
 			  r))
-		    (send res :clusters))))
+		    (send res :clusters)))
+      (setq tableply
+            (instance polygon :init :vertices (list
+                                               (send (send (send (ros::tf-pose->coords (send res :table :pose :pose)) :translate (float-vector 0 0 51) :world) :translate (float-vector (* 1000 (send res :table :x_min)) (* 1000 (send res :table :y_min)) 0)) :worldpos)
+                                               (send (send (send (ros::tf-pose->coords (send res :table :pose :pose)) :translate (float-vector 0 0 51) :world) :translate (float-vector (* 1000 (send res :table :x_max)) (* 1000 (send res :table :y_min)) 0)) :worldpos)
+                                               (send (send (send (ros::tf-pose->coords (send res :table :pose :pose)) :translate (float-vector 0 0 51) :world) :translate (float-vector (* 1000 (send res :table :x_max)) (* 1000 (send res :table :y_max)) 0)) :worldpos)
+                                               (send (send (send (ros::tf-pose->coords (send res :table :pose :pose)) :translate (float-vector 0 0 51) :world) :translate (float-vector (* 1000 (send res :table :x_min)) (* 1000 (send res :table :y_max)) 0)) :worldpos))))
+      )
      (t
       (ros::ros-warn ";; tabletop detection failed ~d" (send res :result))
       (setq ret nil)
       ))
-    ret
+    (list ret tableply)
     ))
 
 (defun make-eus-pointcloud (pc-list)
@@ -101,8 +108,9 @@
     (setq *od-res* od-res)
     (setq *cp-res* cp-res)
     ))
-#|
+
 ;; no more support on arm_planning
+#|
 (defun template-grasp-get-object
   (grasp-target-num &key (arm :rarm) (od-res *od-res*) (cp-res *cp-res*))
   (let* ((grasp-target (elt (send cp-res :graspable_objects) grasp-target-num))
@@ -271,7 +279,7 @@
           (let (eusres)
             (send *pr2* :angle-vector (car (last (elt orres 0))))
             (setq eusres
-                  (send *pr2* arm :inverse-kinematics grasp-cds
+                  (send *pr2* arm :inverse-kinematics (send grasp-cds :translate (float-vector 50 0 0))
                         :rotation-axis t))
 
             (ros::ros-info "eusres: ~A" eusres)
@@ -460,6 +468,7 @@
   (load "package://jsk_smart_gui/src/utils.l")
 
   (subscribe-tablet-command-default)
+  (subscribe-tablet-command-select)
   (ros::advertise "image_marker" image_view2::ImageMarker2 100)
   (ros::advertise "tablet_marker" visualization_msgs::Marker 10)
   (ros::advertise "tablet_marker_array" visualization_msgs::MarkerArray 10)
@@ -654,6 +663,26 @@ to	 (arm-id-raw (send msg :action :arm_id))
     (ros::publish "image_marker" mrk)
   ))
 
+(defun visualize-object-image-from-coords2
+  (cds-list &key (counter 0) (ns nil) (lifetime 10)
+	    (outline-colors (list (instance std_msgs::ColorRGBA :init :r 1.0 :g 0.0 :b 0.0 :a 1.0))))
+  (let* ((mrk (instance image_view2::ImageMarker2 :init))
+	 point-list)
+    (send mrk :header :stamp (ros::time-now))
+    (send mrk :type image_view2::ImageMarker2::*LINE_STRIP3D*)
+    (send mrk :points3D :header :frame_id "/base_link")
+;;    (send mrk :points3D :header :frame_id "base_footprint")
+    (send mrk :lifetime (ros::Time lifetime))
+    (send mrk :id counter)
+    (dolist (cds cds-list)
+      ;;(ros::ros-warn "cds: ~A" (send cds :pos))
+      (push (ros::pos->tf-point (send cds :worldpos)) point-list))
+    (send mrk :points3D :points point-list)
+    (send mrk :outline_colors outline-colors)
+    (if ns (send mrk :ns ns))
+    (ros::publish "image_marker" mrk)
+  ))
+
 (defun visualize-object-image
   (pc-list &key (counter 0) (use-text t) (ns nil)
 	   (text nil) (lifetime 10) (text-lifetime 40)
@@ -763,9 +792,10 @@ to	 (arm-id-raw (send msg :action :arm_id))
 	(progn (ros::ros-info "pr2-tuckarm-pose ~A" arm)
 	       (unless (is-current-tuckarm arm)
 		 (setq *has-reset-collider* nil))
-	       (pr2-tuckarm-pose arm))
+	       ;;(pr2-tuckarm-pose arm)
+               )
       ;;(reset-pose)
-      (pr2-tuckarm-pose arm)
+;;      (pr2-tuckarm-pose arm)
       )
     (if *has-reset-collider*
 	(ros::ros-warn "already called /collider_node/reset")
@@ -805,20 +835,21 @@ to	 (arm-id-raw (send msg :action :arm_id))
     ))
 
 (defun y-or-n-from-tablet ()
-  (unsubscribe-tablet-command-default)
+;;  (unsubscribe-tablet-command-default)
   (unix::usleep (* 200 1000))
-  (subscribe-tablet-command-select)
+;;  (subscribe-tablet-command-select)
   (unix::usleep (* 200 1000))
   (setq *select-flag* nil *select-result* nil)
   (while (not *select-flag*)
     (ros::spin-once)
     (ros::sleep))
   (setq *select-flag* nil)
-  (unsubscribe-tablet-command-select)
+;;  (unsubscribe-tablet-command-select)
   (unix::usleep (* 200 1000))
-  (subscribe-tablet-command-default)
+;  (subscribe-tablet-command-default)
   (unix::usleep (* 200 1000))
   *select-result*)
+
 
 (defun reset-pose () ;; only used for arm_planning
   (send *pr2* :angle-vector #f(11.7223 122.335 -20.2339 24.6296 -55.5484 48.3199 -114.592 -176.87 -122.338 -19.5301 -5.80601 -75.6798 -72.7564 -114.592 -155.57 -0.332237 46.746))
