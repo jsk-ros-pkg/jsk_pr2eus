@@ -115,13 +115,13 @@
    (cond
     ((memq :links args)
      (case limb
-       (:larm (list (send self :l_gripper_palm_link)
-		    (send self :l_gripper_l_finger_link) (send self :l_gripper_r_finger_link)
-		    (send self :l_gripper_l_finger_tip_link) (send self :l_gripper_r_finger_tip_link)))
+       (:larm (list (send self :links :l_gripper_palm_link)
+		    (send self :links :l_gripper_l_finger_link) (send self :links :l_gripper_r_finger_link)
+		    (send self :links :l_gripper_l_finger_tip_link) (send self :links :l_gripper_r_finger_tip_link)))
        (:rarm
-	(list (send self :r_gripper_palm_link)
-	      (send self :r_gripper_l_finger_link) (send self :r_gripper_r_finger_link)
-	      (send self :r_gripper_l_finger_tip_link) (send self :r_gripper_r_finger_tip_link)))))
+	(list (send self :links :r_gripper_palm_link)
+	      (send self :links :r_gripper_l_finger_link) (send self :links :r_gripper_r_finger_link)
+	      (send self :links :r_gripper_l_finger_tip_link) (send self :links :r_gripper_r_finger_tip_link)))))
     ((memq :joint-list args)
      (case limb
        (:larm (list (send self :l_gripper_l_finger_joint)
