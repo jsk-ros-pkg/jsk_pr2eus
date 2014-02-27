@@ -7,11 +7,13 @@
 (setq *obj* nil)
 (setq *objname* (ros::get-param "~object"))
 (setq *frame* (ros::get-param "~frame_id"))
-(setq *trans* (ros::get-param "~translate"))
+(setq *trans* (ros::get-param "~translation"))
 (setq *rot* (ros::get-param "~rotation"))
+(setq *obj-id* (ros::get-param "~object_id"))
 
 (unless *objname* (setq *objname* "foldable-desk"))
 (unless *frame* (setq *frame* "/map"))
+(unless *obj-id* (setq *obj-id* (string (gensym "PUBOBJ"))))
 
 (if *trans*
     (setq *trans*
@@ -36,3 +38,4 @@
   (ros::ros-warn "hoge moge"))
 
 (unix::sleep 1)
+(exit 0)
