@@ -46,6 +46,8 @@ before_script: # Use this to prepare your build for testing e.g. copy database c
 script: # All commands must exit with code 0 on success. Anything else is considered failure.
   - catkin_make -j4
   - catkin_make test
+  - (cd src/jsk_pr2eus; rostest -t test/pr2eus-test.test)
+  - (cd src/jsk_pr2eus; rostest -t make-pr2-model-file-test.test)
   - catkin_make install
   - rm -fr devel src build
   - source install/setup.bash
