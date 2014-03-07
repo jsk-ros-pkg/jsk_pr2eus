@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(pr2eus)
-find_package(catkin REQUIRED COMPONENTS pr2eus rostest)
+find_package(catkin REQUIRED COMPONENTS roseus rostest)
 
 catkin_package(
     DEPENDS 
