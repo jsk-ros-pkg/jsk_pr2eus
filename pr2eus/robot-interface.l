@@ -29,14 +29,17 @@
                 controller-type controller-actions
                 namespace controller-table ;; hashtable :type -> (action)
                 visualization-topic
+                joint-states-topic
                 viewer groupname))
 
 (defmethod robot-interface
   (:init
    (&rest args &key ((:robot r)) ((:objects objs)) (type :default-controller)
           (use-tf2) ((:groupname nh) "robot_multi_queue") ((:namespace ns))
+          ((:joint-states-topic jst) "joint_states")
           ((:visuzlization-marker-topic vmt) "robot_interface_marker_array")
           &allow-other-keys)
+   (setq joint-states-topic jst)
    (setq joint-action-enable t)
    (setq namespace ns)
    (setq robot (cond ((derivedp r metaclass) (instance r :init))
@@ -57,8 +60,8 @@
      (unless (boundp '*tfl*)
        (defvar *tfl* (instance ros::transform-listener :init)))))
 
-   (ros::subscribe (if namespace (format nil "~A/joint_states" namespace)
-                     "joint_states") sensor_msgs::JointState
+   (ros::subscribe (if namespace (format nil "~A/~A" namespace joint-states-topic)
+                     joint-states-topic) sensor_msgs::JointState
                    #'send self :ros-state-callback :groupname groupname)
    ;;
    (setq controller-table (make-hash-table :size 14 :test #'eq :rehash-size 1.2))
@@ -76,8 +79,8 @@
          (send self :draw-objects)
          (send self :objects objs)
          (if old-viewer (setq user::*viewer* old-viewer)))
-       (ros::advertise (if namespace (format nil "~A/joint_states" namespace)
-                         "joint_states") sensor_msgs::JointState 1)
+       (ros::advertise (if namespace (format nil "~A/~A" namespace joint-states-topic)
+                         joint-states-topic) sensor_msgs::JointState 1)
        ))
    self)
   ;;
@@ -120,8 +123,8 @@
      (setq msg (joint-list->joint_state joint-list))
      (send msg :header :stamp (ros::time-now))
      (when (send self :simulation-modep)
-       (ros::publish (if namespace (format nil "~A/joint_states" namespace)
-                       "joint_states") msg))
+       (ros::publish (if namespace (format nil "~A/~A" namespace joint-states-topic)
+                       joint-states-topic) msg))
      msg))
   (:angle-vector
    (av &optional (tm 3000) (ctype controller-type))

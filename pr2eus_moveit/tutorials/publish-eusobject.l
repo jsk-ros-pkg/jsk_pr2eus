@@ -34,8 +34,8 @@
 (unix::sleep 1)
 
 (if *obj*
-    (send *co* :add-object *obj* :frame_id *frame* :relative-pose *coords*)
-  (ros::ros-warn "hoge moge"))
+    (send *co* :add-object *obj* :frame-id *frame* :relative-pose *coords*)
+  (ros::ros-warn "There is no object named ~A" *objname*))
 
 (unix::sleep 1)
 (exit 0)
