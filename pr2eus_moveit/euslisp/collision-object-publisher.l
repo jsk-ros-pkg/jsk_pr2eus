@@ -37,12 +37,12 @@
      (ros::publish attached-topicname msg)
      obj))
   (:make-object
-   (obj &key (frame-id "base_footprint") (object-frame-id) (relative-pose) &allow-other-keys)
+   (obj &key (frame-id "base_footprint") (object-frame-id) (relative-pose)
+        (object-id (string (gensym "COLOBJ"))) &allow-other-keys)
    (let ((msg (gethash obj object-list)))
      (when msg (return-from :make-object)))
-   (let* ((id (symbol-string (gensym "COLOBJ")))
-          (colobj (instance moveit_msgs::CollisionObject :init :id id))
-          geom-lst pose-lst)
+   (let ((colobj (instance moveit_msgs::CollisionObject :init :id object-id))
+         geom-lst pose-lst)
 
      (send colobj :operation moveit_msgs::CollisionObject::*ADD*)
 
