@@ -7,7 +7,7 @@ python:
 compiler:
   - gcc
 env:
-  - ROS_DISTRO=groovy ROSWS=rosws BUILDER=rosbuild BUILD_PACKAGES="pr2eus  pr2eus_armnavigation  pr2eus_impedance  pr2eus_moveit  pr2eus_openrave  pr2eus_tutorials"
+  - ROS_DISTRO=groovy ROSWS=rosws BUILDER=rosbuild BUILD_PACKAGES="pr2eus pr2eus_armnavigation pr2eus_impedance pr2eus_moveit pr2eus_openrave pr2eus_tutorials"
   - ROS_DISTRO=hydro ROSWS=wstool BUILDER=catkin
   - ROS_DISTRO=groovy ROSWS=wstool BUILDER=catkin
 #notifications:
