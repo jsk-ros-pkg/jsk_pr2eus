@@ -14,5 +14,5 @@
     uri: https://svn.code.sf.net/p/tum-ros-pkg/code/perception/
     local-name: tum-ros-pkg/perception
 - svn:
-    uri: https://svn.csail.mit.edu/mit-ros-pkg/trunk/ee_cart_imped
-    local-name: mit-ros-pkg/trunk/ee_cart_imped
+    uri: https://svn.csail.mit.edu/mit-ros-pkg/trunk
+    local-name: mit-ros-pkg/trunk
