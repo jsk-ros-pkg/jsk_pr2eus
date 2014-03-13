@@ -57,6 +57,8 @@ script: # All commands must exit with code 0 on success. Anything else is consid
   - cd ~/ros/ws_$REPOSITORY_NAME
   - if [ $BUILDER = rosbuild ]; then source src/setup.sh; cd src; fi
   - rospack profile
+  # small hack to speed up compile on rosbuild
+  - if [ $BUILDER = rosbuild ]; then for pkg in $BUILD_PACKAGES; do (cd `rospack find $pkg` && make -j8)  ;done; fi
   - if [ $BUILDER = catkin ]; then catkin_make -j4; else rosmake $BUILD_PACKAGES --profile --pjobs=4 --disable-logging; fi
   - if [ $BUILDER = catkin ]; then if [ "$CATKIN_PACKAGES" != "" ]; then catkin_make test --pkg $CATKIN_PACKAGES; fi; else (cd `rospack find pr2eus`; make test); rosmake $BUILD_PACKAGES --test-only --disable-logging; fi
   - if [ $BUILDER = catkin ]; then catkin_make install; fi
