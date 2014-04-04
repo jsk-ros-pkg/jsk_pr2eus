@@ -426,7 +426,7 @@
   (:spin-once () (ros::spin-once groupname))
   (:send-trajectory (joint-trajectory-msg
                      &key ((:controller-actions ca) controller-actions) ((:controller-type ct) controller-type)
-                     (starttime 1))
+                     (starttime 1) &allow-other-keys)
    (mapcar
     #'(lambda (action param)
         (send self :send-trajectory-each
@@ -435,9 +435,8 @@
               starttime))
     ca (send self ct)))
   (:send-trajectory-each
-   (action joint-names traj &optional (starttime 0))
+   (action joint-names traj &optional (starttime 0.2))
    (let* ((jnames (send traj :joint_names))
-          (st (ros::time+ (ros::time-now) (ros::time starttime)))
           (ilst (mapcar #'(lambda (jn) (position jn jnames :test #'string=)) joint-names))
           points-lst)
      (when (some #'identity ilst)
@@ -471,7 +470,8 @@
                       :accelerations (if effs (coerce (nreverse elst) float-vector))
                       :time_from_start (send p :time_from_start)) points-lst)
            ))
-       (let ((goal (send action :make-goal-instance)))
+       (let ((goal (send action :make-goal-instance))
+             (st (ros::time+ (ros::time-now) (ros::time starttime))))
          (send goal :header :stamp st)
          (send goal :header :seq 1)
          (send goal :goal :trajectory :header :stamp st)
