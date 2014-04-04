@@ -356,7 +356,7 @@
      (unless (send self :get-ik-for-pose cds confkey :end-coords end-coords
                    :use-actual-seed t :retry retry :frame-id frame-id :scene scene)
        (return-from :planning-make-trajectory-to-coords nil))
-     (send self* :planning-make-trajectory confkey
+     (send* self :planning-make-trajectory confkey
            :planning-time planning-time :planning-attemps planning-attemps
            :use-scene use-scene :scene scene :retry retry args)
      ))
@@ -450,7 +450,7 @@
                     cds confkey :end-coords ed-lst args))
      ret))
   (:angle-vector-motion-plan ;;
-   (av &rest args &key (move-arm :larm) (reset-total-time 5000.0) &allow-other-keys)
+   (av &rest args &key (move-arm :larm) (reset-total-time 5000.0) (use-send-angle-vector) &allow-other-keys)
    (let (traj ret)
      (setq ret (send* self :angle-vector-make-trajectory av args))
      (when ret
@@ -461,10 +461,12 @@
            (return-from :angle-vector-motion-plan nil))
          (ros::ros-warn "reset Trajectory Total time")
          (setq traj (send self :trajectory-filter traj :total-time reset-total-time)))
-       (send* self :joint-trajectory-to-angle-vector-list move-arm traj args)
+       (if use-send-angle-vector
+           (send* self :joint-trajectory-to-angle-vector-list move-arm traj args)
+         (send* self :send-trajectory traj args))
        )))
   (:move-end-coords-plan ;;
-   (cds &rest args &key (move-arm :larm) (reset-total-time 5000.0) &allow-other-keys)
+   (cds &rest args &key (move-arm :larm) (reset-total-time 5000.0) (use-send-angle-vector) &allow-other-keys)
    (let (traj ret)
      (setq ret (send* self :end-coords-make-trajectory cds args))
      (when ret
@@ -472,10 +474,12 @@
        (when (< (send (send (car (last (send traj :points))) :time_from_start) :to-sec) 0.001)
          (unless reset-total-time
            (ros::ros-error "Trajectory has very short duration")
-           (return-from :angle-vector-motion-plan nil))
+           (return-from :move-end-coords-plan nil))
          (ros::ros-warn "reset Trajectory Total time")
          (setq traj (send self :trajectory-filter traj :total-time reset-total-time)))
-       (send* self :joint-trajectory-to-angle-vector-list move-arm traj args)
+       (if use-send-angle-vector
+           (send* self :joint-trajectory-to-angle-vector-list move-arm traj args)
+         (send* self :send-trajectory traj args))
        )))
   (:trajectory-filter ;; simple trajectory for zero duration
    (traj &key (copy) (total-time 5000.0) (minimum-time 0.001))
