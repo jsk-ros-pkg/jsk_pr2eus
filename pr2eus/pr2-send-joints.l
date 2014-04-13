@@ -48,7 +48,7 @@
       :move-target (send *pr2* :larm :end-coords)
       :link-list (send *pr2* :link-list
 		       (send *pr2* :larm :end-coords :parent)
-		       (send *pr2* :torso_lift_link))
+		       (send *pr2* :torso_lift_link_lk))
       :debug-view t)
 (send *pr2* :head :look-at (send *pr2* :larm :end-coords :worldpos))
 (if (boundp '*irtviewer*)
