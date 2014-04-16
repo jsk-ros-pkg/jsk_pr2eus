@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(pr2eus)
 
+find_package(catkin REQUIRED COMPONENTS rostest)
+
 catkin_package(
     DEPENDS 
     CATKIN-DEPENDS 
@@ -20,3 +22,7 @@ install(DIRECTORY .
   PATTERN "*.l"
   PATTERN ".svn" EXCLUDE
   )
+
+add_rostest(test/pr2eus-test.launch)
+add_rostest(test/make-pr2-model-file-test.launch)
+add_rostest(test/pr2-ri-test.launch)

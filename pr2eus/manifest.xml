@@ -18,4 +18,5 @@
   <depend package="dynamic_reconfigure"/>
 
   <depend package="sound_play"/>
+  <depend package="rostest"/>
 </package>
