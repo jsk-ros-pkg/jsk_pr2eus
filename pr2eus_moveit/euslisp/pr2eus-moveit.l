@@ -189,28 +189,34 @@
   (:clear-world-scene ()
    (let ((msg (instance moveit_msgs::PlanningSceneWorld :init)))
      (ros::publish planning-scene-world-topic msg)))
+  (:convert-end-coords
+   (cds confkey end-coords )
+   (let ((tgt-cds (send cds :copy-worldcoords))
+         (rcds (send self :get-group-tip-coords confkey)))
+     (send tgt-cds :transform
+           (send (send (send* robot end-coords) :worldcoords)
+                 :transformation rcds))
+     tgt-cds
+     ))
   (:get-ik-for-pose
    (cds confkey &key (use-actual-seed t) (retry t)
         (end-coords) ;; (list :rarm :end-coords)
         (frame-id default-frame-id) (timeout 0.05) (scene)
         (attempts) (avoid-collision t) &allow-other-keys)
-   (let ((tgt-cds (send cds :copy-worldcoords))
+   (let ((tgt-cds (if end-coords
+                      (send self :convert-end-coords cds confkey end-coords)
+                    (send cds :copy-worldcoords)))
          (group-name (cdr (assoc :group-name (cdr (assoc confkey config-list)))))
          (joint-list (cdr (assoc :joint-list (cdr (assoc confkey config-list)))))
          scene rstate constraints)
+     ;;
      (when use-actual-seed
        (unless scene
          (setq scene (send self :get-planning-scene)))
        (when scene (setq rstate (send scene :robot_state))))
-
-     (when end-coords ;; cds is target coords of end-coords
-       (let ((rcds (send self :get-group-tip-coords confkey)))
-         (send tgt-cds :transform
-               (send (send (send* robot end-coords) :worldcoords)
-                     :transformation rcds))))
-
+     ;;
      (setq tgt-cds (send self :worldcoords->default-frame-relative tgt-cds))
-
+     ;;
      (let* ((msg (ros::coords->tf-pose-stamped tgt-cds frame-id))
             (req (instance moveit_msgs::GetPositionIKRequest :init
                            :ik_request
@@ -247,33 +253,33 @@
      (ros::service-call execute-service req)
      ;; parse req
      ))
-  (:motion-plan
+  (:motion-plan ;; motion-plan for joint-constraints
    (confkey &rest args
             &key (joint-list (cdr (assoc :joint-list (cdr (assoc confkey config-list)))))
             (tolerance-below 0.001) (tolerance-above 0.001)
             &allow-other-keys)
-   (let* ((group-name (cdr (assoc :group-name (cdr (assoc confkey config-list)))))
-          (const
-           (instance moveit_msgs::constraints :init :name ""
-                     :joint_constraints
-                     (mapcar #'(lambda (jn)
-                                 (instance moveit_msgs::jointconstraint :init
-                                           :joint_name (send jn :name)
-                                           :position (send jn :ros-joint-angle)
-                                           :tolerance_above tolerance-above
-                                           :tolerance_below tolerance-below
-                                           :weight 1.0))
-                             joint-list))))
-     (send* self :motion-plan-raw group-name
-            :goal_constraints (list const) args)
+   (let ((const
+          (instance moveit_msgs::constraints :init :name ""
+                    :joint_constraints
+                    (mapcar #'(lambda (jn)
+                                (instance moveit_msgs::jointconstraint :init
+                                          :joint_name (send jn :name)
+                                          :position (send jn :ros-joint-angle)
+                                          :tolerance_above tolerance-above
+                                          :tolerance_below tolerance-below
+                                          :weight 1.0))
+                            joint-list))))
+     (send* self :motion-plan-constraints confkey :goal-constraints (list const) args)
      ))
-  (:motion-plan-raw
-   (group-name &key (scene) (planner-id "")
-               (planning-attempts 1) (planning-time 5.0)
-               (workspace-x 1.0) (workspace-y 1.0) (workspace-z 1.6) (additional_goal_constraints)
-               (goal_constraints) (extra_goal_constraints) (path_constraints) (trajectory_constraints)
-               &allow-other-keys)
-   (let ((mpr (instance moveit_msgs::motionplanrequest :init))
+  (:motion-plan-constraints
+   (confkey &key (scene) (planner-id "")
+            (planning-attempts 1) (planning-time 5.0)
+            (workspace-x 1.0) (workspace-y 1.0) (workspace-z 1.6)
+            (goal-constraints) (extra-goal-constraints)
+            (path-constraints) (trajectory-constraints)
+            &allow-other-keys)
+   (let ((group-name (cdr (assoc :group-name (cdr (assoc confkey config-list)))))
+         (mpr (instance moveit_msgs::motionplanrequest :init))
          res)
      ;;
      (unless scene
@@ -291,24 +297,20 @@
      ;;
      (send mpr :start_state (send scene :robot_state))
 
-     (when goal_constraints
-       (if (atom goal_constraints) (setq goal_constraints (list goal_constraints)))
-       (send mpr :goal_constraints goal_constraints)
-       (if additional_goal_constraints
-           (send mpr :goal_constraints
-                 (merge-goal-constraints (flatten (list (send mpr :goal_constraints)
-                                                        additional_goal_constraints)))))
-       )
-     (when extra_goal_constraints
-       (if (atom extra_goal_constraints)
-           (setq extra_goal_constraints (list extra_goal_constraints)))
-       (nconc (send mpr :goal_constraints) extra_constraints))
-     (if path_constraints (send mpr :path_constraints path_constraints))
-     (if trajectory_constraints (send mpr :trajectory_constraints trajectory_constraints))
+     (when goal-constraints
+       (if (atom goal-constraints) (setq goal-constraints (list goal-constraints)))
+       (send mpr :goal_constraints goal-constraints))
+     (when extra-goal-constraints
+       (if (atom extra-goal-constraints)
+           (setq extra-goal-constraints (list extra-goal-constraints)))
+       (nconc (send mpr :goal_constraints) extra-goal-constraints))
+     (if path-constraints (send mpr :path_constraints path-constraints))
+     (if trajectory-constraints (send mpr :trajectory_constraints trajectory-constraints))
      (send mpr :planner_id planner-id) ;; select from :query-planner-interface
      (send mpr :group_name group-name)
      (send mpr :num_planning_attempts planning-attempts)
      (send mpr :allowed_planning_time planning-time)
+     (print-ros-msg mpr)
      (setq res
            (ros::service-call planning-service
                               (instance moveit_msgs::GetMotionPlanRequest
@@ -321,7 +323,7 @@
        (warn ";; motion plan error at ~A~%"
              (assoc (send res :motion_plan_response :error_code :val)
                     *moveit-error-code-list*))
-       (return-from :motion-plan-raw nil)))
+       (return-from :motion-plan-constraints nil)))
      ))
   (:move-arm-to-goal (confkey &rest args &key (wait) &allow-other-keys)
    (let ((ret (send* self :motion-plan args)))
@@ -346,7 +348,42 @@
                     :scene (if use-scene scene) args)))
      ret
      ))
-  (:planning-make-trajectory-to-coords
+  (:planning-make-trajectory-to-coords-no-ik
+   (cds confkey &rest args &key (end-coords) ;; (list :rarm :end-coords)
+        (planning-time 5.0) (scene) (frame-id default-frame-id)
+        (planning-attemps 3) (retry) (use-scene t)
+        ((:tolerance_x tx) 0) ((:tolerance_y ty) 0) ((:tolerance_z tz) 0)
+        ((:tolerance_rx rx) 0) ((:tolerance_ry ry) 0) ((:tolerance_rz rz) 0)
+        &allow-other-keys)
+   (let ((tgt-cds (if end-coords
+                      (send self :convert-end-coords cds confkey end-coords)
+                    (send cds :copy-worldcoords)))
+         const ret)
+     (unless scene (setq scene (send self :get-planning-scene)))
+     (setq tgt-cds (send self :worldcoords->default-frame-relative tgt-cds))
+     (send (cdr (assoc :target-link (cdr (assoc confkey config-list)))) :name)
+     (setq const
+           (make-pose-constraints (send (cdr (assoc :target-link
+                                                    (cdr (assoc confkey config-list)))) :name)
+                                  tgt-cds :frame_id default-frame-id
+                                  :tolerance_x tx :tolerance_y ty :tolerance_z tz
+                                  :tolerance_rx rx :tolerance_ry ry :tolerance_rz rz))
+     (setq ret
+           (send* self :motion-plan-constraints confkey
+                  :goal-constraints const
+                  :planning-time planning-time :planning-attemps planning-attemps
+                  :scene (if use-scene scene) args))
+     (when (and retry (not ret)) ;; retry
+       (when get-scene (setq scene (send self :get-planning-scene)))
+       (setq ret
+             (send* self :motion-plan-constraints confkey
+                    :goal-constraints const
+                    :planning-time (* 2 planning-time)
+                    :planning-attemps (* 2 planning-attemps)
+                    :scene (if use-scene scene) args)))
+     ret
+     ))
+  (:planning-make-trajectory-to-coords ;; use-ik
    (cds confkey &rest args &key (end-coords) ;; (list :rarm :end-coords)
         (planning-time 5.0) (scene) (frame-id default-frame-id)
         (planning-attemps 3) (retry) (use-scene t)
