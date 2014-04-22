@@ -44,6 +44,7 @@
           planning-service
           execute-service
           query-planner-interface-service
+          planning-scene-world-topic
           robot
           default-frame-id default-link
           multi-dof-name multi-dof-frame
@@ -58,6 +59,7 @@
          ((:planning-service pl-srv) "/plan_kinematic_path")
          ((:execute-service ex-srv) "/execute_kinematic_path")
          ((:query-planner-interface-service qr-pl-srv) "/query_planner_interface")
+         ((:planning-scene-world pl-sc-world) "/planning_scene_world")
          ((:robot rb) *pr2*) (frame-id "base_footprint") ;; frame-id needs to be contained in robot_model
          (multi-dof-joint-name "virtual_joint")
          (multi-dof-frame-id "odom_combined"))
@@ -65,10 +67,12 @@
          planning-service pl-srv
          execute-service ex-srv
          query-planner-interface-service qr-pl-srv
+         planning-scene-world-topic pl-sc-world
          robot rb
          default-frame-id frame-id
          multi-dof-name multi-dof-joint-name
          multi-dof-frame multi-dof-frame-id)
+   (ros::advertise planning-scene-world-topic moveit_msgs::PlanningSceneWorld)
    (setq default-link (send self :search-link-from-name frame-id))
    (setq config-list (send self :default-configuration))
    (unless (ros::ok)
@@ -182,6 +186,9 @@
     ))
   (:get-planning-scene (&optional (components 1023))
    (get-planning-scene :scene-service scene-service :components components))
+  (:clear-world-scene ()
+   (let ((msg (instance moveit_msgs::PlanningSceneWorld :init)))
+     (ros::publish planning-scene-world-topic msg)))
   (:get-ik-for-pose
    (cds confkey &key (use-actual-seed t) (retry t)
         (end-coords) ;; (list :rarm :end-coords)
