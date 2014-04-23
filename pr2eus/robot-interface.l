@@ -52,6 +52,13 @@
    (setq visualization-topic vmt)
    (ros::advertise visualization-topic visualization_msgs::MarkerArray 100)
    ;;
+   (when (ros::get-param "use_sim_time" nil)
+     (ros::subscribe "/clock" rosgraph_msgs::Clock #'(lambda (msg)))
+     (when (= (ros::get-num-publishers "/clock") 0))
+       (ros::ros-error "/use_sim_time is TRUE and /clock is NOT PUBLISHED")
+       (exit 1)
+       )
+
    (cond
     (use-tf2
      (unless (boundp '*tfl*)
