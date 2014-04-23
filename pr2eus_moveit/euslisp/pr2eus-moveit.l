@@ -310,7 +310,7 @@
      (send mpr :group_name group-name)
      (send mpr :num_planning_attempts planning-attempts)
      (send mpr :allowed_planning_time planning-time)
-     (print-ros-msg mpr)
+     ;;(print-ros-msg mpr)
      (setq res
            (ros::service-call planning-service
                               (instance moveit_msgs::GetMotionPlanRequest
