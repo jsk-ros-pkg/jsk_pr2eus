@@ -4,5 +4,6 @@
   <node name="pr2_camera_info" pkg="rosbag" type="play"
 	args="-l $(find pr2eus)/test/pr1012_camera_info.bag" />
   <test test-name="make_pr2_model_file_test" pkg="roseus" type="roseus"
-	args="$(find pr2eus)/test/make-pr2-model-file-test.l" />
+	args="$(find pr2eus)/test/make-pr2-model-file-test.l"
+        time-limit="1800" />
 </launch>
