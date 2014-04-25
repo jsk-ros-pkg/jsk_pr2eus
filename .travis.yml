@@ -61,8 +61,8 @@ script: # All commands must exit with code 0 on success. Anything else is consid
   - if [ $BUILDER = rosbuild ]; then rosmake roseus; for pkg in $BUILD_PACKAGES; do (cd `rospack find $pkg` && make -j`grep -c processor /proc/cpuinfo`)  ;done; fi
   - if [ $BUILDER = catkin ]; then catkin_make -j4; else rosmake $BUILD_PACKAGES --profile --pjobs=4 --disable-logging; fi
   - if [ $BUILDER = catkin ]; then if [ "$CATKIN_PACKAGES" != "" ]; then catkin_make test --pkg $CATKIN_PACKAGES; fi; else rosmake $TEST_PACKAGES -s --test-only --disable-logging; fi
-  - if [ $BUILDER = rosbuild ]; then (rostest -t pr2eus pr2eus-test.test); fi
-  - if [ $BUILDER = rosbuild ]; then (rostest -t pr2eus make-pr2-model-file-test.test); fi
+  - if [ $BUILDER = rosbuild ]; then (rostest -t pr2eus pr2eus-test.launch); fi
+  - if [ $BUILDER = rosbuild ]; then (rostest -t pr2eus make-pr2-model-file-test.launch); fi
   - if [ $BUILDER = catkin ]; then catkin_make install; fi
   - if [ $BUILDER = catkin ]; then rm -fr devel src build; source install/setup.bash; else source setup.sh; fi
 after_failure:
