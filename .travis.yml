@@ -7,7 +7,7 @@ python:
 compiler:
   - gcc
 env:
-  - ROS_DISTRO=groovy ROSWS=rosws BUILDER=rosbuild BUILD_PACKAGES="pr2eus pr2eus_armnavigation pr2eus_moveit pr2eus_tutorials" TEST_PACKAGES="pr2eus_armnavigation pr2eus_moveit pr2eus_tutorials" #pr2eus_openrave 
+  - ROS_DISTRO=groovy ROSWS=rosws BUILDER=rosbuild BUILD_PACKAGES="pr2eus pr2eus_armnavigation pr2eus_moveit pr2eus_tutorials" TEST_PACKAGES="pr2eus pr2eus_armnavigation pr2eus_moveit pr2eus_tutorials" #pr2eus_openrave 
   - ROS_DISTRO=hydro ROSWS=wstool BUILDER=catkin
   - ROS_DISTRO=groovy ROSWS=wstool BUILDER=catkin
 #notifications:
@@ -64,6 +64,7 @@ script: # All commands must exit with code 0 on success. Anything else is consid
   - if [ $BUILDER = catkin ]; then catkin_make install; fi
   - if [ $BUILDER = catkin ]; then rm -fr devel src build; source install/setup.bash; else source setup.sh; fi
 after_failure:
+  - if [ $BUILDER == catkin ]; then find build -name LastTest.log -exec echo "==== {} ====" \; -exec cat {} \;  ; fi
   - if [ -e ./build/Testing/Temporary/LastTest.log ]; then cat ./build/Testing/Temporary/LastTest.log; fi
   - find ${HOME}/.ros/test_results -type f -exec echo "== {} ==" \; -exec cat {} \;
   - for file in ${HOME}/.ros/log/rostest-*; do echo "=== $file ==="; cat $file; done
