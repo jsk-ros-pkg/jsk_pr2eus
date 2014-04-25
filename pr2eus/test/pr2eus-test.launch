@@ -11,6 +11,8 @@
 	args="-l $(find pr2eus)/test/pr1012_sensors.bag" />
   <test test-name="pr2_read_state_test" pkg="roseus" type="roseus"
 	args="$(find pr2eus)/test/pr2-read-state-test.l" />
+  <test test-name="pr2_send_joints_test" pkg="roseus" type="roseus"
+	args="$(find pr2eus)/test/pr2-send-joints-test.l" />
   <test test-name="pr2_ik_test" pkg="roseus" type="roseus"
 	args="$(find pr2eus)/test/pr2-ik-test.l" />
 </launch>
