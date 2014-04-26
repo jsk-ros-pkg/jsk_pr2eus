@@ -36,3 +36,8 @@ install(DIRECTORY .
   PATTERN "*.l"
   PATTERN ".svn" EXCLUDE
   )
+
+add_rostest(test/pr2eus-test.launch)
+add_rostest(test/make-pr2-model-file-test.launch)
+#add_rostest(test/pr2-ri-test.launch)
+
