@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(pr2eus)
-find_package(catkin REQUIRED COMPONENTS roseus rostest
+find_package(catkin REQUIRED COMPONENTS roseus rostest euscollada
   pr2_msgs pr2_controllers_msgs control_msgs move_base_msgs
   nav_msgs dynamic_reconfigure
   geneus # this load roseus.cmake, so it needs to be located in the end
