@@ -55,3 +55,5 @@ endif(_roscore_failed)
 rosbuild_add_rostest(test/pr2eus-test.launch)
 rosbuild_add_rostest(test/make-pr2-model-file-test.launch)
 #rosbuild_add_rostest(test/pr2-ri-test.launch)
+rosbuild_add_rostest(test/robot-no-clock.test)
+

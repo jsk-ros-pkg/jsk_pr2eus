@@ -56,10 +56,11 @@
    ;;
    (when (ros::get-param "use_sim_time" nil)
      (ros::subscribe "/clock" rosgraph_msgs::Clock #'(lambda (msg)))
-     (when (= (ros::get-num-publishers "/clock") 0))
+     (ros::ros-warn "/use_sim_time is TRUE, check if /clock is pusblished or not")
+     (unix:sleep 1)
+     (when (= (ros::get-num-publishers "/clock") 0)
        (ros::ros-error "/use_sim_time is TRUE and /clock is NOT PUBLISHED")
-       (exit 1)
-       )
+       (exit 1)))
 
    (cond
     (use-tf2
