@@ -2,8 +2,8 @@
 Changelog for package pr2eus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.1 (2014-05-01)
+------------------
 * add metapackage
 * change roseus-svnrevision -> roseus-repo-version, due to https://github.com/jsk-ros-pkg/jsk_roseus/pull/34
 * set time-limit 1800
