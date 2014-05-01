@@ -29,12 +29,9 @@ install(DIRECTORY test
   USE_SOURCE_PERMISSIONS
   )
 
-install(DIRECTORY .
+file(GLOB _install_files RELATIVE ${PROJECT_SOURCE_DIR} *.l *.launch)
+install(FILES ${_install_files}
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-  USE_SOURCE_PERMISSIONS
-  FILES_MATCHING
-  PATTERN "*.l"
-  PATTERN ".svn" EXCLUDE
   )
 
 add_rostest(test/pr2eus-test.launch)
