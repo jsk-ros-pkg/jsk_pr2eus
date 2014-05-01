@@ -2,8 +2,8 @@
 Changelog for package pr2eus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.2 (2014-05-01)
+------------------
 * install only lisp and launch files
 * Contributors: Kei Okada
 
