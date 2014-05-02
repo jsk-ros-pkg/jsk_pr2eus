@@ -2,6 +2,13 @@
 Changelog for package pr2eus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Merge pull request #26 from k-okada/22_fix_use_sim_time_check
+  fix wrong commit on #22
+* fix wrong commit on #22
+* Contributors: Kei Okada
+
 0.1.4 (2014-05-02)
 ------------------
 * add roseus_msgs to run_depend
