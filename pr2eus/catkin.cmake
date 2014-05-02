@@ -33,6 +33,10 @@ file(GLOB _install_files RELATIVE ${PROJECT_SOURCE_DIR} *.l *.launch)
 install(FILES ${_install_files}
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
   )
+install(FILES pr2-send-joints.l pr2-read-state.l
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+  PERMISSIONS WORLD_EXECUTE
+  )
 
 add_rostest(test/pr2eus-test.launch)
 add_rostest(test/make-pr2-model-file-test.launch)
