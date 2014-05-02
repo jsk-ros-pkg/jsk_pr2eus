@@ -2,8 +2,8 @@
 Changelog for package pr2eus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.5 (2014-05-03)
+------------------
 * Merge pull request #26 from k-okada/22_fix_use_sim_time_check
   fix wrong commit on #22
 * fix wrong commit on #22
