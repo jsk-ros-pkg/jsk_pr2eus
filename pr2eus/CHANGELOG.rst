@@ -2,8 +2,8 @@
 Changelog for package pr2eus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.4 (2014-05-02)
+------------------
 * add roseus_msgs to run_depend
 * Contributors: Kei Okada
 
