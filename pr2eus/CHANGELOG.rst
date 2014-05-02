@@ -2,8 +2,8 @@
 Changelog for package pr2eus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.3 (2014-05-02)
+------------------
 * install sample program with executable bit
 * Contributors: Kei Okada
 
