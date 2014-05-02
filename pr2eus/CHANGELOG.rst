@@ -2,6 +2,11 @@
 Changelog for package pr2eus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* add roseus_msgs to run_depend
+* Contributors: Kei Okada
+
 0.1.3 (2014-05-02)
 ------------------
 * install sample program with executable bit
