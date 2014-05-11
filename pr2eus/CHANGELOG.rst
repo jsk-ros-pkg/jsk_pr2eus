@@ -2,8 +2,8 @@
 Changelog for package pr2eus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.6 (2014-05-11)
+------------------
 * Merge pull request #32 from k-okada/add_roseus_msgs
   remove roseus_msgs from run_depend
 * remove roseus_msgs from run_depend
