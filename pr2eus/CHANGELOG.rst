@@ -2,6 +2,12 @@
 Changelog for package pr2eus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Merge pull request #32 from k-okada/add_roseus_msgs
+  remove roseus_msgs from run_depend
+* remove roseus_msgs from run_depend
+
 0.1.5 (2014-05-03)
 ------------------
 * Merge pull request #26 from k-okada/22_fix_use_sim_time_check
