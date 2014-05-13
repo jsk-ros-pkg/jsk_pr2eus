@@ -26,7 +26,7 @@
 (defclass robot-interface
   :super propertied-object
   :slots (robot objects robot-state joint-action-enable warningp
-                controller-type controller-actions
+                controller-type controller-actions controller-timeout
                 namespace controller-table ;; hashtable :type -> (action)
                 visualization-topic
                 joint-states-topic
@@ -37,10 +37,12 @@
    (&rest args &key ((:robot r)) ((:objects objs)) (type :default-controller)
           (use-tf2) ((:groupname nh) "robot_multi_queue") ((:namespace ns))
           ((:joint-states-topic jst) "joint_states")
+          ((:controller-timeout ct) 3)
           ((:visuzlization-marker-topic vmt) "robot_interface_marker_array")
           &allow-other-keys)
    (setq joint-states-topic jst)
    (setq joint-action-enable t)
+   (setq controller-timeout ct)
    (setq namespace ns)
    (setq robot (cond ((derivedp r metaclass) (instance r :init))
                      (t r)))
@@ -52,6 +54,14 @@
    (setq visualization-topic vmt)
    (ros::advertise visualization-topic visualization_msgs::MarkerArray 100)
    ;;
+   (when (ros::get-param "use_sim_time" nil)
+     (ros::subscribe "/clock" rosgraph_msgs::Clock #'(lambda (msg)))
+     (ros::ros-warn "/use_sim_time is TRUE, check if /clock is pusblished or not")
+     (unix:sleep 1)
+     (when (= (ros::get-num-publishers "/clock") 0)
+       (ros::ros-error "/use_sim_time is TRUE and /clock is NOT PUBLISHED")
+       (exit 1)))
+
    (cond
     (use-tf2
      (unless (boundp '*tfl*)
@@ -99,7 +109,7 @@
      (setq tmp-actions (nreverse tmp-actions))
      ;;
      (dolist (action tmp-actions)
-       (unless (and joint-action-enable (send action :wait-for-server 3))
+       (unless (and joint-action-enable (send action :wait-for-server controller-timeout))
          (ros::ros-warn "~A is not respond, ~A-interface is disabled" action (send robot :name))
          (when joint-enable-check
            (setq joint-action-enable nil)
