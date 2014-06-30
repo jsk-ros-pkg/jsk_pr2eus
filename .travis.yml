@@ -25,4 +25,7 @@ before_install: # Use this to prepare the system to install prerequisites or dep
 install:
   - if [ $ROS_DISTRO = groovy ]; then sudo apt-get install -qq -y ros-$ROS_DISTRO-audio-common ros-$ROS_DISTRO-navigation ros-$ROS_DISTRO-pr2-common ros-$ROS_DISTRO-pr2-controllers; fi
 script: source .travis/travis.sh
-
+notifications:
+  email:
+    on_success: always
+    on_failure: always
