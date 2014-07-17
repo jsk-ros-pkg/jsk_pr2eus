@@ -346,13 +346,54 @@
        (push (cons key msg) robot-state)))   
   (:ros-state-callback
    (msg)
-   (dolist (key '(:name :position :velocity :effort))
-     (send self :set-robot-state1 key (send msg key)))
+   ;; set joint name
+   (cond ((assoc :name robot-state)
+          ;; merge robot-state name list
+          (setf (cdr (assoc :name robot-state)) (union (cdr (assoc :name robot-state)) (send msg :name) :test #'equal))
+          ;; resize joint-state data list
+          (dolist (key '(:position :velocity :effort))
+            (when (> (length (cdr (assoc :name robot-state))) (length (cdr (assoc key robot-state))))
+              (setf (cdr (assoc key robot-state))
+                    (concatenate float-vector
+                                 (cdr (assoc key robot-state))
+                                 (instantiate float-vector (- (length (cdr (assoc :name robot-state))) (length (cdr (assoc key robot-state)))))))))
+          (setf (cdr (assoc :stamp-list robot-state))
+                (concatenate cons
+                             (cdr (assoc :stamp-list robot-state))
+                             (make-list (- (length (cdr (assoc :name robot-state))) (length (cdr (assoc :stamp-list robot-state))))))))
+         (t
+          (push (cons :name (send msg :name)) robot-state)
+          (dolist (key '(:position :velocity :effort))
+            (push (cons key (instantiate float-vector (length (cdr (assoc :name robot-state))))) robot-state))
+          (push (cons :stamp-list (make-list (length (cdr (assoc :name robot-state))))) robot-state)))
+   ;; set joint data
+   (dolist (key '(:position :velocity :effort))
+     (let ((joint-names (send msg :name)) (joint-datas (send msg key)))
+       (when (= (length joint-names) (length joint-datas))
+         (dotimes (i (length joint-names))
+           (let ((joint-idx (position (elt joint-names i) (cdr (assoc :name robot-state)) :test #'equal)))
+             (setf (elt (cdr (assoc key robot-state)) joint-idx) (elt joint-datas i))
+             ;; update stamp
+             (when (equal key :position)
+               (setf (elt (cdr (assoc :stamp-list robot-state)) joint-idx) (send msg :header :stamp)))
+             )))))
+   ;; (dolist (key '(:name :position :velocity :effort))
+   ;;   (send self :set-robot-state1 key (send msg key)))
    (send self :set-robot-state1 :stamp (send msg :header :stamp)))
-  (:update-robot-state
+  (:wait-until-update-all-joints
    ()
+   (let ((initial-time (send (send (ros::time) :now) :to-nsec)))
+     (while t
+       (when (null (position-if #'null (mapcar #'(lambda (ts) (> (send ts :to-nsec) initial-time)) (cdr (assoc :stamp-list robot-state)))))
+         (return-from nil nil))
+       (send self :spin-once)
+       )))
+  (:update-robot-state
+   (&key (wait-until-update nil))
    (let (joint-names positions velocities efforts)
      (send self :spin-once)
+     (when wait-until-update
+       (send self :wait-until-update-all-joints))
      ;; (unless joint-action-enable
      ;;   (return-from :update-robot-state (send robot :angle-vector)))
      (unless robot-state (return-from :update-robot-state))
@@ -379,7 +420,8 @@
 	     (coerce efforts cons))))
   (:state
    (&rest args)
-   (send self :update-robot-state)
+   (send self :update-robot-state
+         :wait-until-update (and (position :wait-until-update args) (elt args (+ (position :wait-until-update args) 1))))
    (unless args (return-from :state))
    (case (car args)
      ((:potentio-vector :angle-vector)
