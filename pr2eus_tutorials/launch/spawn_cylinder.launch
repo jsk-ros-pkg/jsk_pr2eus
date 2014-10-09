@@ -2,6 +2,9 @@
   <arg name="pos_x" default="0.0" />
   <arg name="pos_y" default="0.0" />
   <arg name="pos_z" default="0.0" />
+  <arg name="rot_r" default="0.0" />
+  <arg name="rot_p" default="0.0" />
+  <arg name="rot_y" default="0.0" />
   <arg name="model_name" default="cylinder" />
 
   <arg name="color" default="Green" />
