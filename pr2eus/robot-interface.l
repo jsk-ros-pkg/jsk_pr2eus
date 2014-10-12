@@ -82,7 +82,7 @@
    (setq controller-table (make-hash-table :size 14 :test #'eq :rehash-size 1.2))
    (setq controller-type type)
    (setq controller-actions
-         (send self :add-controller controller-type :joint-enable-check t))
+         (send self :add-controller controller-type :joint-enable-check t :create-actions t))
    ;;
    (when (send self :simulation-modep)
      (let ((old-viewer user::*viewer*))
@@ -99,34 +99,51 @@
        ))
    self)
   ;;
-  (:add-controller (ctype &key (joint-enable-check))
+  (:add-controller (ctype &key (joint-enable-check) (create-actions))
    (let (tmp-actions)
-     (mapcar
-      #'(lambda (param)
-          (let* ((controller-action (cdr (assoc :controller-action param)))
-                 (action-type (cdr (assoc :action-type param)))
-                 (action (instance ros::simple-action-client :init
-                                   (if namespace (format nil "~A/~A" namespace controller-action)
-                                     controller-action) action-type
-                                   :groupname groupname)))
-            (push action tmp-actions)))
-      (send self ctype))
-     (setq tmp-actions (nreverse tmp-actions))
-     ;;
-     (dolist (action tmp-actions)
-       (unless (and joint-action-enable (send action :wait-for-server controller-timeout))
-         (ros::ros-warn "~A is not respond, ~A-interface is disabled" action (send robot :name))
-         (when joint-enable-check
-           (setq joint-action-enable nil)
-           (return))))
-     ;;
-     (dolist (param (send self ctype))
-       (let* ((controller-state (cdr (assoc :controller-state param)))
-              (key (intern (string-upcase controller-state) *keyword-package*)))
-         (ros::subscribe (if namespace (format nil "~A/~A" namespace controller-state)
-                           controller-state)
-                         pr2_controllers_msgs::JointTrajectoryControllerState
-                         #'send self :set-robot-state1 key :groupname groupname)))
+     (cond
+      (create-actions
+       (mapcar
+        #'(lambda (param)
+            (let* ((controller-action (cdr (assoc :controller-action param)))
+                   (action-type (cdr (assoc :action-type param)))
+                   (action (instance ros::simple-action-client :init
+                                     (if namespace (format nil "~A/~A" namespace controller-action)
+                                       controller-action) action-type
+                                       :groupname groupname)))
+              (push action tmp-actions)))
+        (send self ctype))
+       (setq tmp-actions (nreverse tmp-actions))
+       ;;
+       (dolist (action tmp-actions)
+         (unless (and joint-action-enable (send action :wait-for-server controller-timeout))
+           (ros::ros-warn "~A is not respond, ~A-interface is disabled" action (send robot :name))
+           (when joint-enable-check
+             (setq joint-action-enable nil)
+             (return))))
+       ;;
+       (dolist (param (send self ctype))
+         (let* ((controller-state (cdr (assoc :controller-state param)))
+                (key (intern (string-upcase controller-state) *keyword-package*)))
+           (ros::subscribe (if namespace (format nil "~A/~A" namespace controller-state)
+                             controller-state)
+                           pr2_controllers_msgs::JointTrajectoryControllerState
+                           #'send self :set-robot-state1 key :groupname groupname)))
+       )
+      (t ;; not creating actions, just search
+       (mapcar
+        #'(lambda (param)
+            (let* ((controller-action (cdr (assoc :controller-action param)))
+                   (action-type (cdr (assoc :action-type param)))
+                   (name (if namespace (format nil "~A/~A" namespace controller-action)
+                           controller-action))
+                   action)
+              (setq action (find-if #'(lambda (ac) (string= name (send ac :name)))
+                                    controller-actions))
+              (if action (push action tmp-actions))
+              ))
+        (send self ctype))
+       ))
      ;;
      (setf (gethash ctype controller-table) tmp-actions)
      tmp-actions
@@ -346,13 +363,67 @@
        (push (cons key msg) robot-state)))   
   (:ros-state-callback
    (msg)
-   (dolist (key '(:name :position :velocity :effort))
-     (send self :set-robot-state1 key (send msg key)))
-   (send self :set-robot-state1 :stamp (send msg :header :stamp)))
-  (:update-robot-state
+   (let ((robot-state-names (cdr (assoc :name robot-state))))
+     ;; set joint name
+     (cond
+      (robot-state-names
+       ;; merge robot-state name list
+       (let ((diff (set-difference (send msg :name) robot-state-names :test #'string=)))
+         (when diff
+           (setq robot-state-names (append robot-state-names diff))
+           ;; resize joint-state data list
+           (dolist (key '(:position :velocity :effort))
+             (setf (cdr (assoc key robot-state))
+                   (concatenate float-vector
+                                (cdr (assoc key robot-state))
+                                (instantiate float-vector (- (length robot-state-names)
+                                                             (length (cdr (assoc key robot-state))))))))
+           ;; resize stamp-list
+           (setf (cdr (assoc :stamp-list robot-state))
+                 (concatenate cons
+                              (cdr (assoc :stamp-list robot-state))
+                              (make-list (- (length robot-state-names) (length (cdr (assoc :stamp-list robot-state))))))))
+         ))
+      (t
+       (push (cons :name (send msg :name)) robot-state)
+       (setq robot-state-names (send msg :name))
+       (dolist (key '(:position :velocity :effort))
+         (push (cons key (instantiate float-vector (length robot-state-names))) robot-state))
+       (push (cons :stamp-list (make-list (length robot-state-names))) robot-state)))
+     ;; set joint data
+     (let ((joint-names (send msg :name))
+           (stamp-list (cdr (assoc :stamp-list robot-state)))
+           (idx 0) joint-idx joint-data data-vec)
+       (dolist (key '(:position :velocity :effort))
+         (setq joint-data (send msg key) idx 0)
+         (when (= (length joint-names) (length joint-data))
+           (setq data-vec (cdr (assoc key robot-state)))
+           (dolist (jn joint-names)
+             (setq joint-idx (position jn robot-state-names :test #'string=))
+             (setf (elt data-vec joint-idx) (elt joint-data idx))
+             (incf idx)
+             ;; update stamp
+             (when (eq key :position)
+               (setf (elt stamp-list joint-idx) (send msg :header :stamp)))
+             ))))
+     (setf (cdr (assoc :name robot-state)) robot-state-names)
+     ;; (dolist (key '(:name :position :velocity :effort))
+     ;;   (send self :set-robot-state1 key (send msg key)))
+     (send self :set-robot-state1 :stamp (send msg :header :stamp))))
+  (:wait-until-update-all-joints
    ()
+   (let ((initial-time (send (send (ros::time) :now) :to-nsec)))
+     (while t
+       (when (null (position-if #'null (mapcar #'(lambda (ts) (> (send ts :to-nsec) initial-time)) (cdr (assoc :stamp-list robot-state)))))
+         (return-from nil nil))
+       (send self :spin-once)
+       )))
+  (:update-robot-state
+   (&key (wait-until-update nil))
    (let (joint-names positions velocities efforts)
      (send self :spin-once)
+     (when wait-until-update
+       (send self :wait-until-update-all-joints))
      ;; (unless joint-action-enable
      ;;   (return-from :update-robot-state (send robot :angle-vector)))
      (unless robot-state (return-from :update-robot-state))
@@ -379,7 +450,8 @@
 	     (coerce efforts cons))))
   (:state
    (&rest args)
-   (send self :update-robot-state)
+   (send self :update-robot-state
+         :wait-until-update (and (position :wait-until-update args) (elt args (+ (position :wait-until-update args) 1))))
    (unless args (return-from :state))
    (case (car args)
      ((:potentio-vector :angle-vector)
