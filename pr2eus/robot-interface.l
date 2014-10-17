@@ -82,7 +82,7 @@
    (setq controller-table (make-hash-table :size 14 :test #'eq :rehash-size 1.2))
    (setq controller-type type)
    (setq controller-actions
-         (send self :add-controller controller-type :joint-enable-check t))
+         (send self :add-controller controller-type :joint-enable-check t :create-actions t))
    ;;
    (when (send self :simulation-modep)
      (let ((old-viewer user::*viewer*))
@@ -99,34 +99,51 @@
        ))
    self)
   ;;
-  (:add-controller (ctype &key (joint-enable-check))
+  (:add-controller (ctype &key (joint-enable-check) (create-actions))
    (let (tmp-actions)
-     (mapcar
-      #'(lambda (param)
-          (let* ((controller-action (cdr (assoc :controller-action param)))
-                 (action-type (cdr (assoc :action-type param)))
-                 (action (instance ros::simple-action-client :init
-                                   (if namespace (format nil "~A/~A" namespace controller-action)
-                                     controller-action) action-type
-                                   :groupname groupname)))
-            (push action tmp-actions)))
-      (send self ctype))
-     (setq tmp-actions (nreverse tmp-actions))
-     ;;
-     (dolist (action tmp-actions)
-       (unless (and joint-action-enable (send action :wait-for-server controller-timeout))
-         (ros::ros-warn "~A is not respond, ~A-interface is disabled" action (send robot :name))
-         (when joint-enable-check
-           (setq joint-action-enable nil)
-           (return))))
-     ;;
-     (dolist (param (send self ctype))
-       (let* ((controller-state (cdr (assoc :controller-state param)))
-              (key (intern (string-upcase controller-state) *keyword-package*)))
-         (ros::subscribe (if namespace (format nil "~A/~A" namespace controller-state)
-                           controller-state)
-                         pr2_controllers_msgs::JointTrajectoryControllerState
-                         #'send self :set-robot-state1 key :groupname groupname)))
+     (cond
+      (create-actions
+       (mapcar
+        #'(lambda (param)
+            (let* ((controller-action (cdr (assoc :controller-action param)))
+                   (action-type (cdr (assoc :action-type param)))
+                   (action (instance ros::simple-action-client :init
+                                     (if namespace (format nil "~A/~A" namespace controller-action)
+                                       controller-action) action-type
+                                       :groupname groupname)))
+              (push action tmp-actions)))
+        (send self ctype))
+       (setq tmp-actions (nreverse tmp-actions))
+       ;;
+       (dolist (action tmp-actions)
+         (unless (and joint-action-enable (send action :wait-for-server controller-timeout))
+           (ros::ros-warn "~A is not respond, ~A-interface is disabled" action (send robot :name))
+           (when joint-enable-check
+             (setq joint-action-enable nil)
+             (return))))
+       ;;
+       (dolist (param (send self ctype))
+         (let* ((controller-state (cdr (assoc :controller-state param)))
+                (key (intern (string-upcase controller-state) *keyword-package*)))
+           (ros::subscribe (if namespace (format nil "~A/~A" namespace controller-state)
+                             controller-state)
+                           pr2_controllers_msgs::JointTrajectoryControllerState
+                           #'send self :set-robot-state1 key :groupname groupname)))
+       )
+      (t ;; not creating actions, just search
+       (mapcar
+        #'(lambda (param)
+            (let* ((controller-action (cdr (assoc :controller-action param)))
+                   (action-type (cdr (assoc :action-type param)))
+                   (name (if namespace (format nil "~A/~A" namespace controller-action)
+                           controller-action))
+                   action)
+              (setq action (find-if #'(lambda (ac) (string= name (send ac :name)))
+                                    controller-actions))
+              (if action (push action tmp-actions))
+              ))
+        (send self ctype))
+       ))
      ;;
      (setf (gethash ctype controller-table) tmp-actions)
      tmp-actions

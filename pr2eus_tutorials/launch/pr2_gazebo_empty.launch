@@ -23,7 +23,7 @@
   </node>
 
   <node name="$(anon map_server00)" pkg="map_server" type="map_server"
-        args="/home/lyouhei/ros/groovy/jsk-ros-pkg/jsk_maps/raw_maps/eng2-7f-0.05.yaml" >
+        args="$(find jsk_maps)/raw_maps/eng2-7f-0.05.yaml" >
     <param name="frame_id" value="/eng2/7f"/>
   </node>
   <node pkg="tf" type="static_transform_publisher" name="$(anon map_tf01)"
