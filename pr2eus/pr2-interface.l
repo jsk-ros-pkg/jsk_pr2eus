@@ -515,7 +515,11 @@
        ) ;; while
      t))
   (:move-trajectory
-   (x y d &optional (msec 1000) &key (stop t)) ;; [m/sec] [m/sec] [rad/sec]
+   (x y d &optional (msec 1000) &key (stop t) (start-time) (send-action nil))
+" x [m/sec] y [m/sec] d [rad/sec] msec [milli second]
+stop [ stop after msec moveing ]
+start-time [ robot will move at start-time ]
+send-action [ send message to action server, it means robot will move ]"
    (send self :spin-once)
    (let ((sec (/ msec 1000.0))
 	 (odom-pos (scale 0.001 (send (send self :state :odom :pose) :pos)))
@@ -542,10 +546,18 @@
      (ros::ros-debug "                pt1 ~A" (send pt1 :positions))
      (ros::ros-debug "                pt2 ~A" (send pt2 :positions))
      ;;
-     (send msg :header :stamp (ros::time-now))
+     (if start-time
+         (send msg :header :stamp start-time)
+       (send msg :header :stamp (ros::time-now)))
      (send msg :joint_names (list "base_link_x" "base_link_y" "base_link_pan"))
 	 (send msg :points (list pt1 pt2))
      (send goal :goal :trajectory msg)
+     (when send-action
+       (send move-base-trajectory-action :send-goal goal)
+       (let ((acret
+              (send move-base-trajectory-action :wait-for-result)))
+         (unless acret (return-from :move-trajectory nil))
+         (send move-base-trajectory-action :spin-once)))
      ;;
      goal))
   ;;
