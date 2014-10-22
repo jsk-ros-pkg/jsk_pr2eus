@@ -10,5 +10,5 @@
   <arg name="type_name" default="table" />
 
   <node name="$(anon spawn_table)" pkg="gazebo_ros" type="spawn_model" output="screen"
-        arg="-sdf -database $(arg type_name) -model $(arg model_name) -x $(arg pos_x) -y $(arg pos_y) -z $(arg pos_z) -R $(arg rot_r) -P $(arg rot_p) -Y $(arg rot_y)" />
+        args="-sdf -database $(arg type_name) -model $(arg model_name) -x $(arg pos_x) -y $(arg pos_y) -z $(arg pos_z) -R $(arg rot_r) -P $(arg rot_p) -Y $(arg rot_y)" />
 </launch>
