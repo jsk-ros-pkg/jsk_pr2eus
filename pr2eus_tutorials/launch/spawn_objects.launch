@@ -1,16 +1,21 @@
 <launch>
-  <arg name="table_x_pos" default="0.0" />
-
-  <!-- <include file="$(find gazebo_worlds)/launch/table.launch"/> -->
-  <!-- copy from table.launch -->
-  <param name="table_description" command="$(find xacro)/xacro.py $(find gazebo_worlds)/objects/table.urdf.xacro" />
-  <!-- push table_description to factory and spawn robot in gazebo -->
-  <node name="spawn_table" pkg="gazebo" type="spawn_model"
-	args="-urdf -param table_description -z 0.01 -x $(arg table_x_pos) -model table_model"
-	respawn="false" output="screen" />
-
-  <!-- <node pkg="gazebo" name="spawn_coffee_cup" type="spawn_model" args="-file $(find gazebo_worlds)/objects/desk1.model -gazebo -model desk -x 0.8 -y -0.2 -z 0.4"/> -->
-  <!-- node pkg="gazebo" name="spawn_coffee_cup" type="spawn_model" args="-file $(find gazebo_worlds)/objects/china_cup.model -gazebo -model china_cup -x 0.8 -y 0.2 -z 0.6"/-->
-  <node pkg="gazebo" name="spawn_" type="spawn_model" args="-file $(find gazebo_worlds)/objects/object102.model -gazebo -model green_cylinder -x 0.8 -y -0.2 -z 0.4"/>
-  <node pkg="gazebo" name="spawn_bottle" type="spawn_model" args="-file $(find gazebo_worlds)/objects/object101.model -gazebo -model bottle -x 0.8 -y 0.0 -z 0.4"/>
+  <include file="$(find pr2eus_tutorials)/launch/spawn_model_in_database.launch" >
+    <arg name="model_name" value="table_model" />
+    <arg name="type_name" value="table" />
+    <arg name="pos_x" value="1.1" />
+    <arg name="pos_z" value="-0.4" />
+    <arg name="rot_y" value="1.57" />
+  </include>
+  <include file="$(find pr2eus_tutorials)/launch/spawn_model_in_database.launch" >
+    <arg name="model_name" value="beer_model" />
+    <arg name="type_name" value="beer" />
+    <arg name="pos_x" value="1.0" />
+    <arg name="pos_z" value="0.8" />
+  </include>
+  
+  <include file="$(find pr2eus_tutorials)/launch/spawn_cylinder.launch" >
+    <arg name="pos_x" value="1.0" />
+    <arg name="pos_y" value="0.2" />"
+    <arg name="pos_z" value="0.8" />
+  </include>
 </launch>

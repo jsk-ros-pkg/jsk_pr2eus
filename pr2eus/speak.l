@@ -20,13 +20,21 @@
 <vtml_volume value=\"100\">text</vtml_volume> ;; 0-500%
 ^^ ;;数字の棒読み
 |#
-(defun speak-en (en-str)
+(defun speak-en (en-str &key (google nil))
   (unless (ros::get-topic-publisher "robotsound")
     (ros::advertise "robotsound" sound_play::SoundRequest 5)
     (unix:sleep 1))
-  (ros::publish "robotsound"
-		(instance sound_play::SoundRequest :init
-			  :sound sound_play::SoundRequest::*say*
-			  :command sound_play::SoundRequest::*play_once*
-			  :arg en-str
-			  )))
+  (if google
+      (ros::publish "robotsound"
+                    (instance sound_play::SoundRequest :init
+                              :sound sound_play::SoundRequest::*play_file*
+                              :command sound_play::SoundRequest::*play_once*
+                              :arg (concatenate string "http://translate.google.com/translate_tts?tl=en&q=" en-str)
+                              ))
+    (ros::publish "robotsound"
+                  (instance sound_play::SoundRequest :init
+                            :sound sound_play::SoundRequest::*say*
+                            :command sound_play::SoundRequest::*play_once*
+                            :arg en-str
+                            ))
+    )
