@@ -11,7 +11,7 @@
   <arg name="length" default="0.2" />
   <arg name="radius" default="0.05" />
 
-  <param name="/robot_description/$(arg model_name)"
+  <param name="/gazebo_model_description/$(arg model_name)"
          value="&lt;?xml version=&quot;1.0&quot; ?&gt;
 &lt;sdf version=&quot;1.2&quot;&gt;
   &lt;model name=&quot;name&quot;&gt;
@@ -36,5 +36,5 @@
 &lt;/sdf&gt;" />
 
   <node name="$(anon spawn_cylinder)" pkg="gazebo_ros" type="spawn_model" output="screen"
-        args="-sdf -param /robot_description/$(arg model_name) -model $(arg model_name) -x $(arg pos_x) -y $(arg pos_y) -z $(arg pos_z) -R $(arg rot_r) -P $(arg rot_p) -Y $(arg rot_y)" />
+        args="-sdf -param /gazebo_model_description/$(arg model_name) -model $(arg model_name) -x $(arg pos_x) -y $(arg pos_y) -z $(arg pos_z) -R $(arg rot_r) -P $(arg rot_p) -Y $(arg rot_y)"/>
 </launch>
