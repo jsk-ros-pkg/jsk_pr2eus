@@ -775,11 +775,36 @@ send-action [ send message to action server, it means robot will move ]"
                                                 #f(0 60 -80 -121 -15 -90 20)))
 (defconstant *pr2-tuckarm-pose-larm-free* (list #f(0 60 80 -121 15 -90 -20)
                                                 #f(-5 70 -105 -90 70 -6 20)))
+(defconstant *pr2-tuckarm-pose-rarm-free-outside* (list #f(4 74.3 110.3 -82.3 -80.2 -5.7 -20)
+                                                        #f(0.4 74.3 -102.3 -121.5 78.6 -114.6 58.1)))
+(defconstant *pr2-tuckarm-pose-larm-free-outside* (list #f(-0.4 74.3 102.3 -121.5 -78.6 -114.6 -58.1)
+                                                        #f(-4 74.3 -110.3 -82.3 80.2 -5.7 20)))
 
-;; check if current pose is tuckarm pose or not
-;;       which arm is free
-;; args = () (:rarm) (:larm)
-;; return = nil :rarm :larm
+(defun get-tuckarm (free-arm dir arm)
+  (if (eq free-arm :larm)
+      (if (eq dir :inside)
+          (if (eq arm :larm)
+              (car *pr2-tuckarm-pose-larm-free*)
+            (cadr *pr2-tuckarm-pose-larm-free*)
+            )
+        (if (eq arm :larm)
+            (car *pr2-tuckarm-pose-larm-free-outside*)
+          (cadr *pr2-tuckarm-pose-larm-free-outside*)
+          )
+        )
+    (if (eq dir :inside)
+        (if (eq arm :larm)
+            (car *pr2-tuckarm-pose-rarm-free*)
+          (cadr *pr2-tuckarm-pose-rarm-free*)
+          )
+      (if (eq arm :larm)
+          (car *pr2-tuckarm-pose-rarm-free-outside*)
+        (cadr *pr2-tuckarm-pose-rarm-free-outside*)
+        )
+      )
+    )
+  )
+
 (defun check-tuckarm-pose (&key (thre 20) &rest args)
   (send *pr2* :angle-vector (send *ri* :state :potentio-vector))
   (let ((l-angle (map float-vector #'(lambda(d)(- d (* 360 (round (/ d 360.0)))))
@@ -803,6 +828,7 @@ send-action [ send message to action server, it means robot will move ]"
 (defun pr2-tuckarm-pose (&rest args)
   (let* ((current-arm (check-tuckarm-pose :thre 40)) ;; nil rarm larm
          (free-arm (or (car args) current-arm :larm))
+         (side (or (cadr args) :inside))
          (msec 500))
     (when (not (eq current-arm free-arm))
       (progn
@@ -814,18 +840,18 @@ send-action [ send message to action server, it means robot will move ]"
         ))
     (if (eq free-arm :larm)
         (progn
-          (send *pr2* :rarm :angle-vector (cadr *pr2-tuckarm-pose-larm-free*))
+          (send *pr2* :rarm :angle-vector (get-tuckarm :larm side :rarm))
           (send *ri* :rarm-angle-vector (send *pr2* :angle-vector) msec))
       (progn
-        (send *pr2* :larm :angle-vector (car *pr2-tuckarm-pose-rarm-free*))
+        (send *pr2* :larm :angle-vector (get-tuckarm :rarm side :larm))
         (send *ri* :larm-angle-vector (send *pr2* :angle-vector) msec)))
     (send *ri* :wait-interpolation)
     (if (eq free-arm :larm)
         (progn
-          (send *pr2* :larm :angle-vector (car *pr2-tuckarm-pose-larm-free*))
+          (send *pr2* :larm :angle-vector (get-tuckarm :larm side :larm))
           (send *ri* :larm-angle-vector (send *pr2* :angle-vector) msec))
       (progn
-        (send *pr2* :rarm :angle-vector (cadr *pr2-tuckarm-pose-rarm-free*))
+        (send *pr2* :rarm :angle-vector (get-tuckarm :rarm side :rarm))
         (send *ri* :rarm-angle-vector (send *pr2* :angle-vector) msec)))
     (send *ri* :wait-interpolation)
     t
