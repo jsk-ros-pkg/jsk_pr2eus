@@ -701,6 +701,20 @@
      (send msg :markers markers-list)
      (ros::publish visualization-topic msg)
      ))
+  (:nod
+   (&key (angle 40) (time 3000))
+   (let (prev-neck-p)
+     (send self :update-robot-state)
+     (send self :robot :angle-vector (send self :state :reference-vector))
+     (setq prev-neck-p (send self :robot :head :neck-p :joint-angle))
+     (send self :robot :head :neck-p :joint-angle angle)
+     (send self :angle-vector (send self :robot :angle-vector) time)
+     (send self :wait-interpolation)
+     (send self :robot :head :neck-p :joint-angle prev-neck-p)
+     (send self :angle-vector (send self :robot :angle-vector) time)
+     (send self :wait-interpolation)
+     )
+   )
   )
 ;;
 (defclass ros-interface
