@@ -129,12 +129,21 @@
                      (send self :search-link-from-name "l_wrist_roll_link"))
                (cons :joint-list (append (send robot :torso :joint-list) (send robot :larm :joint-list)))
                )
-         (list :arms ;; not implemented yet
+         (list :arms ;; can not use inverse-kinematics
                (cons :group-name "arms")
                (cons :target-link
                      (list (send self :search-link-from-name "l_wrist_roll_link")
                            (send self :search-link-from-name "r_wrist_roll_link")))
                (cons :joint-list (append (send robot :larm :joint-list)
+                                         (send robot :rarm :joint-list)))
+               )
+         (list :arms-torso ;; can not use inverse-kinematics
+               (cons :group-name "arms-torso")
+               (cons :target-link
+                     (list (send self :search-link-from-name "l_wrist_roll_link")
+                           (send self :search-link-from-name "r_wrist_roll_link")))
+               (cons :joint-list (append (send robot :torso :joint-list)
+                                         (send robot :larm :joint-list)
                                          (send robot :rarm :joint-list)))
                )
 #| ;; sample of pr2_moveit_config/config/pr2.srdf
@@ -450,7 +459,10 @@
       ((eq arm :rarm)
        (setq confkey (if use-torso :rarm-torso :rarm))
        (setq  ed-lst (list :rarm :end-coords)))
-      (t
+      ((eq arm :arms)
+       (setq confkey (if use-torso :arms-torso :arms))
+       (setq ed-lst nil)) ;; can not use inverse-kinematics
+      (t ;;(eq arm :larm)
        (setq confkey (if use-torso :larm-torso :larm))
        (setq  ed-lst (list :larm :end-coords))))
      (cons confkey ed-lst)))
