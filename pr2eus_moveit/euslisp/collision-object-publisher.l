@@ -2,7 +2,7 @@
 
 (defclass collision-object-publisher
   :super propertied-object
-  :slots (object-list attached-list
+  :slots (object-list attached-object-list
           topicname attached-topicname scene-srv))
 
 (defmethod collision-object-publisher
@@ -33,6 +33,8 @@
      (send msg :touch_links touch-links)
      (if detach-posture (send msg :detach_posture detach-posture))
      (send msg :weight weight)
+     (setf (gethash obj object-list) objmsg)
+     (setf (gethash obj attached-object-list) msg)
      ;;
      (ros::publish attached-topicname msg)
      obj))
@@ -158,7 +160,6 @@
   (:clear-all ()
    (dolist (obj (send object-list :list-keys))
      (send self :delete-object obj))
-   (setq object-list (make-hash-table))
    t)
   (:clear-attached-all ()
    (dolist (obj (send attached-object-list :list-keys))
