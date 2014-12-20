@@ -29,7 +29,7 @@
                 controller-type controller-actions controller-timeout
                 namespace controller-table ;; hashtable :type -> (action)
                 visualization-topic
-                joint-states-topic
+                joint-states-topic pub-joint-states-topic
                 viewer groupname))
 
 (defmethod robot-interface
@@ -37,10 +37,12 @@
    (&rest args &key ((:robot r)) ((:objects objs)) (type :default-controller)
           (use-tf2) ((:groupname nh) "robot_multi_queue") ((:namespace ns))
           ((:joint-states-topic jst) "joint_states")
+          ((:publish-joint-states-topic pjst) nil)
           ((:controller-timeout ct) 3)
           ((:visuzlization-marker-topic vmt) "robot_interface_marker_array")
           &allow-other-keys)
    (setq joint-states-topic jst)
+   (setq pub-joint-states-topic pjst)
    (setq joint-action-enable t)
    (setq controller-timeout ct)
    (setq namespace ns)
@@ -94,8 +96,12 @@
          (send self :draw-objects)
          (send self :objects objs)
          (if old-viewer (setq user::*viewer* old-viewer)))
-       (ros::advertise (if namespace (format nil "~A/~A" namespace joint-states-topic)
-                         joint-states-topic) sensor_msgs::JointState 1)
+       (ros::advertise (cond
+                        (pub-joint-states-topic pub-joint-states-topic)
+                        (namespace
+                         (format nil "~A/~A" namespace joint-states-topic))
+                        (t joint-states-topic))
+                       sensor_msgs::JointState 1)
        ))
    self)
   ;;
@@ -155,8 +161,12 @@
      (setq msg (joint-list->joint_state joint-list))
      (send msg :header :stamp (ros::time-now))
      (when (send self :simulation-modep)
-       (ros::publish (if namespace (format nil "~A/~A" namespace joint-states-topic)
-                       joint-states-topic) msg))
+       (ros::publish (cond
+                        (pub-joint-states-topic pub-joint-states-topic)
+                        (namespace
+                         (format nil "~A/~A" namespace joint-states-topic))
+                        (t joint-states-topic))
+                     msg))
      msg))
   (:angle-vector
    (av &optional (tm 3000) (ctype controller-type) (start-time 0))
