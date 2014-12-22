@@ -112,9 +112,17 @@
        )))
   (:inverse-reachablity-with-given-coords
    (base-coords-list &rest args)
-   (let ((target-coords (elt args 0)) (result-coords-list nil) (initial-angle-vector (send self :angle-vector)))
+   (let ((target-coords (elt args 0)) (result-coords-list nil) (initial-angle-vector (send self :angle-vector)) (target-coords-transformed nil))
      (dotimes (i (length base-coords-list))
-       (if (forward-message-to self (cons :inverse-kinematics (cons (send (send (send target-coords :copy-worldcoords) :transformation (elt base-coords-list i) :local) :transformation (make-coords) :local)
+       (if (consp target-coords)
+	   (progn 
+	     (dotimes (j (length target-coords))
+	       )
+	     (setq target-coords-transformed (append target-coords-transformed (send (send (send (elt target-coords j) :copy-worldcoords) :transformation (elt base-coords-list i) :local) :transformation (make-coords) :local)))
+	     )
+	 (setq target-coords-transformed (send (send (send target-coords :copy-worldcoords) :transformation (elt base-coords-list i) :local) :transformation (make-coords) :local))
+	 )
+       (if (forward-message-to self (cons :inverse-kinematics (cons target-coords-transformed 
 				      (cdr args))))
 	   (setq result-coords-list (append result-coords-list (list (elt base-coords-list i)))))
        (send self :angle-vector initial-angle-vector))
