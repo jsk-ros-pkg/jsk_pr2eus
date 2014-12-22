@@ -122,8 +122,8 @@
 	     )
 	 (setq target-coords-transformed (send (send (send target-coords :copy-worldcoords) :transformation (elt base-coords-list i) :local) :transformation (make-coords) :local))
 	 )
-       (if (forward-message-to self (cons :inverse-kinematics (cons target-coords-transformed 
-				      (cdr args))))
+       (if (send* self :inverse-kinematics target-coords-transformed 
+				      (cdr args))
 	   (setq result-coords-list (append result-coords-list (list (elt base-coords-list i)))))
        (send self :angle-vector initial-angle-vector))
      result-coords-list
