@@ -49,6 +49,7 @@
           robot
           default-frame-id default-link
           multi-dof-name multi-dof-frame
+          use-action planning-action-client
           ))
 
 ;; frame-id
@@ -90,6 +91,16 @@
      (send r-to :angle-vector (send r-from :angle-vector))
      (send r-to :worldcoords)
      r-to))
+  (:init-action-client ()
+   (unless planning-action-client
+     (setq planning-action-client
+           (instance ros::simple-action-client :init
+                     "/move_group" moveit_msgs::MoveGroupAction
+                     :groupname "pr2eus_moveit"))
+     (send planning-action-client :wait-for-server)
+     ))
+  (:use-action (&optional (use :use-action)) (unless (eq use :use-action) (setq use-action use)) use-action)
+  (:action-client (&rest args) (forward-message-to planning-action-client args))
   (:search-link-from-name
    (link-name)
    (cond
@@ -328,6 +339,15 @@
      (send mpr :num_planning_attempts planning-attempts)
      (send mpr :allowed_planning_time planning-time)
      ;;(print-ros-msg mpr)
+     (when use-action
+       (send self :init-action-client)
+       (let ((goal (send planning-action-client :make-goal-instance)))
+         (send goal :header :seq 1)
+         (send goal :header :stamp (ros::time-now))
+         (send goal :goal :request mpr)
+         (send goal :goal :planning_options :plan_only t)
+         (send planning-action-client :send-goal goal))
+       (return-from :motion-plan-constraints nil))
      (setq res
            (ros::service-call planning-service
                               (instance moveit_msgs::GetMotionPlanRequest
