@@ -42,7 +42,7 @@
    (obj &key (frame-id "base_footprint") (object-frame-id) (relative-pose)
         (object-id (string (gensym "COLOBJ"))) &allow-other-keys)
    (let ((msg (gethash obj object-list)))
-     (when msg (return-from :make-object)))
+     (when msg (return-from :make-object msg)))
    (let ((colobj (instance moveit_msgs::CollisionObject :init :id object-id))
          geom-lst pose-lst)
 
