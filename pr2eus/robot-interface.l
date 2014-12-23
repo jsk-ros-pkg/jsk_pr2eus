@@ -101,7 +101,7 @@
                         (namespace
                          (format nil "~A/~A" namespace joint-states-topic))
                         (t joint-states-topic))
-                       sensor_msgs::JointState 1)
+                       sensor_msgs::JointState)
        ))
    self)
   ;;
