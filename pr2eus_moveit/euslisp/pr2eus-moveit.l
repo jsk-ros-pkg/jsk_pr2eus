@@ -43,6 +43,7 @@
           scene-service
           planning-service
           execute-service
+          check-validity-service
           query-planner-interface-service
           planning-scene-world-topic
           robot
@@ -60,12 +61,14 @@
          ((:execute-service ex-srv) "/execute_kinematic_path")
          ((:query-planner-interface-service qr-pl-srv) "/query_planner_interface")
          ((:planning-scene-world pl-sc-world) "/planning_scene_world")
+         ((:state-validity-service sv-srv) "/check_state_validity")
          ((:robot rb) *pr2*) (frame-id "base_footprint") ;; frame-id needs to be contained in robot_model
          (multi-dof-joint-name "virtual_joint")
          (multi-dof-frame-id "odom_combined"))
    (setq scene-service sc-srv
          planning-service pl-srv
          execute-service ex-srv
+         check-validity-service sv-srv
          query-planner-interface-service qr-pl-srv
          planning-scene-world-topic pl-sc-world
          robot rb
@@ -198,6 +201,11 @@
   (:clear-world-scene ()
    (let ((msg (instance moveit_msgs::PlanningSceneWorld :init)))
      (ros::publish planning-scene-world-topic msg)))
+  (:check-state-validity ()
+   (let* ((rmsg (send self :get-planning-scene moveit_msgs::PlanningSceneComponents::*ROBOT_STATE*))
+          (msg (instance moveit_msgs::GetStateValidityRequest :init :robot_state (send rmsg :robot_state))))
+     (ros::service-call check-validity-service msg)
+     ))
   (:convert-end-coords
    (cds confkey end-coords )
    (let ((tgt-cds (send cds :copy-worldcoords))
@@ -453,6 +461,10 @@
   (:planning-environment (&rest args)
    (let ((env (get self :moveit-environment)))
      (when env (forward-message-to env args))))
+  (:update-planning-robot ()
+   (send self :state)
+   (send self :planning-environment
+         :sync-robot-model robot))
   (:parse-end-coords (arm use-torso)
    (let (confkey ed-lst)
      (cond
