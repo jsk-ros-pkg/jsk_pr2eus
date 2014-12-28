@@ -372,7 +372,7 @@
    (key msg)
      (if (assoc key robot-state)
 	 (setf (cdr (assoc key robot-state)) msg)
-       (push (cons key msg) robot-state)))   
+       (push (cons key msg) robot-state)))
   (:ros-state-callback
    (msg)
    (let ((robot-state-names (cdr (assoc :name robot-state))))
@@ -423,8 +423,11 @@
      ;;   (send self :set-robot-state1 key (send msg key)))
      (send self :set-robot-state1 :stamp (send msg :header :stamp))))
   (:wait-until-update-all-joints
-   ()
-   (let ((initial-time (send (send (ros::time) :now) :to-nsec)))
+   (tms)
+   (let ((initial-time))
+     (if (equal (class tms) (class (ros::time 0)))
+	 (setq initial-time (send tms :to-nsec))
+       (setq initial-time (send (send (ros::time) :now) :to-nsec)))
      (while t
        (when (null (position-if #'null (mapcar #'(lambda (ts) (> (send ts :to-nsec) initial-time)) (cdr (assoc :stamp-list robot-state)))))
          (return-from nil nil))
@@ -435,7 +438,7 @@
    (let (joint-names positions velocities efforts)
      (send self :spin-once)
      (when wait-until-update
-       (send self :wait-until-update-all-joints))
+       (send self :wait-until-update-all-joints wait-until-update))
      ;; (unless joint-action-enable
      ;;   (return-from :update-robot-state (send robot :angle-vector)))
      (unless robot-state (return-from :update-robot-state))
@@ -463,7 +466,7 @@
   (:state
    (&rest args)
    (send self :update-robot-state
-         :wait-until-update (and (position :wait-until-update args) (elt args (+ (position :wait-until-update args) 1))))
+         :wait-until-update (when (position :wait-until-update args) (elt args (+ (position :wait-until-update args) 1))))
    (unless args (return-from :state))
    (case (car args)
      ((:potentio-vector :angle-vector)
