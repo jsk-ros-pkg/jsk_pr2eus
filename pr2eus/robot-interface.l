@@ -423,10 +423,10 @@
      ;;   (send self :set-robot-state1 key (send msg key)))
      (send self :set-robot-state1 :stamp (send msg :header :stamp))))
   (:wait-until-update-all-joints
-   (tms)
+   (tgt-tm)
    (let ((initial-time))
-     (if (equal (class tms) (class (ros::time 0)))
-	 (setq initial-time (send tms :to-nsec))
+     (if (equal (class tgt-tm) (class (ros::time 0)))
+	 (setq initial-time (send tgt-tm :to-nsec))
        (setq initial-time (send (send (ros::time) :now) :to-nsec)))
      (while t
        (when (null (position-if #'null (mapcar #'(lambda (ts) (> (send ts :to-nsec) initial-time)) (cdr (assoc :stamp-list robot-state)))))
