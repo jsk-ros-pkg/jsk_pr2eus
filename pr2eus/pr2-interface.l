@@ -330,6 +330,51 @@
          (send move-base-trajectory-action :cancel-all-goals)
        (if force-stop (send self :go-velocity 0 0 0)))
      ))
+  
+  (:make-plan
+   (st-cds goal-cds &key (start-frame-id "/world") (goal-frame-id "/world"))
+   (let ((req (instance nav_msgs::GetPlanRequest :init))
+	 (tm (ros::time-now))
+	 map-to-frame 
+	 map-to-base
+	 res
+	 plan-cds-seq)
+     (setq map-to-base (send *tfl* :lookup-transform "/map" "/base_footprint" (ros::time 0)))
+     (setq map-to-frame (send *tfl* :lookup-transform "/map" start-frame-id (ros::time 0)))
+     (send req :start :header :stamp)
+     (send req :start :header :stamp tm)
+     (if map-to-frame
+	 (progn
+	   (send req :start :header :frame_id "/map")
+	   (send req :start :pose (ros::coords->tf-pose (send (send st-cds :copy-worldcoords) :transform map-to-frame :world))))
+       (progn 
+	   (send req :start :header :frame_id frame-id)
+	   (send req :start :pose (ros::coords->tf-pose st-cds))))
+     (setq map-to-frame (send *tfl* :lookup-transform "/map" goal-frame-id (ros::time 0)))
+     (send req :goal :header :stamp tm)
+     (if map-to-frame
+	 (progn
+	   (send req :goal :header :frame_id "/map")
+	   (send req :goal :pose (ros::coords->tf-pose (send (send goal-cds :copy-worldcoords) :transform map-to-frame :world))))
+       (progn
+	 (send req :start :header :frame_id frame-id)
+	 (send req :start :pose (ros::coords->tf-pose st-cds))))
+
+     (setq res (ros::service-call "/move_base_node/make_plan" req))
+     (unless (send res :plan :poses)
+       (return-from :make-plan nil))
+     (setq plan-cds-seq (mapcar #'(lambda (p-stamped)
+				    (let ((cds (ros::tf-pose->coords (send p-stamped :pose))))
+				      (if map-to-base
+					  (progn
+					    (send cds :transform (send map-to-base :inverse-transformation) :world)
+					;;(send cds :transform (send *pr2* :copy-worldcoords) :world))
+					    )
+					cds)))
+				(send res :plan :poses)))
+     plan-cds-seq))
+     
+     
   (:move-to
    (coords &key (retry 10) (frame-id "/world") (wait-for-server-timeout 5))
    (let (ret (count 0) (tm (ros::time-now))
