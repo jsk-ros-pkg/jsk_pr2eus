@@ -168,19 +168,39 @@
                         (t joint-states-topic))
                      msg))
      msg))
+
+  (:angle-vector-duration 
+   (end &optional (scale 5) (min-time 1.0))
+   (let ((joint-list (send robot :joint-list))
+	 (start (send self :state :potentio-vector))
+	 )
+     (let ((diff (coerce (v- end start) cons)))
+       (let ((time-list (mapcar #'(lambda (d j)
+				    (* scale (/ (deg2rad (abs d)) (send j :max-joint-velocity))))
+				diff joint-list)))
+	 (let ((max-time (apply #'max time-list)))
+	   (max max-time min-time))))))
+
   (:angle-vector
-   (av &optional (tm 3000) (ctype controller-type) (start-time 0))
+   (av &optional (tm -1) (ctype controller-type) (start-time 0) &key (scale 5) (min-time 1.0))
+
    ;; check max-joint-velocity
    (let ((idx 0)
          (diff-av (v- av (or (send self :state :potentio-vector) (send robot :angle-vector)))))
-     (dolist (jt (send robot :joint-list))
-       (cond ((derivedp jt linear-joint) ;; msec = mm / [m/sec]
-              (setq tm (max tm (abs (/ (elt diff-av idx) (send jt :max-joint-velocity))))))
-             ((derivedp jt rotational-joint) ;; msec = deg2rad(deg) / [rad/s] / 0.001
-              (setq tm (max tm (abs (/ (deg2rad (elt diff-av idx))
-                                       (send jt :max-joint-velocity) 0.001))))))
-       (incf idx)
-       ))
+     (if (equal tm -1)
+	 (setq tm (* 1000 (send self :angle-vector-duration av scale min-time)))
+       (progn
+	 (dolist (jt (send robot :joint-list))
+	   (cond ((derivedp jt linear-joint) ;; msec = mm / [m/sec]
+		  (setq tm (max tm (abs (/ (elt diff-av idx) (send jt :max-joint-velocity))))))
+		 ((derivedp jt rotational-joint) ;; msec = deg2rad(deg) / [rad/s] / 0.001
+		  (setq tm (max tm (abs (/ (deg2rad (elt diff-av idx))
+					   (send jt :max-joint-velocity) 0.001))))))
+	   (incf idx)
+	   ))
+       )
+     )
+
    ;; for simulation mode
    (when (send self :simulation-modep)
      (if av
