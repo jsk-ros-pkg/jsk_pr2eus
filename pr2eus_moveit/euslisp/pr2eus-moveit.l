@@ -368,27 +368,27 @@
        (send self :execute-trajectory (send ret :trajectory) :wait wait))))
   (:planning-make-trajectory
    (confkey &rest args &key (set-angle-vector) (scene) (use-scene t) (planning-time 5.0)
-            (planning-attemps 3) (retry) &allow-other-keys)
+            (planning-attempts 3) (retry) &allow-other-keys)
    (let (ret)
      (if set-angle-vector (send robot :angle-vector set-angle-vector))
      (unless scene (setq scene (send self :get-planning-scene)))
      (setq ret
            (send* self :motion-plan confkey
-                  :planning-time planning-time :planning-attemps planning-attemps
+                  :planning-time planning-time :planning-attempts planning-attempts
                   :scene (if use-scene scene) args))
      (when (and retry (not ret)) ;; retry
        (when get-scene (setq scene (send self :get-planning-scene)))
        (setq ret
              (send* self :motion-plan confkey
                     :planning-time (* 2 planning-time)
-                    :planning-attemps (* 2 planning-attemps)
+                    :planning-attempts (* 2 planning-attempts)
                     :scene (if use-scene scene) args)))
      ret
      ))
   (:planning-make-trajectory-to-coords-no-ik
    (cds confkey &rest args &key (end-coords) ;; (list :rarm :end-coords)
         (planning-time 5.0) (scene) (frame-id default-frame-id)
-        (planning-attemps 3) (retry) (use-scene t)
+        (planning-attempts 3) (retry) (use-scene t)
         ((:tolerance_x tx) 0) ((:tolerance_y ty) 0) ((:tolerance_z tz) 0)
         ((:tolerance_rx rx) 0) ((:tolerance_ry ry) 0) ((:tolerance_rz rz) 0)
         &allow-other-keys)
@@ -408,7 +408,7 @@
      (setq ret
            (send* self :motion-plan-constraints confkey
                   :goal-constraints const
-                  :planning-time planning-time :planning-attemps planning-attemps
+                  :planning-time planning-time :planning-attempts planning-attempts
                   :scene (if use-scene scene) args))
      (when (and retry (not ret)) ;; retry
        (when get-scene (setq scene (send self :get-planning-scene)))
@@ -416,14 +416,14 @@
              (send* self :motion-plan-constraints confkey
                     :goal-constraints const
                     :planning-time (* 2 planning-time)
-                    :planning-attemps (* 2 planning-attemps)
+                    :planning-attempts (* 2 planning-attempts)
                     :scene (if use-scene scene) args)))
      ret
      ))
   (:planning-make-trajectory-to-coords ;; use-ik
    (cds confkey &rest args &key (end-coords) ;; (list :rarm :end-coords)
         (planning-time 5.0) (scene) (frame-id default-frame-id)
-        (planning-attemps 3) (retry) (use-scene t)
+        (planning-attempts 3) (retry) (use-scene t)
         &allow-other-keys)
    (let (ret)
      (unless scene (setq scene (send self :get-planning-scene)))
@@ -431,24 +431,24 @@
                    :use-actual-seed t :retry retry :frame-id frame-id :scene scene)
        (return-from :planning-make-trajectory-to-coords nil))
      (send* self :planning-make-trajectory confkey
-           :planning-time planning-time :planning-attemps planning-attemps
+           :planning-time planning-time :planning-attempts planning-attempts
            :use-scene use-scene :scene scene :retry retry args)
      ))
   (:planning-move-arm
    (confkey &key (set-angle-vector) (scene) (use-scene t) (planning-time 5.0)
-            (planning-attemps 3) (retry) (wait t) &allow-other-keys)
+            (planning-attempts 3) (retry) (wait t) &allow-other-keys)
    (let (ret)
      (if set-angle-vector (send robot :angle-vector set-angle-vector))
      (unless scene (setq scene (send self :get-planning-scene)))
      (setq ret
            (send self :move-arm-to-goal confkey :scene (if use-scene scene)
-                 :planning-attemps planning-attemps
+                 :planning-attempts planning-attempts
                  :planning-time planning-time :wait wait))
      (when (and retry (not ret)) ;; retry
        (if scene (setq scene (send self :get-planning-scene))) ;; override scene
        (setq ret
              (send self :move-arm-to-goal confkey :scene (if use-scene scene)
-                   :planning-attemps (* 2 planning-attemps)
+                   :planning-attempts (* 2 planning-attempts)
                    :planning-time (* 2 planning-time) :wait wait))
        )
      ret
@@ -456,7 +456,7 @@
   (:planning-move-arm-to-coords
    (cds confkey &key (end-coords) ;; (list :rarm :end-coords)
         (planning-time 5.0) (scene) (frame-id default-frame-id)
-        (planning-attemps 3) (retry) (use-scene t) (wait t)
+        (planning-attempts 3) (retry) (use-scene t) (wait t)
         &allow-other-keys)
    (let (ret)
      (unless scene (setq scene (send self :get-planning-scene)))
@@ -464,7 +464,7 @@
                    :use-actual-seed t :retry retry :frame-id frame-id :scene scene)
        (return-from :planning-move-arm-to-coords nil))
      (send self :planning-move-arm confkey
-           :planning-time planning-time :planning-attemps planning-attemps
+           :planning-time planning-time :planning-attempts planning-attempts
            :use-scene use-scene :wait wait :scene scene)
      ))
   )
