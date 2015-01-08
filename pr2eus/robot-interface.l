@@ -23,6 +23,27 @@
    (* 0.001 v))
   )
 
+(defclass controller-action-client
+  :super ros::simple-action-client
+  :slots (time-to-finish))
+(defmethod controller-action-client
+  (:init (&rest args)
+    (setq time-to-finish 0)
+    (send-super* :init args))
+  (:time-to-finish ()
+    (ros::ros-debug "[~A] time-to-fnish ~A" ros::name-space time-to-finish)
+    time-to-finish)
+  (:action-feedback-cb (msg)
+   (let ((finish-time) (current-time))
+     (ros::ros-debug "[~A] feedback-cb ~A" ros::name-space msg)
+     (setq current-time (send msg :feedback :error :time_from_start)
+           finish-time (send (car (last (send (send ros::comm-state :action-goal) :goal :trajectory :points))) :time_from_start))
+     (when (string= (send (send ros::comm-state :action-goal) :goal_id :id)
+                    (send msg :status :goal_id :id))
+       (setq time-to-finish (send (ros::time- finish-time current-time) :to-sec)))
+     ))
+  )
+
 (defclass robot-interface
   :super propertied-object
   :slots (robot objects robot-state joint-action-enable warningp
@@ -113,7 +134,7 @@
         #'(lambda (param)
             (let* ((controller-action (cdr (assoc :controller-action param)))
                    (action-type (cdr (assoc :action-type param)))
-                   (action (instance ros::simple-action-client :init
+                   (action (instance controller-action-client :init
                                      (if namespace (format nil "~A/~A" namespace controller-action)
                                        controller-action) action-type
                                        :groupname groupname)))
@@ -272,6 +293,22 @@
      (let ((cacts (gethash ctype controller-table)))
        (send-all cacts :wait-for-result :timeout timeout)))
     (t (send-all controller-actions :wait-for-result :timeout timeout))))
+  (:interpolatingp (&optional (ctype)) ;; controller-type ;; check someone is moving
+    (send self :spin-once)
+    (some #'(lambda (x) (eq x actionlib_msgs::GoalStatus::*active*)) (send-all controller-actions :get-state)))
+  (:wait-interpolation-smooth (time-to-finish &optional (ctype))
+    (while (null (send self :wait-interpolation-smoothp time-to-finish ctype))
+      (send self :ros-wait 0.005)))
+  (:interpolating-smoothp (time-to-finish &optional (ctype)) ;; controller-type
+   (when (send self :simulation-modep)
+     (return-from :wait-interpolation nil))
+   (send self :spin-once)
+   (every #'(lambda (x) (> x (/ time-to-finish 1000.0)))
+          (cond
+           (ctype
+            (let ((cacts (gethash ctype controller-table)))
+              (send-all cacts :wait-for-result :timeout timeout)))
+           (t (send-all controller-actions :time-to-finish)))))
   (:stop-motion (&key (stop-time 0))
    (let ((av (send self :state :potentio-vector)))
      (send self :angle-vector av stop-time)
