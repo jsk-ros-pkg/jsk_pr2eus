@@ -162,7 +162,7 @@
    (av &optional (tm 3000) (ctype controller-type) (start-time 0))
    ;; check validity of tm
    (unless (numberp tm)
-     (warn ";; interpolation time is not a number: ~A~%" tm)
+     (ros::ros-error "interpolation time is not a number: ~A" tm)
      (return-from :angle-vector)
      )
    ;; check max-joint-velocity
