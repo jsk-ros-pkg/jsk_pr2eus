@@ -160,6 +160,11 @@
      msg))
   (:angle-vector
    (av &optional (tm 3000) (ctype controller-type) (start-time 0))
+   ;; check validity of tm
+   (unless (numberp tm)
+     (warn ";; interpolation time is not a number: ~A~%" tm)
+     (return-from :angle-vector)
+     )
    ;; check max-joint-velocity
    (let ((idx 0)
          (diff-av (v- av (or (send self :state :potentio-vector) (send robot :angle-vector)))))
