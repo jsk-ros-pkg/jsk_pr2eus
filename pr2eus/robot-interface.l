@@ -297,18 +297,19 @@
     (send self :spin-once)
     (some #'(lambda (x) (eq x actionlib_msgs::GoalStatus::*active*)) (send-all controller-actions :get-state)))
   (:wait-interpolation-smooth (time-to-finish &optional (ctype))
-    (while (null (send self :wait-interpolation-smoothp time-to-finish ctype))
+    (while (null (send self :interpolating-smoothp time-to-finish ctype))
       (send self :ros-wait 0.005)))
   (:interpolating-smoothp (time-to-finish &optional (ctype)) ;; controller-type
    (when (send self :simulation-modep)
      (return-from :wait-interpolation nil))
    (send self :spin-once)
-   (every #'(lambda (x) (> x (/ time-to-finish 1000.0)))
+   (every #'(lambda (x) (< x (/ time-to-finish 1000.0)))
           (cond
            (ctype
             (let ((cacts (gethash ctype controller-table)))
-              (send-all cacts :wait-for-result :timeout timeout)))
-           (t (send-all controller-actions :time-to-finish)))))
+              (send-all cacts :time-to-finish)))
+           (t
+            (send-all controller-actions :time-to-finish)))))
   (:stop-motion (&key (stop-time 0))
    (let ((av (send self :state :potentio-vector)))
      (send self :angle-vector av stop-time)
