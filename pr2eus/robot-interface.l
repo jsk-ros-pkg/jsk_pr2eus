@@ -36,6 +36,7 @@
   (:action-feedback-cb (msg)
    (let ((finish-time) (current-time))
      (ros::ros-debug "[~A] feedback-cb ~A" ros::name-space msg)
+     (unless (send ros::comm-state :action-goal) (return-from :action-feedback-cb nil))
      (setq current-time (send msg :feedback :error :time_from_start)
            finish-time (send (car (last (send (send ros::comm-state :action-goal) :goal :trajectory :points))) :time_from_start))
      (when (string= (send (send ros::comm-state :action-goal) :goal_id :id)
