@@ -190,19 +190,45 @@
                         (t joint-states-topic))
                      msg))
      msg))
+
+  (:angle-vector-duration 
+   (end &optional (scale 5) (min-time 1.0))
+   (let ((joint-list (send robot :joint-list))
+	 (start (send self :state :potentio-vector))
+	 )
+     (let ((diff (coerce (v- end start) cons)))
+       (let ((time-list (mapcar #'(lambda (d j)
+				    (* scale (/ (deg2rad (abs d)) (send j :max-joint-velocity))))
+				diff joint-list)))
+	 (let ((max-time (apply #'max time-list)))
+	   (max max-time min-time))))))
+
   (:angle-vector
-   (av &optional (tm 3000) (ctype controller-type) (start-time 0))
-   ;; check max-joint-velocity
-   (let ((idx 0)
-         (diff-av (v- av (or (send self :state :potentio-vector) (send robot :angle-vector)))))
-     (dolist (jt (send robot :joint-list))
-       (cond ((derivedp jt linear-joint) ;; msec = mm / [m/sec]
-              (setq tm (max tm (abs (/ (elt diff-av idx) (send jt :max-joint-velocity))))))
-             ((derivedp jt rotational-joint) ;; msec = deg2rad(deg) / [rad/s] / 0.001
-              (setq tm (max tm (abs (/ (deg2rad (elt diff-av idx))
-                                       (send jt :max-joint-velocity) 0.001))))))
-       (incf idx)
-       ))
+   ;;tm (time to goal in msec)
+   ;;if designated tm is faster than fastest speed, use fastest speed
+   ;;if not specified, it will use 1/5 of the fastest speed .
+   ;;if :fastest is specefied use fastest speed calcurated from max speed
+   (av &optional (tm nil) (ctype controller-type) (start-time 0) &key (scale 5) (min-time 1.0))
+
+   ;;Check and decide tm
+   (let ((fastest-tm (* 1000 (send self :angle-vector-duration av scale min-time))))
+     (cond
+      ;;Fastest time Mode
+      ((equal tm :fast)
+       (setq tm fastest-tm))
+      ;;Normal Number disgnated Mode
+      ((numberp tm)
+       (if (< tm fastest-tm)
+           (setq tm fastest-tm)))
+      ;;Safe Mode (Speed will be 5 * fastest-time)
+      ((null tm)
+       (setq tm (* 5 fastest-tm)))
+      ;;Error Not Good Input
+      (t
+       (ros::ros-error ":angle-vector tm is invalid.  args: ~A" tm)
+       (error ":angle-vector tm is invalid. args: ~A" tm)))
+     )
+
    ;; for simulation mode
    (when (send self :simulation-modep)
      (if av
