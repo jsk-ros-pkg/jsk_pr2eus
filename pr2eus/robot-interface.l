@@ -204,11 +204,11 @@
 	   (max max-time min-time))))))
 
   (:angle-vector
-   ;;tm (time to goal in msec)
-   ;;if designated tm is faster than fastest speed, use fastest speed
-   ;;if not specified, it will use 1/5 of the fastest speed .
-   ;;if :fastest is specefied use fastest speed calcurated from max speed
    (av &optional (tm nil) (ctype controller-type) (start-time 0) &key (scale 5) (min-time 1.0))
+   "tm (time to goal in msec)
+   if designated tm is faster than fastest speed, use fastest speed
+   if not specified, it will use 1/5 of the fastest speed .
+   if :fastest is specefied use fastest speed calcurated from max speed"
 
    ;;Check and decide tm
    (let ((fastest-tm (* 1000 (send self :angle-vector-duration av scale min-time))))
