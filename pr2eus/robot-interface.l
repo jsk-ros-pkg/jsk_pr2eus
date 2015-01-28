@@ -892,4 +892,15 @@
           (nreverse tms))
     ))
 
+(defun make-robot-interface-from-name (name &rest args)
+  "make a robot model from string: (make-robot-model \"pr2\")"
+  (let ((name (string-downcase name)))
+    (let ((klasses (flatten (send robot-interface :hierarchy))))
+      (dolist (klass klasses)
+        (let ((klass-name (string-downcase (send klass :name))))
+        (if (or (string= klass-name name)
+                (string= (format nil "~A-interface" name) klass-name))
+            (return-from make-robot-interface-from-name (instance* klass :init args)))))
+      nil)))
+
 (provide :robot-interface "robot-interface.l")
