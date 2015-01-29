@@ -191,17 +191,16 @@
                      msg))
      msg))
 
-  (:angle-vector-duration 
-   (end &optional (scale 5) (min-time 1.0))
+  (:angle-vector-duration
+   (start end &optional (scale 5) (min-time 1.0))
    (let ((joint-list (send robot :joint-list))
-	 (start (send self :state :potentio-vector))
-	 )
+         )
      (let ((diff (coerce (v- end start) cons)))
        (let ((time-list (mapcar #'(lambda (d j)
-				    (* scale (/ (deg2rad (abs d)) (send j :max-joint-velocity))))
-				diff joint-list)))
-	 (let ((max-time (apply #'max time-list)))
-	   (max max-time min-time))))))
+                                    (* scale (/ (deg2rad (abs d)) (send j :max-joint-velocity))))
+                                diff joint-list)))
+         (let ((max-time (apply #'max time-list)))
+           (max max-time min-time))))))
 
   (:angle-vector
    (av &optional (tm nil) (ctype controller-type) (start-time 0) &key (scale 5) (min-time 1.0))
@@ -211,7 +210,7 @@
    if :fastest is specefied use fastest speed calcurated from max speed"
 
    ;;Check and decide tm
-   (let ((fastest-tm (* 1000 (send self :angle-vector-duration av scale min-time))))
+   (let ((fastest-tm (* 1000 (send self :angle-vector-duration (send self :state :potentio-vector) av scale min-time))))
      (cond
       ;;Fastest time Mode
       ((equal tm :fast)
@@ -257,61 +256,87 @@
       cacts (send self ctype)))
    av)
   (:angle-vector-sequence
-   (avs &optional (tms (list 3000)) (ctype controller-type) (start-time 0.1))
+   (avs &optional (tms (list 3000)) (ctype controller-type) (start-time 0.1) &key (scale 5) (min-time 1.0))
    (send self :spin-once) ;; for :state :potentio-vector
    (let ((st 0) (traj-points nil)
          (av-prev (send self :state :potentio-vector)) av av-next
-         tm tm-next
+         tm tm-next fastest-tm
          (vel (instantiate float-vector (length (car avs)))))
-       (prog1 ;; angle-vector-sequence returns avs
-	   avs
-	 (while avs
-	   (setq av (pop avs))
-	   (when (= (car tms) 0.0)
-	     (ros::ros-error "0.0 in time list @ :angle-vector-sequence"))
-	   (if (car tms) (setq tm (max (pop tms) 1.0))) ;; minimum is 1[msec]
-	   (if (setq av-next (car avs))
-	       (let ((v0 (send self :sub-angle-vector av av-prev))
-		     (v1 (send self :sub-angle-vector av-next av)))
-		 (setq tm-next (max (if (car tms) (car tms) tm) 1.0))
-		 (dotimes (i (length vel))
-		   (setf (elt vel i)
-			 (if (>= (* (elt v0 i) (elt v1 i)) 0)
-			     (* 0.5 (+ (* (/ 1000.0 tm) (elt v0 i))
-				       (* (/ 1000.0 tm-next) (elt v1 i))))
-			   0.0)))
-		 )
-	     (fill vel 0))
-	   ;; for simulation mode
-           (when (send self :simulation-modep)
-	     (let* ((prev-av (send robot :angle-vector))
-		    (scale-av (send self :sub-angle-vector av prev-av)))
-	       (do ((curr-tm 0.0 (+ curr-tm 100.0)))
-		   ((>= curr-tm tm))
-		 (send robot :angle-vector (v+ prev-av (scale (/ curr-tm tm) scale-av)))
-		 (send self :publish-joint-state)
-		 (if viewer (send self :draw-objects)))))
-	   ;;
-	   (send robot :angle-vector av)
-	   (push (list av
-		       (copy-seq vel)  ;; velocities
-		       (/ (+ st tm) 1000.0)) ;; tm + duration
-		 traj-points)
-	   (setq av-prev av)
-	   (incf st tm))
-	 ;;
-         (let ((cacts (gethash ctype controller-table)))
-           (unless cacts
-             (warn ";; controller-type: ~A not found" ctype)
-             (return-from :angle-vector-sequence))
-           (mapcar
-            #'(lambda (action param)
-                (send self :send-ros-controller
-                      action (cdr (assoc :joint-names param)) ;; action server and joint-names
-                      start-time  ;; start time
-                      traj-points))
-            cacts (send self ctype)))
-         )))
+     (prog1 ;; angle-vector-sequence returns avs
+         avs
+       (while avs
+         (setq av (pop avs))
+         (setq fastest-tm (* 1000 (send self :angle-vector-duration av-prev av scale min-time)))
+         (setq tm (pop tms))
+         (cond
+          ((equal tm :fast)
+           (setq tm fastest-tm))
+          ((null tm)
+           (setq tm (* 5 fastest-tm)))
+          ((numberp tm)
+           (if (< tm fastest-tm)
+               (setq tm fastest-tm)))
+          (t (ros::ros-error ":angle-vector-sequence tm is invalid.  args: ~A" tm)
+             (error ":angle-vector-sequence tm is invalid. args: ~A" tm)))
+         (if (car tms)
+             (progn
+               (setq tm-next ( car tms))
+               (setq fastest-tm-next (* 1000 (send self :angle-vector-duration av (car avs) scale min-time)))
+               (cond
+                ((equal tm-next :fast)
+                 (setq tm-next fastest-tm-next))
+                ((null tm)
+                 (setq tm (* 5 fastest-tm)))
+                ((numberp tm-next)
+                 (if (< tm-next fastest-tm-next)
+                     (setq tm-next fastest-tm-next)))
+                (t (ros::ros-error ":angle-vector-sequence tm is invalid.  args: ~A" tm)
+                   (error ":angle-vector-sequence tm is invalid. args: ~A" tm)))
+               )
+           (setq tm-next 1)
+           )
+
+         (if (setq av-next (car avs))
+             (let ((v0 (send self :sub-angle-vector av av-prev))
+                   (v1 (send self :sub-angle-vector av-next av)))
+               (dotimes (i (length vel))
+                 (setf (elt vel i)
+                       (if (>= (* (elt v0 i) (elt v1 i)) 0)
+                           (* 0.5 (+ (* (/ 1000.0 tm) (elt v0 i))
+                                     (* (/ 1000.0 tm-next) (elt v1 i))))
+                         0.0)))
+               )
+           (fill vel 0))
+         ;; for simulation mode
+         (when (send self :simulation-modep)
+           (let* ((prev-av (send robot :angle-vector))
+                  (scale-av (send self :sub-angle-vector av prev-av)))
+             (do ((curr-tm 0.0 (+ curr-tm 100.0)))
+                 ((>= curr-tm tm))
+               (send robot :angle-vector (v+ prev-av (scale (/ curr-tm tm) scale-av)))
+               (send self :publish-joint-state)
+               (if viewer (send self :draw-objects)))))
+         ;;
+         (send robot :angle-vector av)
+         (push (list av
+                     (copy-seq vel)  ;; velocities
+                     (/ (+ st tm) 1000.0)) ;; tm + duration
+               traj-points)
+         (setq av-prev av)
+         (incf st tm))
+       ;;
+       (let ((cacts (gethash ctype controller-table)))
+         (unless cacts
+           (warn ";; controller-type: ~A not found" ctype)
+           (return-from :angle-vector-sequence))
+         (mapcar
+          #'(lambda (action param)
+              (send self :send-ros-controller
+                    action (cdr (assoc :joint-names param)) ;; action server and joint-names
+                    start-time  ;; start time
+                    traj-points))
+          cacts (send self ctype)))
+       )))
   (:wait-interpolation (&optional (ctype) (timeout 0)) ;; controller-type
    (when (send self :simulation-modep)
      (return-from :wait-interpolation nil))
