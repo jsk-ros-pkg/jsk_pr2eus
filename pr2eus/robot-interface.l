@@ -894,13 +894,16 @@
 
 (defun make-robot-interface-from-name (name &rest args)
   "make a robot model from string: (make-robot-model \"pr2\")"
-  (let ((name (string-downcase name)))
-    (let ((klasses (flatten (send robot-interface :hierarchy))))
-      (dolist (klass klasses)
-        (let ((klass-name (string-downcase (send klass :name))))
-        (if (or (string= klass-name name)
-                (string= (format nil "~A-interface" name) klass-name))
-            (return-from make-robot-interface-from-name (instance* klass :init args)))))
-      nil)))
+  (let ((klass (read-from-string (format nil "~A-interface" robot-name))))
+    (if (and (boundp klass) (subclassp (eval klass) robot-interface))
+        (instance* (eval klass) :init args)
+      (error "No such subclass of robot-interface : ~A~%" klass))))
+
+(defun init-robot-from-name (robot-name &rest args)
+  "call ${robot}-init function"
+  (apply (symbol-function
+          (intern (string-upcase (format nil "~A-init" robot-name)))) args)
+  (setq *robot* (eval (intern (string-upcase (format nil "*~A*" robot-name))))))
+
 
 (provide :robot-interface "robot-interface.l")
