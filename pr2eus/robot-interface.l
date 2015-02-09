@@ -3,6 +3,7 @@
 ;;;
 (ros::load-ros-manifest "roseus")
 (ros::load-ros-manifest "pr2_msgs")
+(ros::load-ros-manifest "rosgraph_msgs")
 (ros::load-ros-manifest "pr2_controllers_msgs")
 ;;(ros::roseus-add-msgs "sensor_msgs") ;; roseus depends on sensor_msgs
 ;;(ros::roseus-add-msgs "visualization_msgs") ;; roseus depends on visualization_msgs
