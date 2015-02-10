@@ -2,8 +2,8 @@
 Changelog for package pr2eus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.7 (2015-02-10)
+------------------
 * [pr2eus] Add sound_play and rosgraph_msgs to find_package to generate messages for roseus
 * Updat definition of make-robot-interface-from-name and add
   robot-init-from-name function
