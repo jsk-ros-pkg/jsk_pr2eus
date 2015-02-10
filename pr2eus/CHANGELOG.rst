@@ -2,6 +2,42 @@
 Changelog for package pr2eus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.1.7 (2015-02-10)
+------------------
+* [pr2eus] Add sound_play and rosgraph_msgs to find_package to generate messages for roseus
+* Updat definition of make-robot-interface-from-name and add
+  robot-init-from-name function
+* modify :angle-vector-sequence to use angle-vector-duration
+* [pr2eus] Add make-robot-interface-from-name function to create
+  robot-interface instance from name
+* [pr2eus] Repair :angle-vector args document
+* return list of t at :wait-interpolation on simulation mode
+* fix actionlib error
+* fix :wait-interpolation-smooth
+* create controller-action-client to process feedback for :wait-interpolation-smooth
+* use angle-vector-duration when time is not setted
+* add make-plan method for move base
+* change variables names.
+* enable specification of wait-until-update time for joint-state
+* fix: do not use limited buffer for publishing joint state at simulation mode
+* add :publish-joint-states-topic keyword to robot-interface for publishing joint_states from the other name
+* add :wait t option to speak-en
+* add nod function for pr2
+* add tuckarm outside
+* add test code to check default-robot-interface.l
+* add google sound option
+* add :move-trajectory-sequence
+* add codes in order to use move-trajectory
+* avoid to create action and subscriber twice
+* reduce assoc
+* use let only once
+* merge joint-states message which contain other joints. add option to wait until all joint data is updated
+* (pr2.l) Generate pr2.l model again
+* (`jsk-ros-pkg/jsk_model_tools#18 <https://github.com/jsk-ros-pkg/jsk_model_tools/issues/18>`_) pr2eus/make-pr2-model-file.l : remove :camera method which is already committed to irtrobot.l
+* do not loop bag file, to privet output TF_OLD_DATA
+* add unsubscribe /clock after checking /clock
+* Contributors: Chi Wun Au, Yuki Furuta, JSK Lab member, Kei Okada, Ryohei Ueda, Shunichi Nozawa, Yohei Kakiuchi, Yuto Inagaki, Chi Wun Au, Hitoshi Kamada, Masaki Murooka 
+
 0.1.6 (2014-05-11)
 ------------------
 * Merge pull request #32 from k-okada/add_roseus_msgs
