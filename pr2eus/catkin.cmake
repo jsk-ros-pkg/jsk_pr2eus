@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(pr2eus)
-set(pr2eus_catkin_components roseus rostest euscollada control_msgs nav_msgs dynamic_reconfigure )
+set(pr2eus_catkin_components rostest euscollada control_msgs nav_msgs dynamic_reconfigure rosgraph_msgs sound_play roseus)
 if($ENV{ROS_DISTRO} STREQUAL "groovy")
   set(_ROS_PACKAGE_PATH $ENV{ROS_PACKAGE_PATH})
   set(ENV{ROS_PACKAGE_PATH} ${CMAKE_SOURCE_DIR}:${_ROS_PACKAGE_PATH})
