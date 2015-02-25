@@ -2,6 +2,13 @@
 Changelog for package pr2eus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Modify wrong maintainer and author name.
+* [pr2eus/robot-interface.l] load rosgraph_msgs
+* [pr2eus/catkin.cmake] need to call roseus at the end of find_package so that roseus.cmake can read all package files
+* Contributors: Kei Okada, Yuto Inagaki
+
 0.1.7 (2015-02-10)
 ------------------
 * [pr2eus] Add sound_play and rosgraph_msgs to find_package to generate messages for roseus
@@ -36,7 +43,7 @@ Changelog for package pr2eus
 * (`jsk-ros-pkg/jsk_model_tools#18 <https://github.com/jsk-ros-pkg/jsk_model_tools/issues/18>`_) pr2eus/make-pr2-model-file.l : remove :camera method which is already committed to irtrobot.l
 * do not loop bag file, to privet output TF_OLD_DATA
 * add unsubscribe /clock after checking /clock
-* Contributors: Chi Wun Au, Yuki Furuta, JSK Lab member, Kei Okada, Ryohei Ueda, Shunichi Nozawa, Yohei Kakiuchi, Yuto Inagaki, Chi Wun Au, Hitoshi Kamada, Masaki Murooka 
+* Contributors: Hitoshi Kamada, Yuki Furuta, Kei Okada, Yuto Inagaki, JSK Lab member, Chi Wun Au, Masaki Murooka, Ryohei Ueda, Yohei Kakiuchi, Shunichi Nozawa
 
 0.1.6 (2014-05-11)
 ------------------
@@ -473,4 +480,4 @@ Changelog for package pr2eus
 * fix many bags to move pr2 by joint angle actionlib interface
 * change middle-body-joint-angle-list API: omit string-upcase for joitn name
 * add pr2eus model, which depends on urdf2eus
-* Contributors: Kei Okada, Otsubo Satoshi, Ryohei Ueda, Yohei Kakiuchi, Haseru Chen, Yuki Furuta, Yusuke Furuta, Yuto Inagaki, Satoshi Iwaishi, Kazuto Murase, Manabu Saito, Hiroyuki Mikita, Masaki Murooka, Shunichi Nozawa
+* Contributors: Haseru Chen, Yuki Furuta, Kei Okada, Yuto Inagaki, Satoshi Iwaishi, Manabu Saito, Shunichi Nozawa, Kazuto Murase, Masaki Murooka, Ryohei Ueda, Yohei Kakiuchi, Yusuke Furuta, Hiroyuki Mikita, Otsubo Satoshi
