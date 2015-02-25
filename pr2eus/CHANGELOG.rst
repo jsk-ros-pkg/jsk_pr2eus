@@ -2,8 +2,8 @@
 Changelog for package pr2eus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.8 (2015-02-25)
+------------------
 * Modify wrong maintainer and author name.
 * [pr2eus/robot-interface.l] load rosgraph_msgs
 * [pr2eus/catkin.cmake] need to call roseus at the end of find_package so that roseus.cmake can read all package files
