@@ -819,6 +819,26 @@
      (send self :wait-interpolation)
      )
    )
+  (:eus-mannequin-mode
+   (tmp-robot limb &key ((:time tm) 1000) ((:viewer vwr) *viewer*))
+   "Euslisp version mannequin mode.
+    In every loop, :angle-vector is continuously updated.
+    If you want to stop this mode, press Enter.
+    tmp-robot is argument for robot instance and angle-vector of tmp-robot is updated in this method.
+    limb is mannequin mode limb such as :rarm, :larm, :rleg, and :lleg.
+    tm is angle-vector update time [ms]. 1000 by default."
+   (objects (list tmp-robot))
+   (warn ";; Start Euslisp mannequin mode.~%")
+   (warn ";; To stop this mode, press Enter.~%")
+   (do-until-key
+    (send self :state)
+    (send tmp-robot limb :angle-vector (send robot limb :angle-vector))
+    (send vwr :draw-objects)
+    (send self :angle-vector (send tmp-robot :angle-vector) tm)
+    (send self :wait-interpolation)
+    )
+   (warn ";; Stop Euslisp mannequin mode.~%")
+   )
   )
 ;;
 (defclass ros-interface
