@@ -192,6 +192,41 @@
                      msg))
      msg))
 
+  (:angle-vector-safe
+   (av tm &key (simulation) (yes) (wait t) (norm-threshold 120) (angle-threshold 80) (velocity-threshold 240))
+   (let* ((q (send self :state :potentio-vector))
+          (jlst (send robot :joint-list))
+          (diff-q (v- av q))
+          (qv (scale (/ 1000.0 tm) diff-q))
+          (jqlst (mapcar #'(lambda (ang j) (cons ang (send j :name)))
+                         (coerce diff-q cons) jlst))
+          (jvlst (mapcar #'(lambda (ang j) (cons ang (send j :name)))
+                         (coerce qv cons) jlst))
+          warning)
+     (warn "angle-vector: ~A~%" av)
+     (when (> (norm diff-q) norm-threshold)
+       (setq warning t)
+       (warning-message 1 "WARNING: WARNING: diff angle-vector norm is ~d [deg]~%" (norm diff-q)))
+     (setq jqlst (sort jqlst #'(lambda (x y) (>= (abs (car x)) (abs (car y))))))
+     (setq jqlst (remove-if-not #'(lambda (x) (> (abs (car x)) angle-threshold)) jqlst))
+     (when jqlst
+       (setq warning t)
+       (warning-message 1 "WARNING: WARNING: typical diff angles (diff [deg] . Joint) are ~a~%" jqlst))
+     (setq jvlst (sort jvlst #'(lambda (x y) (>= (abs (car x)) (abs (car y))))))
+     (setq jvlst (remove-if-not #'(lambda (x) (> (abs (car x)) velocity-threshold)) jvlst))
+     (when jvlst
+       (setq warning t)
+       (warning-message 1 "WARNING: WARNING: typical velocities (velocity [deg/sec] . Joint) are ~a~%" jvlst))
+     (when (and (not simulation) (or yes (y-or-n-p "Do you send this angles to the robot ? ")))
+       (warn ";; send angle-vector~%")
+       (send self :angle-vector av tm)
+       (when wait
+         (warn ";; wait interpolation~%")
+         (send self :wait-interpolation))
+       (warn ";; done~%")
+       )
+     warning))
+
   (:angle-vector-duration
    (start end &optional (scale 5) (min-time 1.0))
    (let ((joint-list (send robot :joint-list))
