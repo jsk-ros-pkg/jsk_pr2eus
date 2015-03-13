@@ -228,16 +228,23 @@
      warning))
 
   (:angle-vector-duration
-   (start end &optional (scale 5) (min-time 1.0))
-   (let ((joint-list (send robot :joint-list))
-         )
+   (start end &optional (scale 5) (min-time 1.0) (ctype controller-type))
+   (let* ((unordered-joint-names 
+           (flatten (mapcar #'(lambda (joint-param)
+                                (cdr (assoc :joint-names joint-param)))
+                            (send self ctype))))
+          (joint-list (send robot :joint-list)))
      (let ((diff (coerce (v- end start) cons)))
        (let ((time-list (mapcar #'(lambda (d j)
-                                    (* scale (/ (deg2rad (abs d)) (send j :max-joint-velocity))))
+                                    ;; check if j is included in unordered-joint-names
+                                    (if (find (send j :name) unordered-joint-names
+                                              :test #'string=)
+                                        (* scale (/ (if (derivedp j linear-joint) (* 0.001 (abs d)) (deg2rad (abs d)))
+                                                    (send j :max-joint-velocity)))
+                                      0))
                                 diff joint-list)))
          (let ((max-time (apply #'max time-list)))
            (max max-time min-time))))))
-
   (:angle-vector
    (av &optional (tm nil) (ctype controller-type) (start-time 0) &key (scale 5) (min-time 1.0))
    "tm (time to goal in msec)
@@ -246,7 +253,8 @@
    if :fastest is specefied use fastest speed calcurated from max speed"
 
    ;;Check and decide tm
-   (let ((fastest-tm (* 1000 (send self :angle-vector-duration (send self :state :potentio-vector) av scale min-time))))
+   (let ((fastest-tm (* 1000 (send self :angle-vector-duration 
+                                   (send self :state :potentio-vector) av scale min-time ctype))))
      (cond
       ;;Fastest time Mode
       ((equal tm :fast)
@@ -263,7 +271,6 @@
        (ros::ros-error ":angle-vector tm is invalid.  args: ~A" tm)
        (error ":angle-vector tm is invalid. args: ~A" tm)))
      )
-
    ;; for simulation mode
    (when (send self :simulation-modep)
      (if av
