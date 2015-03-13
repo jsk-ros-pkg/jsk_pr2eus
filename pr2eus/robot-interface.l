@@ -251,7 +251,9 @@
    if designated tm is faster than fastest speed, use fastest speed
    if not specified, it will use 1/5 of the fastest speed .
    if :fastest is specefied use fastest speed calcurated from max speed"
-
+   (unless (gethash ctype controller-table)
+     (warn ";; controller-type: ~A not found" ctype)
+     (return-from :angle-vector))
    ;;Check and decide tm
    (let ((fastest-tm (* 1000 (send self :angle-vector-duration 
                                    (send self :state :potentio-vector) av scale min-time ctype))))
@@ -284,9 +286,6 @@
 
    (send robot :angle-vector av)
    (let ((cacts (gethash ctype controller-table)))
-     (unless cacts
-       (warn ";; controller-type: ~A not found" ctype)
-       (return-from :angle-vector))
      (mapcar
       #'(lambda (action param)
           (send self :send-ros-controller
@@ -300,6 +299,9 @@
    av)
   (:angle-vector-sequence
    (avs &optional (tms (list 3000)) (ctype controller-type) (start-time 0.1) &key (scale 5) (min-time 1.0))
+   (unless (gethash ctype controller-table)
+     (warn ";; controller-type: ~A not found" ctype)
+     (return-from :angle-vector-sequence))
    (send self :spin-once) ;; for :state :potentio-vector
    (let ((st 0) (traj-points nil)
          (av-prev (send self :state :potentio-vector)) av av-next
