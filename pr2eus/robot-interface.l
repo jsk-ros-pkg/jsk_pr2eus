@@ -228,7 +228,7 @@
      warning))
 
   (:angle-vector-duration
-   (start end &optional (scale 5) (min-time 1.0) (ctype controller-type))
+   (start end &optional (scale 1) (min-time 1.0) (ctype controller-type))
    (let* ((unordered-joint-names 
            (flatten (mapcar #'(lambda (joint-param)
                                 (cdr (assoc :joint-names joint-param)))
@@ -246,10 +246,10 @@
          (let ((max-time (apply #'max time-list)))
            (max max-time min-time))))))
   (:angle-vector
-   (av &optional (tm nil) (ctype controller-type) (start-time 0) &key (scale 5) (min-time 1.0))
+   (av &optional (tm nil) (ctype controller-type) (start-time 0) &key (scale 1) (min-time 1.0))
    "tm (time to goal in msec)
    if designated tm is faster than fastest speed, use fastest speed
-   if not specified, it will use 1/5 of the fastest speed .
+   if not specified, it will use 1/scale of the fastest speed .
    if :fastest is specefied use fastest speed calcurated from max speed"
    (unless (gethash ctype controller-table)
      (warn ";; controller-type: ~A not found" ctype)
@@ -298,7 +298,7 @@
       cacts (send self ctype)))
    av)
   (:angle-vector-sequence
-   (avs &optional (tms (list 3000)) (ctype controller-type) (start-time 0.1) &key (scale 5) (min-time 1.0))
+   (avs &optional (tms (list 3000)) (ctype controller-type) (start-time 0.1) &key (scale 1) (min-time 1.0))
    (unless (gethash ctype controller-table)
      (warn ";; controller-type: ~A not found" ctype)
      (return-from :angle-vector-sequence))
