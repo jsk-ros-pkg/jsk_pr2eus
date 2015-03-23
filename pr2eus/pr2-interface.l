@@ -918,8 +918,7 @@ send-action [ send message to action server, it means robot will move ]"
 
 ;; reset local costmap and clear unknown grid around robot
 (defun clear-costmap ()
-  (call-empty-service "/move_base_node/clear_costmaps")
-  (call-empty-service "/move_base_node/clear_unknown_space"))
+  (call-empty-service "/move_base_node/clear_costmaps"))
 
 ;; change inflation range of local costmap
 (defun change-inflation-range (&optional (range 0.55))
