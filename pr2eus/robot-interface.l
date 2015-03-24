@@ -311,7 +311,7 @@
          avs
        (while avs
          (setq av (pop avs))
-         (setq fastest-tm (* 1000 (send self :angle-vector-duration av-prev av scale min-time)))
+         (setq fastest-tm (* 1000 (send self :angle-vector-duration av-prev av scale min-time ctype)))
          (setq tm (pop tms))
          (cond
           ((equal tm :fast)
@@ -326,7 +326,7 @@
          (if (car tms)
              (progn
                (setq tm-next ( car tms))
-               (setq fastest-tm-next (* 1000 (send self :angle-vector-duration av (car avs) scale min-time)))
+               (setq fastest-tm-next (* 1000 (send self :angle-vector-duration av (car avs) scale min-time ctype)))
                (cond
                 ((equal tm-next :fast)
                  (setq tm-next fastest-tm-next))
