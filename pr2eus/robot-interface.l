@@ -298,7 +298,7 @@
       cacts (send self ctype)))
    av)
   (:angle-vector-sequence
-   (avs &optional (tms (list 3000)) (ctype controller-type) (start-time 0.1) &key (scale 1) (min-time 1.0))
+   (avs &optional (tms (list 3000)) (ctype controller-type) (start-time 0.1) &key (scale 1) (min-time 0.0))
    (unless (gethash ctype controller-table)
      (warn ";; controller-type: ~A not found" ctype)
      (return-from :angle-vector-sequence))
