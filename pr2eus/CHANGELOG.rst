@@ -2,6 +2,11 @@
 Changelog for package pr2eus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* [robot-interface.l, pr2-interface.l] support :fast in :angle-vector-sequence
+* Contributors: Yuto Inagaki
+
 0.1.9 (2015-04-03)
 ------------------
 * [robot-interface.l] :min-time=0.0 in :angle-vector-sequence because smooth  angle-vector may have short duration for each angle-vector
