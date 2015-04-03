@@ -344,8 +344,7 @@
                )
            (setq tm-next 1)
            )
-
-         (if (setq av-next (car avs))
+         (if (and (setq av-next (car avs)) (> tm 0) (> tm-next 0))
              (let ((v0 (send self :sub-angle-vector av av-prev))
                    (v1 (send self :sub-angle-vector av-next av)))
                (dotimes (i (length vel))
