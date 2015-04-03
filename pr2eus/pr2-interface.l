@@ -705,9 +705,6 @@ send-action [ send message to action server, it means robot will move ]"
      ))
   (:angle-vector-sequence
    (avs &optional (tms (list 3000)) &rest args)
-   (if (atom tms) (setq tms (make-list (length avs) :initial-element tms)))
-   (if (< (length tms) (length avs))
-       (setq tms (append tms (make-list (- (length avs) (length tms)) :initial-element (car (last tms))))))
    (unless (send self :simulation-modep)
      (let* ((prev-av (send robot :angle-vector (send self :state :reference-vector)))
             (len-av (length prev-av))

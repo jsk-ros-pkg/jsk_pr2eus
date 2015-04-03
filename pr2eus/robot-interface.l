@@ -308,6 +308,9 @@
          (av-prev (send self :state :potentio-vector)) av av-next
          tm tm-next fastest-tm
          (vel (instantiate float-vector (length (car avs)))))
+     (if (atom tms) (setq tms (make-list (length avs) :initial-element tms)))
+     (if (< (length tms) (length avs))
+         (setq tms (append tms (make-list (- (length avs) (length tms)) :initial-element (car (last tms))))))
      (prog1 ;; angle-vector-sequence returns avs
          avs
        (while avs
