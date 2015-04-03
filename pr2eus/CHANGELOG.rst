@@ -2,8 +2,8 @@
 Changelog for package pr2eus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.10 (2015-04-03)
+-------------------
 * [robot-interface.l, pr2-interface.l] support :fast in :angle-vector-sequence
 * Contributors: Yuto Inagaki
 
