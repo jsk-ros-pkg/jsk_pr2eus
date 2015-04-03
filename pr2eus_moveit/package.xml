@@ -1,6 +1,6 @@
 <package>
   <name>pr2eus_moveit</name>
-  <version>0.1.8</version>
+  <version>0.1.9</version>
   <description>pr2eus_moveit</description>
   <maintainer email="youhei@jsk.t.u-tokyo.ac.jp">YoheiKakiuchi</maintainer>
 

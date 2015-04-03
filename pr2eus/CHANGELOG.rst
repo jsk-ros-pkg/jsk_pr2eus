@@ -2,8 +2,8 @@
 Changelog for package pr2eus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.9 (2015-04-03)
+------------------
 * [robot-interface.l] :min-time=0.0 in :angle-vector-sequence because smooth  angle-vector may have short duration for each angle-vector
 * [jsk_pr2eus] FIx :angle-vector-sequence by passing ctype argument to :angle-vector-duration
 * [pr2-interface.l] remove unused service call '/move_base_node/clear_unknown_space'
