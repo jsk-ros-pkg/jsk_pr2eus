@@ -5,6 +5,7 @@
 (ros::load-ros-manifest "pr2_msgs")
 (ros::load-ros-manifest "rosgraph_msgs")
 (ros::load-ros-manifest "pr2_controllers_msgs")
+(ros::load-ros-manifest "control_msgs")
 ;;(ros::roseus-add-msgs "sensor_msgs") ;; roseus depends on sensor_msgs
 ;;(ros::roseus-add-msgs "visualization_msgs") ;; roseus depends on visualization_msgs
 
@@ -37,7 +38,7 @@
   (:action-feedback-cb (msg)
    (let ((finish-time) (current-time))
      (ros::ros-debug "[~A] feedback-cb ~A" ros::name-space msg)
-     (unless (send ros::comm-state :action-goal) (return-from :action-feedback-cb nil))
+     (unless (and (send ros::comm-state :action-goal) (not (equal (send (class ros::action-spec) :name) 'control_msgs::SingleJointPositionAction))) (return-from :action-feedback-cb nil))
      (setq current-time (send msg :feedback :error :time_from_start)
            finish-time (send (car (last (send (send ros::comm-state :action-goal) :goal :trajectory :points))) :time_from_start))
      (when (string= (send (send ros::comm-state :action-goal) :goal_id :id)
@@ -468,38 +469,52 @@
 			  joint-names)))
      (send goal :header :seq 1)
      (send goal :header :stamp st)
-     (send goal :goal :trajectory :joint_names joint-names)
-     (send goal :goal :trajectory :header :stamp st)
-     (dolist (trajpt trajpoints)
-       (let* ((all-positions (elt trajpt 0))
-	      (all-velocities (elt trajpt 1))
-	      (duration (elt trajpt 2))
-	      (positions (instantiate float-vector (length joint-names)))
-	      (velocities (instantiate float-vector (length joint-names))))
-	 (dotimes (i (length joints))
-	   (let* ((joint (elt joints i))
-		  (id (position joint (send robot :joint-list)))
-		  p v)
-	     (setq p (elt all-positions id)
-		   v (elt all-velocities id))
-	     (cond
-	      ((derivedp joint rotational-joint)
-	       (setq p (deg2rad p))
-	       (setq v (deg2rad v)))
-	      (t
-	       (setq p (* 0.001 p))
-	       (setq v (* 0.001 v))))
-	     (setf (elt positions i) p)
-	     (setf (elt velocities i) v)))
-	 (push (instance trajectory_msgs::JointTrajectoryPoint
-			 :init
-			 :positions positions
-			 :velocities velocities
-			 :time_from_start (ros::time duration))
-	       goal-points)
-	 ))
-     (send self :spin-once)
-     (send goal :goal :trajectory :points goal-points)
+
+     (cond
+      ((equal (class goal) control_msgs::SingleJointPositionActionGoal)
+       (let* ((joint (car joints))
+	      (id (position joint (send robot :joint-list)))
+	      (pos (deg2rad (elt (elt (car trajpoints) 0) id)))
+	      )
+	 (send goal :goal :position pos)
+	 (send goal :goal :max_velocity 5)
+	 (send self :spin-once)
+	 )
+       )
+      (t
+       (send goal :goal :trajectory :joint_names joint-names)
+       (send goal :goal :trajectory :header :stamp st)
+       (dolist (trajpt trajpoints)
+	 (let* ((all-positions (elt trajpt 0))
+		(all-velocities (elt trajpt 1))
+		(duration (elt trajpt 2))
+		(positions (instantiate float-vector (length joint-names)))
+		(velocities (instantiate float-vector (length joint-names))))
+	   (dotimes (i (length joints))
+	     (let* ((joint (elt joints i))
+		    (id (position joint (send robot :joint-list)))
+		    p v)
+	       (setq p (elt all-positions id)
+		     v (elt all-velocities id))
+	       (cond
+		((derivedp joint rotational-joint)
+		 (setq p (deg2rad p))
+		 (setq v (deg2rad v)))
+		(t
+		 (setq p (* 0.001 p))
+		 (setq v (* 0.001 v))))
+	       (setf (elt positions i) p)
+	       (setf (elt velocities i) v)))
+	   (push (instance trajectory_msgs::JointTrajectoryPoint
+			   :init
+			   :positions positions
+			   :velocities velocities
+			   :time_from_start (ros::time duration))
+		 goal-points)
+	   ))
+       (send self :spin-once)
+       (send goal :goal :trajectory :points goal-points)
+       ))
      (send action :send-goal goal)
      ))
   ;;
