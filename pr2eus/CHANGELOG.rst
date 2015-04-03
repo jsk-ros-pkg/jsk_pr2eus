@@ -2,6 +2,19 @@
 Changelog for package pr2eus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* [robot-interface.l] :min-time=0.0 in :angle-vector-sequence because smooth  angle-vector may have short duration for each angle-vector
+* [jsk_pr2eus] FIx :angle-vector-sequence by passing ctype argument to :angle-vector-duration
+* [pr2-interface.l] remove unused service call '/move_base_node/clear_unknown_space'
+* [robot-interface.l] change default 5 to 1 as :scale in angle-vector
+* [robot-intetface.l] check if :controller-type is valid in :angle-vector and :angle-vector-sequence
+* [robot-interface.l] Support ctype in :angle-vector-duration
+* [robot-interface.l] add :angle-vector-safe for prototype robot
+* [robot-interface.l] Add euslisp implementation mannequin mode. (:eus-mannequin-mode)
+* [robot-interface.l] modify robot-interface.l to support control_msgs::SingleJointPositionGoal
+* Contributors: Kei Okada, Ryohei Ueda, Shunichi Nozawa, Yohei Kakiuchi, Yuki Furuta, Yuto Inagaki
+
 0.1.8 (2015-02-25)
 ------------------
 * Modify wrong maintainer and author name.
