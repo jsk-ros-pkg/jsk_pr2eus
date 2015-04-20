@@ -366,6 +366,9 @@
                (if viewer (send self :draw-objects)))))
          ;;
          (send robot :angle-vector av)
+	 (when (send self :simulation-modep)
+	   (send self :publish-joint-state)
+	   (if viewer (send self :draw-objects)))
          (push (list av
                      (copy-seq vel)  ;; velocities
                      (/ (+ st tm) 1000.0)) ;; tm + duration
