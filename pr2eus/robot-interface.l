@@ -401,9 +401,9 @@
     (cond
      (ctype
       (let ((cacts (gethash ctype controller-table)))
-        (some #'(lambda (x) (eq x actionlib_msgs::GoalStatus::*active*))
+        (some #'(lambda (x) (eq x ros::*simple-goal-state-active*))
               (send-all cacts :get-state))))
-     (t (some #'(lambda (x) (eq x actionlib_msgs::GoalStatus::*active*))
+     (t (some #'(lambda (x) (eq x ros::*simple-goal-state-active*))
               (send-all controller-actions :get-state)))))
   (:wait-interpolation-smooth (time-to-finish &optional (ctype))
     (while (null (send self :interpolating-smoothp time-to-finish ctype))
