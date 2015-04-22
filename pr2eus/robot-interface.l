@@ -398,7 +398,13 @@
     (t (send-all controller-actions :wait-for-result :timeout timeout))))
   (:interpolatingp (&optional (ctype)) ;; controller-type ;; check someone is moving
     (send self :spin-once)
-    (some #'(lambda (x) (eq x actionlib_msgs::GoalStatus::*active*)) (send-all controller-actions :get-state)))
+    (cond
+     (ctype
+      (let ((cacts (gethash ctype controller-table)))
+        (some #'(lambda (x) (eq x actionlib_msgs::GoalStatus::*active*))
+              (send-all cacts :get-state))))
+     (t (some #'(lambda (x) (eq x actionlib_msgs::GoalStatus::*active*))
+              (send-all controller-actions :get-state)))))
   (:wait-interpolation-smooth (time-to-finish &optional (ctype))
     (while (null (send self :interpolating-smoothp time-to-finish ctype))
       (send self :ros-wait 0.005)))
