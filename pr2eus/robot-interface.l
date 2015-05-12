@@ -344,8 +344,7 @@
                )
            (setq tm-next 1)
            )
-
-         (if (setq av-next (car avs))
+         (if (and (setq av-next (car avs)) (> tm 0) (> tm-next 0))
              (let ((v0 (send self :sub-angle-vector av av-prev))
                    (v1 (send self :sub-angle-vector av-next av)))
                (dotimes (i (length vel))
@@ -367,6 +366,9 @@
                (if viewer (send self :draw-objects)))))
          ;;
          (send robot :angle-vector av)
+	 (when (send self :simulation-modep)
+	   (send self :publish-joint-state)
+	   (if viewer (send self :draw-objects)))
          (push (list av
                      (copy-seq vel)  ;; velocities
                      (/ (+ st tm) 1000.0)) ;; tm + duration
@@ -396,7 +398,13 @@
     (t (send-all controller-actions :wait-for-result :timeout timeout))))
   (:interpolatingp (&optional (ctype)) ;; controller-type ;; check someone is moving
     (send self :spin-once)
-    (some #'(lambda (x) (eq x actionlib_msgs::GoalStatus::*active*)) (send-all controller-actions :get-state)))
+    (cond
+     (ctype
+      (let ((cacts (gethash ctype controller-table)))
+        (some #'(lambda (x) (eq x ros::*simple-goal-state-active*))
+              (send-all cacts :get-state))))
+     (t (some #'(lambda (x) (eq x ros::*simple-goal-state-active*))
+              (send-all controller-actions :get-state)))))
   (:wait-interpolation-smooth (time-to-finish &optional (ctype))
     (while (null (send self :interpolating-smoothp time-to-finish ctype))
       (send self :ros-wait 0.005)))

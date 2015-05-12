@@ -1,60 +1,50 @@
-if(NOT USE_ROSBUILD)
-  include(catkin.cmake)
-  return()
+cmake_minimum_required(VERSION 2.8.3)
+project(pr2eus)
+set(pr2eus_catkin_components rostest euscollada control_msgs nav_msgs dynamic_reconfigure rosgraph_msgs)
+if($ENV{ROS_DISTRO} STREQUAL "groovy")
+  set(_ROS_PACKAGE_PATH $ENV{ROS_PACKAGE_PATH})
+  set(ENV{ROS_PACKAGE_PATH} ${CMAKE_SOURCE_DIR}:${_ROS_PACKAGE_PATH})
+  execute_process(COMMAND rosrun roseus generate-all-msg-srv.sh move_base_msgs)
+  execute_process(COMMAND rosrun roseus generate-all-msg-srv.sh pr2_msgs)
+  execute_process(COMMAND rosrun roseus generate-all-msg-srv.sh pr2_controllers_msgs)
+  execute_process(COMMAND rosrun roseus generate-all-msg-srv.sh sound_play)
+  set(ENV{ROS_PACKAGE_PATH} ${_ROS_PACKAGE_PATH})
+else()
+  set(pr2eus_catkin_components ${pr2eus_catkin_components} move_base_msgs pr2_msgs pr2_controllers_msgs sound_play )
 endif()
-
-cmake_minimum_required(VERSION 2.4.6)
-include($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
-
-# Set the build type.  Options are:
-#  Coverage       : w/ debug symbols, w/o optimization, w/ code-coverage
-#  Debug          : w/ debug symbols, w/o optimization
-#  Release        : w/o debug symbols, w/ optimization
-#  RelWithDebInfo : w/ debug symbols, w/ optimization
-#  MinSizeRel     : w/o debug symbols, w/ optimization, stripped binaries
-#set(ROS_BUILD_TYPE RelWithDebInfo)
-
-rosbuild_init()
-
-#set the default path for built executables to the "bin" directory
-set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
-#set the default path for built libraries to the "lib" directory
-set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
-
-#ADD_CUSTOM_COMMAND(
-#  OUTPUT ${CMAKE_SOURCE_DIR}/pr2.dae
-#  COMMAND rosrun collada_urdf_jsk_patch urdf_to_collada `rospack find pr2_mechanism_model`/pr2.urdf ${CMAKE_SOURCE_DIR}/pr2.dae)
-#ADD_CUSTOM_COMMAND(
-#  OUTPUT ${CMAKE_SOURCE_DIR}/pr2.l
-#  COMMAND rosrun euscollada collada2eus ${CMAKE_SOURCE_DIR}/pr2.dae `rospack find euscollada`/pr2.yaml ${CMAKE_SOURCE_DIR}/pr2.l DEPENDS pr2.dae)
-ADD_CUSTOM_COMMAND(
-  OUTPUT ${CMAKE_SOURCE_DIR}/pr2.l
-  COMMAND rosrun roseus roseus `rospack find pr2eus`/make-pr2-model-file.l           "\"(ros::roseus" "\\\"make-pr2-model-file\\\")\"" "\"(make-pr2-model-file" ":output-directory" "(ros::rospack-find" "\\\"pr2eus\\\"))\"" "\"(exit" "0)\""
+find_package(catkin REQUIRED COMPONENTS ${pr2eus_catkin_components}
+  roseus # this load roseus.cmake, so it needs to be located in the end
   )
-execute_process(COMMAND rosparam get /robot_description ERROR_VARIABLE _roscore_output OUTPUT_VARIABLE _roscore_output RESULT_VARIABLE _roscore_failed)
-if(_roscore_failed)
-  message("[pr2eus] /robot_description is required for make pr2.l model file")
-else(_roscore_failed)
-  ADD_CUSTOM_TARGET(pr2model ALL DEPENDS ${CMAKE_SOURCE_DIR}/pr2.l)
-endif(_roscore_failed)
 
 
-#uncomment if you have defined messages
-#rosbuild_genmsg()
-#uncomment if you have defined services
-#rosbuild_gensrv()
+catkin_package(
+    DEPENDS 
+    CATKIN-DEPENDS 
+    INCLUDE_DIRS 
+    LIBRARIES 
+)
 
-#common commands for building c++ executables and libraries
-#rosbuild_add_library(${PROJECT_NAME} src/example.cpp)
-#target_link_libraries(${PROJECT_NAME} another_library)
-#rosbuild_add_boost_directories()
-#rosbuild_link_boost(${PROJECT_NAME} thread)
-#rosbuild_add_executable(example examples/example.cpp)
-#target_link_libraries(example ${PROJECT_NAME})
+install(DIRECTORY test
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+  USE_SOURCE_PERMISSIONS
+  )
 
-rosbuild_add_rostest(test/pr2eus-test.launch)
-rosbuild_add_rostest(test/make-pr2-model-file-test.launch)
-#rosbuild_add_rostest(test/pr2-ri-test.launch)
-rosbuild_add_rostest(test/default-ri-test.launch)
-rosbuild_add_rostest(test/robot-no-clock.test)
+file(GLOB _install_files RELATIVE ${PROJECT_SOURCE_DIR} *.l *.launch)
+install(FILES ${_install_files}
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+  )
+install(FILES pr2-send-joints.l pr2-read-state.l
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+  PERMISSIONS WORLD_EXECUTE
+  )
 
+add_rostest(test/pr2eus-test.launch)
+add_rostest(test/make-pr2-model-file-test.launch)
+#add_rostest(test/pr2-ri-test.launch)
+add_rostest(test/pr2-ri-test-simple.launch)
+add_rostest(test/robot-no-clock.test)
+
+generate_eusdoc(robot-interface.l)
+generate_eusdoc(pr2-interface.l)
+generate_eusdoc(pr2-utils.l)
+generate_eusdoc(speak.l)
