@@ -301,6 +301,7 @@
    av)
   (:angle-vector-sequence
    (avs &optional (tms (list 3000)) (ctype controller-type) (start-time 0.1) &key (scale 1) (min-time 0.0))
+   (setq ctype (or ctype controller-type))  ;; use default controller-type if ctype is nil
    (unless (gethash ctype controller-table)
      (warn ";; controller-type: ~A not found" ctype)
      (return-from :angle-vector-sequence))
