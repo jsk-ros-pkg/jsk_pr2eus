@@ -252,6 +252,7 @@
    if designated tm is faster than fastest speed, use fastest speed
    if not specified, it will use 1/scale of the fastest speed .
    if :fastest is specefied use fastest speed calcurated from max speed"
+   (setq ctype (or ctype controller-type))  ;; use default controller-type if ctype is nil
    (unless (gethash ctype controller-table)
      (warn ";; controller-type: ~A not found" ctype)
      (return-from :angle-vector))
