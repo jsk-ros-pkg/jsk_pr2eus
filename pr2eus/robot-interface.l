@@ -246,6 +246,22 @@
                                 diff joint-list)))
          (let ((max-time (apply #'max time-list)))
            (max max-time min-time))))))
+  (:angle-vector-simulation
+   (av tm ctype)
+   (let* ((prev-av (send robot :angle-vector))
+          (scale-av (send self :sub-angle-vector av prev-av))
+          (joint-names (flatten (mapcar #'(lambda (c) (cdr (assoc :joint-names c)))(send self ctype))))
+          (joint-ids (mapcar #'(lambda (joint-name) (position joint-name (send robot :joint-list) :test #'(lambda (n j) (equal n (send j :name))))) joint-names))
+          curr-av next-av)
+     (do ((curr-tm 0.0 (+ curr-tm 100.0)))
+         ((>= curr-tm tm))
+           (setq curr-av (send robot :angle-vector))
+           (setq next-av (v+ prev-av (scale (/ curr-tm tm) scale-av)))
+           (dolist (id joint-ids)
+             (setf (elt curr-av id) (elt next-av id)))
+	   (send robot :angle-vector curr-av)
+	   (send self :publish-joint-state)
+	   (if viewer (send self :draw-objects)))))
   (:angle-vector
    (av &optional (tm nil) (ctype controller-type) (start-time 0) &key (scale 1) (min-time 1.0))
    "tm (time to goal in msec)
@@ -277,15 +293,7 @@
      )
    ;; for simulation mode
    (when (send self :simulation-modep)
-     (if av
-       (let* ((prev-av (send robot :angle-vector))
-	      (scale-av (send self :sub-angle-vector av prev-av)))
-	 (do ((curr-tm 0.0 (+ curr-tm 100.0)))
-	     ((>= curr-tm tm))
-	   (send robot :angle-vector (v+ prev-av (scale (/ curr-tm tm) scale-av)))
-	   (send self :publish-joint-state)
-	   (if viewer (send self :draw-objects))))))
-
+     (if av (send self :angle-vector-simulation av tm ctype)))
    (send robot :angle-vector av)
    (let ((cacts (gethash ctype controller-table)))
      (mapcar
@@ -358,14 +366,8 @@
                )
            (fill vel 0))
          ;; for simulation mode
-         (when (send self :simulation-modep)
-           (let* ((prev-av (send robot :angle-vector))
-                  (scale-av (send self :sub-angle-vector av prev-av)))
-             (do ((curr-tm 0.0 (+ curr-tm 100.0)))
-                 ((>= curr-tm tm))
-               (send robot :angle-vector (v+ prev-av (scale (/ curr-tm tm) scale-av)))
-               (send self :publish-joint-state)
-               (if viewer (send self :draw-objects)))))
+         (if (send self :simulation-modep)
+           (send self :angle-vector-simulation av tm ctype))
          ;;
          (send robot :angle-vector av)
 	 (when (send self :simulation-modep)
