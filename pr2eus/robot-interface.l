@@ -369,7 +369,12 @@
          (if (send self :simulation-modep)
            (send self :angle-vector-simulation av tm ctype))
          ;;
-         (send robot :angle-vector av)
+         ;; update only joints with in current controller instaed of (send robot :angle-vector av)
+         (let* ((joint-names (flatten (mapcar #'(lambda (c) (cdr (assoc :joint-names c))) (send self ctype))))
+                (joint-ids (mapcar #'(lambda (joint-name) (position joint-name (send robot :joint-list) :test #'(lambda (n j) (equal n (send j :name))))) joint-names)))
+           (mapcar #'(lambda (name id)
+                       (send (send robot :joint name) :joint-angle (elt av id)))
+                   joint-names joint-ids))
 	 (when (send self :simulation-modep)
 	   (send self :publish-joint-state)
 	   (if viewer (send self :draw-objects)))
