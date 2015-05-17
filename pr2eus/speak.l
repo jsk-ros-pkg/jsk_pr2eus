@@ -1,10 +1,10 @@
 (ros::roseus-add-msgs "sound_play")
 
 (defun speak-jp (jp-str)
-  (unless (assoc "/robotsound_jp" (ros::get-topics) :test #'equal)
-    (ros::advertise "/robotsound_jp" sound_play::SoundRequest 5)
+  (unless (ros::get-topic-publisher "robotsound_jp")
+    (ros::advertise "robotsound_jp" sound_play::SoundRequest 5)
     (unix:sleep 1))
-  (ros::publish "/robotsound_jp"
+  (ros::publish "robotsound_jp"
 		(instance sound_play::SoundRequest :init
 			  :sound sound_play::SoundRequest::*say*
 			  :command sound_play::SoundRequest::*play_once*
@@ -21,8 +21,8 @@
 ^^ ;;数字の棒読み
 |#
 (defun speak-en (en-str &key (google nil) (wait nil))
-  (unless (assoc "/robotsound" (ros::get-topics) :test #'equal)
-    (ros::advertise "/robotsound" sound_play::SoundRequest 5)
+  (unless (ros::get-topic-publisher "robotsound")
+    (ros::advertise "robotsound" sound_play::SoundRequest 5)
     (unix:sleep 1))
   (let (sound-msg)
     (if google
@@ -56,7 +56,7 @@
             (ros::ros-warn "No sound_play action found")
             )
           )
-      (ros::publish "/robotsound" sound-msg)
+      (ros::publish "robotsound" sound-msg)
       )
     )
   )
