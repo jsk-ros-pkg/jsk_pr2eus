@@ -54,7 +54,14 @@
                 namespace controller-table ;; hashtable :type -> (action)
                 visualization-topic
                 joint-states-topic pub-joint-states-topic
-                viewer groupname))
+                viewer groupname)
+  :documentation "robot-interface is object for interacting real robot thorugh JointTrajectoryAction servers and JointState topics, this function uses old nervous-style interface for histrical reason. If JointTrajectoryAcion serve is not found, this instance runs as simulation mode, see \"Kinematics Simulator\" view as simulatied robot,
+
+	(setq *ri* (instance robot-interface :init))
+	(send *ri* :angle-vector (send *robot* :joint-angle) 2000)
+	(send *ri* :wait-interpolation)
+	(send *ri* :state :potentio-vector)
+")
 
 (defmethod robot-interface
   (:init
@@ -65,6 +72,17 @@
           ((:controller-timeout ct) 3)
           ((:visuzlization-marker-topic vmt) "robot_interface_marker_array")
           &allow-other-keys)
+   "Create robot interface
+- robot : class name of robot
+- objects : objects to be displayed in simulation (only for simulation)
+- type : method name for defineing controller type
+- use-tf2 : use tf2
+- groupname : ros nodehandle group name
+- namespace : ros nodehandle name space
+- publish-joint-state-topic :  name for publishing joint state topuc (only for simulation)
+- conter-timeout : timeout seconds for controller lookup
+- visualizatoin-marker-topic : topic name for visualize
+"
    (setq joint-states-topic jst)
    (setq pub-joint-states-topic pjst)
    (setq joint-action-enable t)
@@ -195,6 +213,7 @@
 
   (:angle-vector-safe
    (av tm &key (simulation) (yes) (wait t) (norm-threshold 120) (angle-threshold 80) (velocity-threshold 240))
+   "send joint angle to robot with user-level confirmation. This method requires key input"
    (let* ((q (send self :state :potentio-vector))
           (jlst (send robot :joint-list))
           (diff-q (v- av q))
@@ -264,10 +283,17 @@
 	   (if viewer (send self :draw-objects)))))
   (:angle-vector
    (av &optional (tm nil) (ctype controller-type) (start-time 0) &key (scale 1) (min-time 1.0))
-   "tm (time to goal in msec)
+   "Send joind angle to robot, this method retuns immediately, so use :wait-interpolation to block until the motion stops.
+- av : joint angle vector [rad]
+- tm : (time to goal in [msec])
    if designated tm is faster than fastest speed, use fastest speed
    if not specified, it will use 1/scale of the fastest speed .
-   if :fastest is specefied use fastest speed calcurated from max speed"
+   if :fastest is specefied use fastest speed calcurated from max speed
+- ctype : controller method name
+- start-time : time to start moving
+- scale : if tm is not specified, it will use 1/scale of the fastest speed
+- min-time : minimum time to for time to goal
+"
    (setq ctype (or ctype controller-type))  ;; use default controller-type if ctype is nil
    (unless (gethash ctype controller-table)
      (warn ";; controller-type: ~A not found" ctype)
@@ -309,6 +335,7 @@
    av)
   (:angle-vector-sequence
    (avs &optional (tms (list 3000)) (ctype controller-type) (start-time 0.1) &key (scale 1) (min-time 0.0))
+   "Send joind angle to robot, this method retuns immediately, so use :wait-interpolation to block until the motion stops."
    (setq ctype (or ctype controller-type))  ;; use default controller-type if ctype is nil
    (unless (gethash ctype controller-table)
      (warn ";; controller-type: ~A not found" ctype)
@@ -400,6 +427,9 @@
           cacts (send self ctype)))
        )))
   (:wait-interpolation (&optional (ctype) (timeout 0)) ;; controller-type
+   "Wait until last sent motion is finished
+- ctype : controller to be wait
+- timeout : max time of for waiting"
    (when (send self :simulation-modep)
      (return-from :wait-interpolation nil))
    (cond
@@ -408,6 +438,7 @@
        (send-all cacts :wait-for-result :timeout timeout)))
     (t (send-all controller-actions :wait-for-result :timeout timeout))))
   (:interpolatingp (&optional (ctype)) ;; controller-type ;; check someone is moving
+"Check inf the last sent motion is executing"
     (send self :spin-once)
     (cond
      (ctype
@@ -417,9 +448,15 @@
      (t (some #'(lambda (x) (eq x ros::*simple-goal-state-active*))
               (send-all controller-actions :get-state)))))
   (:wait-interpolation-smooth (time-to-finish &optional (ctype))
+"Return time-to-finish [msec] before the sent command is finished. Example code are:
+	(dolist (av (list av1 av2 av3 av4))
+	    (send *ri* :angle-vector av)
+	    (send *ri* :wait-interpolation-smooth 300))
+"
     (while (null (send self :interpolating-smoothp time-to-finish ctype))
       (send self :ros-wait 0.005)))
   (:interpolating-smoothp (time-to-finish &optional (ctype)) ;; controller-type
+"Check inf the last sent motion will stops for next time-to-finish [msec]"
    (when (send self :simulation-modep)
      (return-from :wait-interpolation nil))
    (send self :spin-once)
@@ -431,6 +468,7 @@
            (t
             (send-all controller-actions :time-to-finish)))))
   (:stop-motion (&key (stop-time 0))
+   "Stop current executing motion"
    (let ((av (send self :state :potentio-vector)))
      (send self :angle-vector av stop-time)
      (send self :wait-interpolation)))
@@ -438,18 +476,19 @@
    (&key ((:controller-actions ca) controller-actions)
          ((:controller-type ct) controller-type)
          (wait))
+   "Cancerl current joint trajetory action"
    (send-all ca :cancel-all-goals)
    (when wait
      (send self :wait-interpolation)
      (send self :spin-once))
    t)
   ;;
-  (:worldcoords () (send robot :copy-worldcoords))
-  (:torque-vector () (send robot :torque-vector))
-  (:potentio-vector () (send robot :angle-vector))
-  (:reference-vector () (send self :state-vector :desired))
-  (:actual-vector () (send self :state-vector :actual))
-  (:error-vector () (send self :state-vector :error))
+  (:worldcoords () "Returns world coords of robot, This method uses caced data" (send robot :copy-worldcoords))
+  (:torque-vector () "Return torque vector of robot, This method uses caced data" (send robot :torque-vector))
+  (:potentio-vector () "Retuns current robot angle vector, This method uses caced data" (send robot :angle-vector))
+  (:reference-vector () "Return reference joint angle vector, This method uread current state." (send self :state-vector :desired))
+  (:actual-vector () "Returns current robot angle vector, This method read curren tstate." (send self :state-vector :actual))
+  (:error-vector () "Returns error vector of the robot, This method read current state." (send self :state-vector :error))
   (:state-vector
    (type &key ((:controller-actions ca) controller-actions)
          ((:controller-type ct) controller-type))
@@ -637,6 +676,8 @@
 	     (coerce efforts cons))))
   (:state
    (&rest args)
+   "Read robot state and update internal robot instance
+- :wait-until-update nil wait until joint_state is updated"
    (send self :update-robot-state
          :wait-until-update (when (position :wait-until-update args) (elt args (+ (position :wait-until-update args) 1))))
    (unless args (return-from :state))
@@ -695,8 +736,8 @@
      (x::window-main-one)))
   ;;
   (:joint-action-enable (&optional (e :dummy)) (if (not (eq e :dummy)) (setq joint-action-enable e)) joint-action-enable)
-  (:simulation-modep () (null joint-action-enable))
-  (:warningp (&optional (w :dummy)) (if (not (eq w :dummy)) (setq warningp w)) warningp)
+  (:simulation-modep () "Check if simulation mode" (null joint-action-enable))
+  (:warningp (&optional (w :dummy)) "When warning mode, it wait for user's key input before sending angle-vector to the robot" (if (not (eq w :dummy)) (setq warningp w)) warningp)
   (:spin-once () (ros::spin-once groupname))
   (:send-trajectory (joint-trajectory-msg
                      &key ((:controller-actions ca) controller-actions) ((:controller-type ct) controller-type)
@@ -888,6 +929,7 @@
      ))
   (:nod
    (&key (angle 40) (time 3000))
+   "Nod robot head"
    (let (prev-neck-p)
      (send self :update-robot-state)
      (send self :robot :angle-vector (send self :state :reference-vector))
@@ -905,9 +947,9 @@
    "Euslisp version mannequin mode.
     In every loop, :angle-vector is continuously updated.
     If you want to stop this mode, press Enter.
-    tmp-robot is argument for robot instance and angle-vector of tmp-robot is updated in this method.
-    limb is mannequin mode limb such as :rarm, :larm, :rleg, and :lleg.
-    tm is angle-vector update time [ms]. 1000 by default."
+- tmp-robot : argument for robot instance and angle-vector of tmp-robot is updated in this method.
+- limb : mannequin mode limb such as :rarm, :larm, :rleg, and :lleg.
+- tm : angle-vector update time [ms]. 1000 by default."
    (objects (list tmp-robot))
    (warn ";; Start Euslisp mannequin mode.~%")
    (warn ";; To stop this mode, press Enter.~%")
