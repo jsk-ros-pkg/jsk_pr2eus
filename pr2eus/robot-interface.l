@@ -146,6 +146,8 @@
        (setq tmp-actions (nreverse tmp-actions))
        ;;
        (dolist (action tmp-actions)
+         (unless controller-timeout
+           (ros::ros-warn "Waiting for actionlib interface forever because controler-timeout is nil"))
          (unless (and joint-action-enable (send action :wait-for-server controller-timeout))
            (ros::ros-warn "~A is not respond, ~A-interface is disabled" action (send robot :name))
            (when joint-enable-check
