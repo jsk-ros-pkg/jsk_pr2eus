@@ -2,6 +2,27 @@
 Changelog for package pr2eus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* [pr2eus] Print warning message if controller-timeout is nil in robot-interface
+* [robot-interface.l] do not raise error when controller have wrong joint name
+* [test/pr2-ri-test-simple.l] add test for wrong controller
+* Revert "[pr2eus] Use get-topics in speak.l to check whether already advertised or not"
+  This reverts commit 134353868b4e826a8a879bb3ac3b9dcbb500a7da.
+* [robot-interface.l] update joint in (*ri* . robot) only in controller-type
+* [robot-interface.l] update only cotroller joint for simulation mode
+* [robot-interface.l] add documents for public methods
+* [robot-interface.l] :angle-vector-sequence use default if nil ctype was passed
+* [robot-interface.l] :angle-vector use default if nil ctype was passed
+* [pr2eus] Use get-topics in speak.l to check whether already advertised or not
+* [pr2eus/CMakeLists.txt] add eusdoc
+* [pr2eus] remove old manifest.xml
+* [pr2eus] Fix :interpolatingp by using ros::*simple-goal-state-active* instead of actoinlib_msgs::GoalStatus::*active*
+* [pr2eus] Support ctype in :interpolatingp
+* add publish-joint-state and update viewer for the last pose in angle-vector-sequence
+* [robot-interface.l] add zero div check
+* Contributors: Kei Okada, Kentaro Wada, Ryohei Ueda, Yuto Inagaki, Shintaro Noda
+
 0.1.10 (2015-04-03)
 -------------------
 * [robot-interface.l, pr2-interface.l] support :fast in :angle-vector-sequence
