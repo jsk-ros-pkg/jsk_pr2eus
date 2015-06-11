@@ -2,8 +2,8 @@
 Changelog for package pr2eus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.11 (2015-06-11)
+-------------------
 * [pr2eus] Print warning message if controller-timeout is nil in robot-interface
 * [robot-interface.l] do not raise error when controller have wrong joint name
 * [test/pr2-ri-test-simple.l] add test for wrong controller
