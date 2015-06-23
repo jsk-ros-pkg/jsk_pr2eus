@@ -30,6 +30,7 @@
                          (t (make-list (length target-coords) :initial-element (deg2rad 5)))))
 		  (base-range (list :min #f(-30 -30 -30)
 				   :max #f( 30  30  30)))
+                  (additional-weight-list)
                   &allow-other-keys)
    (let (diff-pos-rot)
      ;;
@@ -87,11 +88,14 @@
                      :thre thre
                      :stop stop
                      :additional-weight-list
-                     (list
-                      (list (send self :torso_lift_joint :child-link)
-                            (if (numberp use-torso) use-torso 0.005))
-                      (list (car (send self :links))
-                            (if (eq use-base t) 0.1 use-base))
+                     (append
+                      (list
+                       (list (send self :torso_lift_joint :child-link)
+                             (if (numberp use-torso) use-torso 0.005))
+                       (list (car (send self :links))
+                             (if (eq use-base t) 0.1 use-base))
+                       )
+                      additional-weight-list
                       )
                      :link-list (car ll) ;; link-list
                      :move-target move-target
