@@ -14,7 +14,13 @@
     (send *pr2* :rarm :shoulder-p :joint-angle 0)
     (assert (setq av2 (send *pr2* :angle-vector)))
     (assert (send *ri* :angle-vector av1 2000))
+
+    ;; (length avs) > (length tms)
     (assert (send *ri* :angle-vector-sequence (list av2 av0) 2000))
+    ;; (length avs) = (length tms)
+    (assert (send *ri* :angle-vector-sequence (list av0 av1) (list 2000 3000)))
+    ;; (length avs) < (length tms)
+    (assert (send *ri* :angle-vector-sequence (list av0 av1) (list 1000 2000 3000)))
     ))
 
 (deftest test-angle-vector-limb
