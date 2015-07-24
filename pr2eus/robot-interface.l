@@ -348,8 +348,12 @@
          tm tm-next fastest-tm
          (vel (instantiate float-vector (length (car avs)))))
      (if (atom tms) (setq tms (make-list (length avs) :initial-element tms)))
-     (if (< (length tms) (length avs))
-         (setq tms (append tms (make-list (- (length avs) (length tms)) :initial-element (car (last tms))))))
+     (cond
+      ((< (length tms) (length avs))
+         (nconc tms (make-list (- (length avs) (length tms)) :initial-element (car (last tms)))))
+      ((> (length tms) (length avs))
+       (ros::ros-warn "length of tms should be the same or smaller than avs")
+       (setq tms (subseq tms 0 (length avs)))))
      (prog1 ;; angle-vector-sequence returns avs
          avs
        (while avs
