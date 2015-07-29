@@ -1,7 +1,7 @@
 (defun make-pr2-model-file (&key (output-directory (ros::rospack-find "pr2eus")))
   (let ((robot "pr2") s
         fname_urdf fname_collada fname_yaml fname_lisp
-	valid-cameras camera-paths openni-frames)
+	valid-cameras camera-paths)
     (unless (setq s (ros::get-param "/robot_description"))
       (ros::ros-error "could not load model file from /robot_description~%")
       (return-from make-pr2-model-file))
@@ -44,8 +44,8 @@
                  "l_forearm_cam"
                  "r_forearm_cam"
                  "prosilica"
-		 "openni/rgb"
-		 "openni/depth"
+		 "kinect_head/rgb"
+		 "kinect_head/depth"
 		 ))
      (dolist (camera-path camera-paths)
        (let* ((camera-info (format nil "~A/camera_info" camera-path))
@@ -84,10 +84,10 @@
      (format f "(defmethod ~A-sensor-robot~%" robot)
      (format f "  (:init (&rest args)~%")
      (format f "   (send-super* :init args)~%")
-     ;; pr2 specific openni frames
-     (format f "   ;; openni frame definition, this data is taken from jsk_pr2_startup kinect_head_launch ~%")
+     ;; pr2 specific kinect_head frames
+     (format f "   ;; kinect_head frame definition, this data is taken from jsk_pr2_startup kinect_head_launch ~%")
      (format f "#|~%")
-     (format f " get frame coordinates data from pr1012:/etc/ros/fuerte/urdf/robot.xml~%")
+     (format f " get frame coordinates data from pr1012:/etc/ros/distro/urdf/robot.xml~%")
      (format f "|#~%")
      (format f "   ;; define cameras~%")
      (dolist (valid-camera valid-cameras)
