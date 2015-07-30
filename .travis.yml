@@ -29,8 +29,7 @@ install:
 script: source .travis/travis.sh
 after_success:
   - TRAVIS_JOB_SUBNUMBER="${TRAVIS_JOB_NUMBER##*.}"
-  # begin hot fix
-  - if [ "$TRAVIS_JOB_SUBNUMBER" == 1 -a "$TRAVIS_BRANCH" == "master" -a "${TRAVIS_SECURE_ENV_VARS}" == "true" ]; then ${CI_SOURCE_PATH}/.travis/upload-docs.sh; fi
+  - if [ "$TRAVIS_JOB_SUBNUMBER" == 1 -a "$TRAVIS_BRANCH" == "master" -a "${TRAVIS_SECURE_ENV_VARS}" == "true" ]; then cd ${CI_SOURCE_PATH}; .travis/upload-docs.sh; fi
 notifications:
   email:
     on_success: always
