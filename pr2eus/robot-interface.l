@@ -268,7 +268,7 @@
          (let ((max-time (apply #'max time-list)))
            (max max-time min-time))))))
   (:angle-vector-simulation
-   (av tm ctype)
+   (av tm ctype &optional (real-time-simulation nil))
    (let* ((prev-av (send robot :angle-vector))
           (scale-av (send self :sub-angle-vector av prev-av))
           (joint-names (flatten (mapcar #'(lambda (c) (cdr (assoc :joint-names c)))(send self ctype))))
@@ -276,15 +276,25 @@
           curr-av next-av)
      (do ((curr-tm 0.0 (+ curr-tm 100.0)))
          ((>= curr-tm tm))
-           (setq curr-av (send robot :angle-vector))
-           (setq next-av (v+ prev-av (scale (/ curr-tm tm) scale-av)))
-           (dolist (id joint-ids)
-             (setf (elt curr-av id) (elt next-av id)))
-	   (send robot :angle-vector curr-av)
-	   (send self :publish-joint-state)
-	   (if viewer (send self :draw-objects)))))
+       (let (finish-time)
+         (setq finish-time (ros::time+ (ros::time-now) (ros::time 0.1)))
+         (ros::ros-info "start")
+         (setq curr-av (send robot :angle-vector))
+         (setq next-av (v+ prev-av (scale (/ curr-tm tm) scale-av)))
+         (dolist (id joint-ids)
+           (setf (elt curr-av id) (elt next-av id)))
+         (send robot :angle-vector curr-av)
+         (send self :publish-joint-state)
+         (if viewer (send self :draw-objects))
+         ;; (if real-time-simulation
+         ;;     (unix:usleep 80900))
+         (while (ros::time< (ros::time-now) finish-time)
+           (unix:usleep 1000)
+           )
+         (ros::ros-info "end")
+         ))))
   (:angle-vector
-   (av &optional (tm nil) (ctype controller-type) (start-time 0) &key (scale 1) (min-time 1.0))
+   (av &optional (tm nil) (ctype controller-type) (start-time 0) &key (scale 1) (min-time 1.0) (real-time-simulation nil))
    "Send joind angle to robot, this method retuns immediately, so use :wait-interpolation to block until the motion stops.
 - av : joint angle vector [rad]
 - tm : (time to goal in [msec])
@@ -321,7 +331,7 @@
      )
    ;; for simulation mode
    (when (send self :simulation-modep)
-     (if av (send self :angle-vector-simulation av tm ctype)))
+     (if av (send self :angle-vector-simulation av tm ctype real-time-simulation)))
    (send robot :angle-vector av)
    (let ((cacts (gethash ctype controller-table)))
      (mapcar
@@ -336,7 +346,7 @@
       cacts (send self ctype)))
    av)
   (:angle-vector-sequence
-   (avs &optional (tms (list 3000)) (ctype controller-type) (start-time 0.1) &key (scale 1) (min-time 0.0))
+   (avs &optional (tms (list 3000)) (ctype controller-type) (start-time 0.1) &key (scale 1) (min-time 0.0) (real-time-simulation))
    "Send joind angle to robot, this method retuns immediately, so use :wait-interpolation to block until the motion stops."
    (setq ctype (or ctype controller-type))  ;; use default controller-type if ctype is nil
    (unless (gethash ctype controller-table)
@@ -400,7 +410,7 @@
            (fill vel 0))
          ;; for simulation mode
          (if (send self :simulation-modep)
-           (send self :angle-vector-simulation av tm ctype))
+           (send self :angle-vector-simulation av tm ctype real-time-simulation))
          ;;
          ;; update only joints with in current controller instaed of (send robot :angle-vector av)
          (let* ((joint-names (flatten (mapcar #'(lambda (c) (cdr (assoc :joint-names c))) (send self ctype))))
