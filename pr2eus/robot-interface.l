@@ -52,7 +52,7 @@
   :slots (robot objects robot-state joint-action-enable warningp
                 controller-type controller-actions controller-timeout
                 namespace controller-table ;; hashtable :type -> (action)
-                visualization-topic
+                visualization-topic simulation-finish-time
                 joint-states-topic pub-joint-states-topic
                 viewer groupname)
   :documentation "robot-interface is object for interacting real robot thorugh JointTrajectoryAction servers and JointState topics, this function uses old nervous-style interface for histrical reason. If JointTrajectoryAcion serve is not found, this instance runs as simulation mode, see \"Kinematics Simulator\" view as simulatied robot,
@@ -321,6 +321,7 @@
      )
    ;; for simulation mode
    (when (send self :simulation-modep)
+     (setq simulation-finish-time (ros::time+ (ros::time-now) (ros::time (/ tm 1000.0))))
      (if av (send self :angle-vector-simulation av tm ctype)))
    (send robot :angle-vector av)
    (let ((cacts (gethash ctype controller-table)))
@@ -354,6 +355,13 @@
       ((> (length tms) (length avs))
        (ros::ros-warn "length of tms should be the same or smaller than avs")
        (setq tms (subseq tms 0 (length avs)))))
+     (when (send self :simulation-modep)
+       (let ((sumtm 0))
+         (dolist (stm tms)
+           (setq sumtm (+ sumtm stm))
+           )
+         (setq simulation-finish-time (ros::time+ (ros::time-now) (ros::time (/ sumtm 1000.0))))
+         ))
      (prog1 ;; angle-vector-sequence returns avs
          avs
        (while avs
@@ -432,19 +440,27 @@
                     traj-points))
           cacts (send self ctype)))
        )))
-  (:wait-interpolation (&optional (ctype) (timeout 0)) ;; controller-type
+  (:wait-interpolation (&optional (ctype) (timeout 0) (real-time-simulation nil)) ;; controller-type
    "Wait until last sent motion is finished
 - ctype : controller to be wait
 - timeout : max time of for waiting"
    (when (send self :simulation-modep)
+     (while (and real-time-simulation (and simulation-finish-time (ros::time< (ros::time-now) simulation-finish-time)))
+       (unix:usleep 10000))
      (return-from :wait-interpolation nil))
    (cond
     (ctype
      (let ((cacts (gethash ctype controller-table)))
        (send-all cacts :wait-for-result :timeout timeout)))
     (t (send-all controller-actions :wait-for-result :timeout timeout))))
-  (:interpolatingp (&optional (ctype)) ;; controller-type ;; check someone is moving
+  (:interpolatingp (&optional (ctype) (real-time-simulation nil)) ;; controller-type ;; check someone is moving
 "Check inf the last sent motion is executing"
+    (when (send self :simulation-modep)
+      (cond
+        ((and real-time-simulation (and simulation-finish-time (ros::time< (ros::time-now) simulation-finish-time)))
+         (return-from :interpolatingp t))
+        (t
+         (return-from :interpolatingp nil))))
     (send self :spin-once)
     (cond
      (ctype
