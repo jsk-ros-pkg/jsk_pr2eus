@@ -27,9 +27,12 @@
 
 (defclass controller-action-client
   :super ros::simple-action-client
-  :slots (time-to-finish))
+  :slots (time-to-finish
+          ri angle-vector-sequence timer-sequence current-time current-angle-vector previous-angle-vector scale-angle-vector;; slot for angle-vector-sequence
+          ))
 (defmethod controller-action-client
-  (:init (&rest args)
+  (:init (r &rest args)
+    (setq ri r) ;; robot-interface
     (setq time-to-finish 0)
     (send-super* :init args))
   (:time-to-finish ()
@@ -45,6 +48,27 @@
                     (send msg :status :goal_id :id))
        (setq time-to-finish (send (ros::time- finish-time current-time) :to-sec)))
      ))
+  ;; method for simulatio-modep
+  (:push-angle-vector-simulation (av tm &optional prev-av)
+   (setq previous-angle-vector prev-av)
+   (setq angle-vector-sequence (append angle-vector-sequence (list av)))
+   (setq timer-sequence (append timer-sequence (list tm)))
+   (setq current-time 0)
+   av)
+  (:pop-angle-vector-simulation ()
+    (let ((av (car angle-vector-sequence)) (tm (car timer-sequence)) scale-av)
+      (when tm
+        (setq scale-av (send ri :sub-angle-vector av previous-angle-vector))
+        (setq av (v+ previous-angle-vector (scale (/ current-time tm) scale-av)))
+        (incf current-time 100.0)
+        (when (> current-time tm)
+          (pop timer-sequence)
+          (pop angle-vector-sequence)
+          (setq previous-angle-vector av)
+          (setq current-time 0)
+          )
+        av)))
+  (:interpolatingp () (not (null timer-sequence)))
   )
 
 (defclass robot-interface
@@ -144,6 +168,9 @@
                          (format nil "~A/~A" namespace joint-states-topic))
                         (t joint-states-topic))
                        sensor_msgs::JointState)
+       (setq *top-selector-interval* 0.01)
+       (pushnew `(lambda () (send ,self :robot-interface-simulation-callback)) *timer-job*) ;; FIXME need to remove old one
+       (print *timer-job*)
        ))
    self)
   ;;
@@ -155,7 +182,7 @@
         #'(lambda (param)
             (let* ((controller-action (cdr (assoc :controller-action param)))
                    (action-type (cdr (assoc :action-type param)))
-                   (action (instance controller-action-client :init
+                   (action (instance controller-action-client :init self
                                      (if namespace (format nil "~A/~A" namespace controller-action)
                                        controller-action) action-type
                                        :groupname groupname)))
@@ -199,6 +226,29 @@
      tmp-actions
      ))
   ;;
+  (:robot-interface-simulation-callback ()
+   (let* ((joint-list (send robot :joint-list))
+          (all-joint-names (send-all joint-list :name)))
+     (send self :publish-joint-state)
+     ;(print (list 'actions controller-actions))
+     ;(print controller-type)
+     ;(print controller-table)
+     ;(maphash #'(lambda (x y)(print (list x y))) controller-table)
+     (dolist (param (send self controller-type)) ;; assuming all action is stored in controller-type (:default-controller)
+       ;(print (list 'p param))
+       (let* ((joint-names (cdr (assoc :joint-names param)))
+              (action-name (cdr (assoc :controller-action param)))
+              (action-client (find action-name controller-actions :key #'(lambda (x) (send x :name)) :test #'string=))
+              (av (send action-client :pop-angle-vector-simulation))
+              )
+         (when av
+           (dolist (j joint-names)
+             (if (find j all-joint-names :test #'string=)
+                 (let ((i (position j all-joint-names :test #'string=)))
+                   (send (elt joint-list i) :joint-angle (elt av i))))))
+         )) ;;
+     (if viewer (send self :draw-objects))
+     ))
   (:publish-joint-state ;; for simulation mode (joint-action-enable is nil)
    (&optional (joint-list (send robot :joint-list)))
    (let (msg names positions velocities efforts)
@@ -269,20 +319,8 @@
            (max max-time min-time))))))
   (:angle-vector-simulation
    (av tm ctype)
-   (let* ((prev-av (send robot :angle-vector))
-          (scale-av (send self :sub-angle-vector av prev-av))
-          (joint-names (flatten (mapcar #'(lambda (c) (cdr (assoc :joint-names c)))(send self ctype))))
-          (joint-ids (remove nil (mapcar #'(lambda (joint-name) (position joint-name (send robot :joint-list) :test #'(lambda (n j) (equal n (send j :name))))) joint-names)))
-          curr-av next-av)
-     (do ((curr-tm 0.0 (+ curr-tm 100.0)))
-         ((>= curr-tm tm))
-           (setq curr-av (send robot :angle-vector))
-           (setq next-av (v+ prev-av (scale (/ curr-tm tm) scale-av)))
-           (dolist (id joint-ids)
-             (setf (elt curr-av id) (elt next-av id)))
-	   (send robot :angle-vector curr-av)
-	   (send self :publish-joint-state)
-	   (if viewer (send self :draw-objects)))))
+   (let* ((prev-av (send robot :angle-vector)))
+     (send-all (gethash ctype controller-table) :push-angle-vector-simulation av tm prev-av)))
   (:angle-vector
    (av &optional (tm nil) (ctype controller-type) (start-time 0) &key (scale 1) (min-time 1.0))
    "Send joind angle to robot, this method retuns immediately, so use :wait-interpolation to block until the motion stops.
@@ -403,16 +441,17 @@
            (send self :angle-vector-simulation av tm ctype))
          ;;
          ;; update only joints with in current controller instaed of (send robot :angle-vector av)
-         (let* ((joint-names (flatten (mapcar #'(lambda (c) (cdr (assoc :joint-names c))) (send self ctype))))
+         (unless (send self :simulation-modep)
+           (let* ((joint-names (flatten (mapcar #'(lambda (c) (cdr (assoc :joint-names c))) (send self ctype))))
                 (joint-ids (mapcar #'(lambda (joint-name) (position joint-name (send robot :joint-list) :test #'(lambda (n j) (equal n (send j :name))))) joint-names)))
            (mapcar #'(lambda (name id)
                        (if (and (send robot :joint name) id (> (length av) id))
                            (send (send robot :joint name) :joint-angle (elt av id))
                          (warning-message 3 "[robot-interface.l] (angle-vector-sequence) could not find joint-name '~A' (~A) or joint-id ~A (av length ~A)~%" name (send robot :joint name) id (length av))))
-                   joint-names joint-ids))
-	 (when (send self :simulation-modep)
-	   (send self :publish-joint-state)
-	   (if viewer (send self :draw-objects)))
+                   joint-names joint-ids)))
+;	 (when (send self :simulation-modep)
+;	   (send self :publish-joint-state)
+;	   (if viewer (send self :draw-objects)))
          (push (list av
                      (copy-seq vel)  ;; velocities
                      (/ (+ st tm) 1000.0)) ;; tm + duration
@@ -437,7 +476,9 @@
 - ctype : controller to be wait
 - timeout : max time of for waiting"
    (when (send self :simulation-modep)
-     (return-from :wait-interpolation nil))
+     (while (some #'(lambda (a) (send a :interpolatingp)) controller-actions)
+       (send self :robot-interface-simulation-callback))
+     (return-from :wait-interpolation (send-all controller-actions :interpolatingp)))
    (cond
     (ctype
      (let ((cacts (gethash ctype controller-table)))

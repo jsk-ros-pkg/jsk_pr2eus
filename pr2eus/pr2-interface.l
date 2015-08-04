@@ -109,9 +109,7 @@
    (send-super :publish-joint-state (append (send robot :joint-list) (send robot :larm :gripper :joint-list) (send robot :rarm :gripper :joint-list))))
   ;;
   (:wait-interpolation (&rest args);; overwrite for pr2, due to some joint is stll moving after joint-trajectry-action stops
-   (unless joint-action-enable (return-from :wait-interpolation
-                                 (make-sequence cons (length controller-actions)
-                                                :initial-element t)))
+   (when (send self :simulation-modep) (return-from :wait-interpolation (send-super :wait-interpolation)))
    (let (result)
      (ros::ros-info "wait-interpolation debug: start")
    ;;  (setq result (send-all controller-actions :wait-for-result))
