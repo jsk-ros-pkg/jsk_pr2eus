@@ -43,6 +43,7 @@ add_rostest(test/make-pr2-model-file-test.launch)
 #add_rostest(test/pr2-ri-test.launch)
 add_rostest(test/pr2-ri-test-simple.launch)
 add_rostest(test/robot-no-clock.test)
+add_rostest(test/default-ri-test.test)
 
 generate_eusdoc(robot-interface.l)
 generate_eusdoc(pr2-interface.l)
