@@ -29,7 +29,10 @@
                            move-base-action move-base-trajectory-action
                            finger-pressure-origin
                            move-base-goal-msg move-base-goal-coords  move-base-goal-map-to-frame
-                           go-pos-unsafe-goal-msg))
+                           go-pos-unsafe-goal-msg
+                           current-goal-coords ;; for simulation-callback
+                           ))
+
 (defmethod pr2-interface
   (:init
    (&rest args &key (type :default-controller)
@@ -379,18 +382,14 @@
      
   (:move-to
    (coords &rest args &key (no-wait nil) &allow-other-keys)
-   (if (send self :simulation-modep)
-     (let ((orig-coords (send robot :copy-worldcoords)))
-       (do ((curr-tm 0.0 (+ curr-tm 100.0)))
-           ((> curr-tm 1000))
-	   (send robot :newcoords (midcoords (/ curr-tm 1000.0) orig-coords coords))
-	   (if viewer (send self :draw-objects))))
-     (return-from :move-to t))
    (send* self :move-to-send coords args)
    (if (not no-wait)
        (send* self :move-to-wait args)))
   (:move-to-send
    (coords &key (frame-id "/world") (wait-for-server-timeout 5) (count 0) &allow-other-keys)
+   (if (send self :simulation-modep)
+       (let ((orig-coords (send robot :copy-worldcoords)))
+         (setq current-goal-coords (send coords :transform robot :world)))) ;; for simulation-callback
    (let (ret (count 0) (tm (ros::time-now))
 	     (map-to-frame (send *tfl* :lookup-transform "/map" frame-id (ros::time 0))))
      ;; store in slot variable for :move-to-wait
@@ -422,6 +421,11 @@
    (let (ret (count 0) (tm (ros::time-now))
 	     (map-to-frame move-base-goal-map-to-frame)
              (coords move-base-goal-coords))
+     (if (send self :simulation-modep)
+         ;; wait for-result
+         (while current-goal-coords
+           (send self :robot-interface-simulation-callback))
+         (return-from :move-to-no-wait t)) ;; simlation-modep
      (if (null move-base-goal-msg) (return-from :move-to-wait nil))
      (while (and (null ret) (<= count retry))
        (when (> count 0) ;; retry
@@ -733,6 +737,22 @@ send-action [ send message to action server, it means robot will move ]"
                        controller-actions)))
      (when act
        (send act :wait-for-result :timeout timeout))))
+  ;;;
+  (:robot-interface-simulation-callback ()
+   (let ((orig-coords (send robot :copy-worldcoords))
+         diff-pos diff-rot diff)
+     (when current-goal-coords
+       (setq diff-pos (send orig-coords :difference-position current-goal-coords)
+             diff-rot (send orig-coords :difference-rotation current-goal-coords :rotation-axis :xy))
+       (cond ((and (eps= (norm diff-pos) 0) (eps= (norm diff-rot) 0))
+              (setq current-goal-coords nil))
+             (t
+              (send robot :newcoords (midcoords (min (/ 10 (max (norm diff-pos) 10))
+                                                     (/ 0.02 (max (norm diff-rot) 0.02)))
+                                                orig-coords current-goal-coords))))
+       );; when
+     (send-super :robot-interface-simulation-callback)
+     ))
   )
 
 ;;
