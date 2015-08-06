@@ -464,7 +464,7 @@
   (:interpolating-smoothp (time-to-finish &optional (ctype)) ;; controller-type
 "Check inf the last sent motion will stops for next time-to-finish [msec]"
    (when (send self :simulation-modep)
-     (return-from :wait-interpolation nil))
+     (return-from :interpolating-smoothp t))
    (send self :spin-once)
    (every #'(lambda (x) (< x (/ time-to-finish 1000.0)))
           (cond
