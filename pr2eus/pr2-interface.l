@@ -27,7 +27,8 @@
   :super robot-interface
   :slots (r-gripper-action l-gripper-action
                            move-base-action move-base-trajectory-action
-                           finger-pressure-origin))
+                           finger-pressure-origin
+                           move-base-goal-msg move-base-goal-coords  move-base-goal-map-to-frame))
 (defmethod pr2-interface
   (:init
    (&rest args &key (type :default-controller)
@@ -378,45 +379,66 @@
      
      
   (:move-to
-   (coords &key (retry 10) (frame-id "/world") (wait-for-server-timeout 5))
-   (let (ret (count 0) (tm (ros::time-now))
-	     (map-to-frame (send *tfl* :lookup-transform "/map" frame-id (ros::time 0)))
-             (goal (instance move_base_msgs::MoveBaseActionGoal :init)))
-     (unless joint-action-enable
-       (let ((orig-coords (send robot :copy-worldcoords)))
-	 (do ((curr-tm 0.0 (+ curr-tm 100.0)))
-	     ((> curr-tm 1000))
+   (coords &rest args &key (no-wait nil) &allow-other-keys)
+   (if (send self :simulation-modep)
+     (let ((orig-coords (send robot :copy-worldcoords)))
+       (do ((curr-tm 0.0 (+ curr-tm 100.0)))
+           ((> curr-tm 1000))
 	   (send robot :newcoords (midcoords (/ curr-tm 1000.0) orig-coords coords))
 	   (if viewer (send self :draw-objects))))
-       (return-from :move-to t))
+     (return-from :move-to t))
+   (send* self :move-to-send coords args)
+   (if (not no-wait)
+       (send* self :move-to-wait args)))
+  (:move-to-send
+   (coords &key (frame-id "/world") (wait-for-server-timeout 5) (count 0) &allow-other-keys)
+   (let (ret (count 0) (tm (ros::time-now))
+	     (map-to-frame (send *tfl* :lookup-transform "/map" frame-id (ros::time 0))))
+     ;; store in slot variable for :move-to-wait
+     (setq move-base-goal-msg (instance move_base_msgs::MoveBaseActionGoal :init))
+     (setq move-base-goal-coords coords)
+     (setq move-base-goal-map-to-frame map-to-frame)
+     ;;
      (when (not (send move-base-action :wait-for-server wait-for-server-timeout))
        (return-from :move-to))
      ;;
-     (send goal :header :stamp tm)
-     (send goal :goal :target_pose :header :stamp tm)
+     (send move-base-goal-msg :header :stamp tm)
+     (send move-base-goal-msg :goal :target_pose :header :stamp tm)
      (if map-to-frame
 	 (progn
-	   (send goal :goal :target_pose :header :frame_id "/map")
-	   (send goal :goal :target_pose :pose
+	   (send move-base-goal-msg :goal :target_pose :header :frame_id "/map")
+	   (send move-base-goal-msg :goal :target_pose :pose
 		 (ros::coords->tf-pose (send (send coords :copy-worldcoords) :transform map-to-frame :world))))
        (progn ;; fail to find "/map" to frame_id
-	   (send goal :goal :target_pose :header :frame_id frame-id)
-	   (send goal :goal :target_pose :pose (ros::coords->tf-pose coords))
+	   (send move-base-goal-msg :goal :target_pose :header :frame_id frame-id)
+	   (send move-base-goal-msg :goal :target_pose :pose (ros::coords->tf-pose coords))
 	 ))
-     (while (and (null ret) (<= (inc count) retry))
-       (if (> count 0) ;; retry
-	   (clear-costmap))
-       (send goal :header :seq count)
-       (send goal :goal :target_pose :header :seq count)
-       (ros::ros-info "move-to : send-goal to ~A at ~A (~d)" (ros::tf-point->pos (send goal :goal :target_pose :pose :position)) (send goal :goal :target_pose :header :frame_id) count)
-       (send move-base-action :send-goal goal)
+     (send move-base-goal-msg :header :seq count)
+     (send move-base-goal-msg :goal :target_pose :header :seq count)
+     (ros::ros-info "move-to : send-goal to ~A at ~A (~d)" (ros::tf-point->pos (send move-base-goal-msg :goal :target_pose :pose :position)) (send move-base-goal-msg :goal :target_pose :header :frame_id) count)
+     (send move-base-action :send-goal move-base-goal-msg)
+     move-base-goal-msg))
+  (:move-to-wait
+   (&rest args &key (retry 10) (frame-id "/world") &allow-other-keys)
+   (let (ret (count 0) (tm (ros::time-now))
+	     (map-to-frame move-base-goal-map-to-frame)
+             (coords move-base-goal-coords))
+     (if (null move-base-goal-msg) (return-from :move-to-wait nil))
+     (while (and (null ret) (<= count retry))
+       (when (> count 0) ;; retry
+         (clear-costmap)
+         (send move-base-goal-msg :header :seq count)
+         (send move-base-goal-msg :goal :target_pose :header :seq count)
+         (ros::ros-info "move-to : send-goal to ~A at ~A (~d)" (ros::tf-point->pos (send move-base-goal-msg :goal :target_pose :pose :position)) (send move-base-goal-msg :goal :target_pose :header :frame_id) count)
+         (send move-base-action :send-goal move-base-goal-msg))
        (send move-base-action :wait-for-result)
        (when (eq (send move-base-action :get-state)
                  actionlib_msgs::GoalStatus::*preempted*)
          (setq ret nil)
          (return))
        (if (eq (send move-base-action :get-state) actionlib_msgs::GoalStatus::*succeeded*)
-           (setq ret t)))
+           (setq ret t))
+       (incf count))
      (ros::ros-info "move-to : ~A" (if ret 'succeeded 'failed))
      ;;
      (when ret
@@ -431,7 +453,8 @@
          (ros::ros-warn ":move-to wait-for transform /map to /base_footprint -> ~A" lret)
          (when (null lret)
            (ros::ros-error ":move-to wait-for transform /map to /base_footprint failed")
-           (return-from :move-to nil))
+           (setq move-base-goal-msg nil)
+           (return-from :move-to-no-wait nil))
          (setq current-coords (send *tfl* :lookup-transform "/map" "/base_footprint" (ros::time 0)))
          (setq diff (send current-coords :transformation map-goal-coords))
          (ros::ros-warn ":move-to current-coords  ~A" current-coords)
@@ -449,7 +472,8 @@
                  (unix:usleep (* 400 1000)) ;; 400ms ???
                  (let ((acret (send self :go-velocity x y d msec :wait t)))
                    (unless acret
-                     (return-from :move-to nil)))
+                     (setq move-base-goal-msg nil)
+                     (return-from :move-to-wait nil)))
                  ;;(unix::usleep (* (round msec) 1000)) ;; why time wait
                  )
              (progn
@@ -457,10 +481,11 @@
 	       ;; move-to suceeded buf away from 200 mm
 	       (ros::ros-error ":move-to try to send /move_base_simple/goal")
 	       (ros::advertise "/move_base_simple/goal" geometry_msgs::PoseStamped 1)
-	       (send goal :goal :target_pose :header :seq (1+ count))
-	       (ros::publish "/move_base_simple/goal" (send goal :goal :target_pose))
+	       (send move-base-goal-msg :goal :target_pose :header :seq (1+ count))
+	       (ros::publish "/move_base_simple/goal" (send move-base-goal-msg :goal :target_pose))
 	       (unix:sleep 3)
-               (return-from :move-to nil)
+               (setq move-base-goal-msg nil)
+               (return-from :move-to-wait nil)
                ))
            ;;
            (setq map-goal-coords
@@ -472,7 +497,8 @@
            (ros::ros-warn ":move-to wait-for transform /map to /base_footprint -> ~A" lret)
            (when (null lret)
              (ros::ros-error ":move-to wait-for transform /map to /base_footprint failed")
-             (return-from :move-to nil))
+             (setq move-base-goal-msg nil)
+             (return-from :move-to-wait nil))
            (setq current-coords (send *tfl* :lookup-transform "/map" "/base_footprint" (ros::time 0)))
            (setq diff (send current-coords :transformation map-goal-coords))
            (ros::ros-warn ":move-to current-coords  ~A" current-coords)
@@ -481,6 +507,7 @@
            (ros::ros-warn "         target-coords   ~A" coords)
            ) ;;  (do (i 2)
          ))
+     (setq move-base-goal-msg nil) ;; :move-to-wait has been called
      ret))
   (:go-pos
    (x y &optional (d 0)) ;; [m] [m] [degree]
@@ -488,6 +515,18 @@
      (setq c (make-coords :pos (float-vector (* 1000 x) (* y 1000) 0)
 			  :rpy (float-vector (deg2rad d) 0 0)))
      (send self :move-to c :retry 1 :frame-id "/base_footprint")
+     ))
+  (:go-pos-no-wait
+   (x y &optional (d 0)) ;; [m] [m] [degree]
+   (let (c)
+     (setq c (make-coords :pos (float-vector (* 1000 x) (* y 1000) 0)
+			  :rpy (float-vector (deg2rad d) 0 0)))
+     (send self :move-to c :retry 1 :frame-id "/base_footprint" :no-wait t)
+     ))
+  (:go-wait
+   ()
+   (let ()
+     (send self :move-to-wait :retry 1 :frame-id "/base_footprint" :no-wait nil)
      ))
   (:go-velocity
    (x y d ;; [m/sec] [m/sec] [rad/sec]
