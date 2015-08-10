@@ -28,7 +28,8 @@
   :slots (r-gripper-action l-gripper-action
                            move-base-action move-base-trajectory-action
                            finger-pressure-origin
-                           move-base-goal-msg move-base-goal-coords  move-base-goal-map-to-frame))
+                           move-base-goal-msg move-base-goal-coords  move-base-goal-map-to-frame
+                           go-pos-unsafe-goal-msg))
 (defmethod pr2-interface
   (:init
    (&rest args &key (type :default-controller)
@@ -547,7 +548,10 @@
          (send move-base-trajectory-action :send-goal goal)
        (if wait (send move-base-trajectory-action :wait-for-result)))
      ))
-  (:go-pos-unsafe
+  (:go-pos-unsafe (&rest args)
+    (send* self :go-pos-unsafe-no-wait args)
+    (send self ::go-pos-unsafe-wait))
+  (:go-pos-unsafe-no-wait
    (x y &optional (d 0)) ;; [m] [m] [degree]
    (ros::ros-info "go-pos-unsafe (x y d) = (~A ~A ~A)" x y d)
    (unless joint-action-enable
@@ -560,7 +564,7 @@
          (send robot :newcoords (midcoords (/ curr-tm 1000.0) orig-coords coords))
          (if viewer (send self :draw-objects))))
      (return-from :go-pos-unsafe t))
-   (let (msec step goal (maxvel 0.295) (maxrad 0.495) (counter 0))
+   (let (msec step)
      ;; package://pr2_base_trajectory_action/config/pr2_base_link.yaml
      ;; 80% of maxvel = 0.3[m/sec]
      ;; 80% of maxrad = 0.5[rad/sec]
@@ -568,21 +572,21 @@
                              (/ (abs (deg2rad d)) (* maxrad 0.8)))))
      (setq msec (max msec 1000))
      (setq step (/ 1000.0 msec))
-     (while (and (or (> (sqrt (+ (* x x) (* y y)))  0.025)
-                     (> (abs d) 2.5) ;; 3 cm and 3deg
-                     (= counter 0))  ;; try at least 1 time
-                 (< counter 3)) ;; magic number 3 times
-       (setq goal (send self :move-trajectory (* x step) (* y step)
-                        (* (deg2rad d) step) msec :stop t))
-       (send move-base-trajectory-action :send-goal goal)
+     (setq go-pos-unsafe-goal-msg (send self :move-trajectory (* x step) (* y step)
+                                        (* (deg2rad d) step) msec :stop t))
+     (send move-base-trajectory-action :send-goal go-pos-unsafe-goal-msg)
+     ))
+  (:go-pos-unsafe-wait ()
+   (let (x y d msec step goal (maxvel 0.295) (maxrad 0.495) (counter 0))
+     (while (< counter 3) ;; magic number 3 times
        (let ((acret
               (send move-base-trajectory-action :wait-for-result)))
          (unless acret
-           (return-from :go-pos-unsafe nil))
+           (return-from :go-pos-unsafe-wait nil))
          (send move-base-trajectory-action :spin-once))
        (send self :spin-once)
        (send self :spin-once)
-       (let ((goal-position (send (elt (send goal :goal :trajectory :points) 1) :positions)) ;; goal
+       (let ((goal-position (send (elt (send go-pos-unsafe-goal-msg :goal :trajectory :points) 1) :positions)) ;; goal
              (odom-pos (scale 0.001 (send (send self :state :odom :pose) :pos)))
              (odom-angle (elt (car (send (send self :state :odom :pose) :rpy-angle)) 0))
              diff-position v)
@@ -596,10 +600,19 @@
          (if (> d (* 360 0.8)) (setq d (- d 360)))
          (if (< d (* -360 0.8)) (setq d (+ d 360)))
          (ros::ros-info "                diff-pos ~A ~A, diff-angle ~A" x y d)
-         )
+
+         (if (and (<= (sqrt (+ (* x x) (* y y)))  0.025)
+                  (<= (abs d) 2.5) ;; 3 cm and 3deg
+                  (/= counter 0))  ;; try at least 1 time
+           (return-from :go-pos-unsafe-wait nil))
+         (setq go-pos-unsafe-goal-msg (send self :move-trajectory (* x step) (* y step)
+                                            (* (deg2rad d) step) msec :stop t))
+         (send move-base-trajectory-action :send-goal go-pos-unsafe-goal-msg)
+         ) ;; let
        (incf counter)
        ) ;; while
      t))
+  ;;
   (:move-trajectory-sequence
    (trajectory-points time-list &key (stop t) (start-time) (send-action nil))
    "trajectory-points [ list of #f(x y d) ] time-list [list of time span]
