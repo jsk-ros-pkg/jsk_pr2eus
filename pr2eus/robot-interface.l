@@ -474,7 +474,8 @@
   (:wait-interpolation (&optional (ctype) (timeout 0)) ;; controller-type
    "Wait until last sent motion is finished
 - ctype : controller to be wait
-- timeout : max time of for waiting"
+- timeout : max time of for waiting
+- return values is a list of interpolatingp for all controllers, so (null (some #'identity (send *ri* :wait-interpolation))) -> t if all interpolation has stopped"
    (when (send self :simulation-modep)
      (while (some #'(lambda (a) (send a :interpolatingp)) controller-actions)
        (send self :robot-interface-simulation-callback))
@@ -485,7 +486,8 @@
        (send-all cacts :wait-for-result :timeout timeout)))
     (t (send-all controller-actions :wait-for-result :timeout timeout))))
   (:interpolatingp (&optional (ctype)) ;; controller-type ;; check someone is moving
-"Check inf the last sent motion is executing"
+"Check if the last sent motion is executing
+return t if interpolating"
     (send self :spin-once)
     (cond
      (ctype
@@ -499,7 +501,7 @@
 	(dolist (av (list av1 av2 av3 av4))
 	    (send *ri* :angle-vector av)
 	    (send *ri* :wait-interpolation-smooth 300))
-"
+Return value is a list of interpolatingp for all controllers, so (null (some #'identity (send *ri* :wait-interpolation))) -> t if all interpolation has stopped"
     (while (null (send self :interpolating-smoothp time-to-finish ctype))
       (send self :ros-wait 0.005)))
   (:interpolating-smoothp (time-to-finish &optional (ctype)) ;; controller-type

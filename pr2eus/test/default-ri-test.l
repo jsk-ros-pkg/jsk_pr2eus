@@ -26,13 +26,13 @@
 (deftest test-wait-interpolation
   (assert (send *robot* :reset-pose))
   (assert (send *ri* :angle-vector (send *robot* :angle-vector) 2000))
-  (assert (null (send *ri* :wait-interpolation)))
+  (assert (null (some #'identity (send *ri* :wait-interpolation))))
   )
 
 (deftest test-wait-interpolation-smooth
   (assert (send *robot* :reset-pose))
   (assert (send *ri* :angle-vector (send *robot* :angle-vector) 2000))
-  (assert (null (send *ri* :wait-interpolation-smooth 1000)))
+  (assert (null (some #'identity (send *ri* :wait-interpolation-smooth 1000))))
   )
 
 (deftest test-state
@@ -42,7 +42,7 @@
 (deftest test-potentio-vector
   (assert (send *robot* :reset-pose))
   (assert (send *ri* :angle-vector (send *robot* :angle-vector) 2000))
-  (assert (null (send *ri* :wait-interpolation)))
+  (assert (null (some #'identity (send *ri* :wait-interpolation))))
   (assert (< (norm (v- (send *robot* :angle-vector) (send *ri* :potentio-vector))) 10.0))
   )
 
