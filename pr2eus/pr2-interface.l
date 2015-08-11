@@ -550,7 +550,7 @@
      ))
   (:go-pos-unsafe (&rest args)
     (send* self :go-pos-unsafe-no-wait args)
-    (send self ::go-pos-unsafe-wait))
+    (send self :go-pos-unsafe-wait))
   (:go-pos-unsafe-no-wait
    (x y &optional (d 0)) ;; [m] [m] [degree]
    (ros::ros-info "go-pos-unsafe (x y d) = (~A ~A ~A)" x y d)
@@ -564,7 +564,7 @@
          (send robot :newcoords (midcoords (/ curr-tm 1000.0) orig-coords coords))
          (if viewer (send self :draw-objects))))
      (return-from :go-pos-unsafe t))
-   (let (msec step)
+   (let (msec step (maxvel 0.295) (maxrad 0.495))
      ;; package://pr2_base_trajectory_action/config/pr2_base_link.yaml
      ;; 80% of maxvel = 0.3[m/sec]
      ;; 80% of maxrad = 0.5[rad/sec]
@@ -578,6 +578,7 @@
      ))
   (:go-pos-unsafe-wait ()
    (let (x y d msec step goal (maxvel 0.295) (maxrad 0.495) (counter 0))
+     (if (null go-pos-unsafe-goal-msg) (return-from :go-pos-unsafe-wait nil))
      (while (< counter 3) ;; magic number 3 times
        (let ((acret
               (send move-base-trajectory-action :wait-for-result)))
@@ -599,18 +600,26 @@
                d (rad2deg (elt diff-position 2)))
          (if (> d (* 360 0.8)) (setq d (- d 360)))
          (if (< d (* -360 0.8)) (setq d (+ d 360)))
+         (setq msec (* 1000 (max (/ (norm (float-vector x y)) (* maxvel 0.8))
+                                 (/ (abs (deg2rad d)) (* maxrad 0.8)))))
+         (setq msec (max msec 1000))
+         (setq step (/ 1000.0 msec))
          (ros::ros-info "                diff-pos ~A ~A, diff-angle ~A" x y d)
 
          (if (and (<= (sqrt (+ (* x x) (* y y)))  0.025)
                   (<= (abs d) 2.5) ;; 3 cm and 3deg
                   (/= counter 0))  ;; try at least 1 time
-           (return-from :go-pos-unsafe-wait nil))
+             (progn
+               (setq go-pos-unsafe-goal-msg nil) ;; go-pos-unsafe-wait has been called
+               (return-from :go-pos-unsafe-wait nil))
+           )
          (setq go-pos-unsafe-goal-msg (send self :move-trajectory (* x step) (* y step)
                                             (* (deg2rad d) step) msec :stop t))
          (send move-base-trajectory-action :send-goal go-pos-unsafe-goal-msg)
          ) ;; let
        (incf counter)
        ) ;; while
+     (setq go-pos-unsafe-goal-msg nil) ;; go-pos-unsafe-wait has been called
      t))
   ;;
   (:move-trajectory-sequence
