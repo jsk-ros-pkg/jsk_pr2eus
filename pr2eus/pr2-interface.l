@@ -565,7 +565,7 @@
            ((> curr-tm 1000))
          (send robot :newcoords (midcoords (/ curr-tm 1000.0) orig-coords coords))
          (if viewer (send self :draw-objects))))
-     (return-from :go-pos-unsafe t))
+     (return-from :go-pos-unsafe-no-wait t))
    (let (msec step (maxvel 0.295) (maxrad 0.495))
      ;; package://pr2_base_trajectory_action/config/pr2_base_link.yaml
      ;; 80% of maxvel = 0.3[m/sec]
