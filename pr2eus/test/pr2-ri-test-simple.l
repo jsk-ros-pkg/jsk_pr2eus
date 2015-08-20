@@ -48,6 +48,19 @@
     (assert (eps= tm 1.0))
     ))
 
+;; https://github.com/jsk-ros-pkg/jsk_pr2eus/pull/165#discussion_r37421484
+(deftest test-go-pos
+  (let ()
+    (setq *ri* (instance pr2-interface :init))
+    (send *ri* :go-pos 1 0 0)
+    (send *ri* :go-pos 0 1 90)
+    (send *ri* :go-pos-no-wait -1 1 -90)
+    (send *ri* :go-wait)
+    (assert (eps-v= (send (send *ri* :worldcoords ) :worldpos) #f(0 0 0)))
+    ))
+
+
+;; https://github.com/jsk-ros-pkg/jsk_pr2eus/pull/143
 (defclass pr2-interface-wrong
   :super pr2-interface)
 (defmethod pr2-interface-wrong
