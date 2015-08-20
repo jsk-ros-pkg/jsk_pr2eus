@@ -387,14 +387,15 @@
        (send* self :move-to-wait args)))
   (:move-to-send
    (coords &key (frame-id "/world") (wait-for-server-timeout 5) (count 0) &allow-other-keys)
+   (setq move-base-goal-msg (instance move_base_msgs::MoveBaseActionGoal :init))
+   (setq move-base-goal-coords coords)
    (if (send self :simulation-modep)
        (let ((orig-coords (send robot :copy-worldcoords)))
-         (setq current-goal-coords (send coords :transform robot :world)))) ;; for simulation-callback
+         (setq current-goal-coords (send coords :transform robot :world)) ;; for simulation-callback
+         (return-from :move-to-send)))
    (let (ret (count 0) (tm (ros::time-now))
 	     (map-to-frame (send *tfl* :lookup-transform "/map" frame-id (ros::time 0))))
      ;; store in slot variable for :move-to-wait
-     (setq move-base-goal-msg (instance move_base_msgs::MoveBaseActionGoal :init))
-     (setq move-base-goal-coords coords)
      (setq move-base-goal-map-to-frame map-to-frame)
      ;;
      (when (not (send move-base-action :wait-for-server wait-for-server-timeout))
