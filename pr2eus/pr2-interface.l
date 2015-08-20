@@ -398,7 +398,7 @@
      (setq move-base-goal-map-to-frame map-to-frame)
      ;;
      (when (not (send move-base-action :wait-for-server wait-for-server-timeout))
-       (return-from :move-to))
+       (return-from :move-to-send))
      ;;
      (send move-base-goal-msg :header :stamp tm)
      (send move-base-goal-msg :goal :target_pose :header :stamp tm)
@@ -421,11 +421,11 @@
    (let (ret (count 0) (tm (ros::time-now))
 	     (map-to-frame move-base-goal-map-to-frame)
              (coords move-base-goal-coords))
-     (if (send self :simulation-modep)
+     (when (send self :simulation-modep)
          ;; wait for-result
          (while current-goal-coords
            (send self :robot-interface-simulation-callback))
-         (return-from :move-to-no-wait t)) ;; simlation-modep
+         (return-from :move-to-wait t)) ;; simlation-modep
      (if (null move-base-goal-msg) (return-from :move-to-wait nil))
      (while (and (null ret) (<= count retry))
        (when (> count 0) ;; retry
