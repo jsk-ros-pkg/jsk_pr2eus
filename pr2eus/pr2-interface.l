@@ -390,8 +390,11 @@
    (setq move-base-goal-msg (instance move_base_msgs::MoveBaseActionGoal :init))
    (setq move-base-goal-coords coords)
    (if (send self :simulation-modep)
-       (let ((orig-coords (send robot :copy-worldcoords)))
-         (setq current-goal-coords (send coords :transform robot :world)) ;; for simulation-callback
+       (let ()
+         (cond ((equal frame-id "/base_footprint")
+                (setq current-goal-coords (send coords :transform robot :world))) ;; for simulation-callback
+               (t
+                (setq current-goal-coords (send coords :copy-worldcoords)))) ;; for simulation-callback
          (return-from :move-to-send)))
    (let (ret (count 0) (tm (ros::time-now))
 	     (map-to-frame (send *tfl* :lookup-transform "/map" frame-id (ros::time 0))))
