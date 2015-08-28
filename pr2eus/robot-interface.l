@@ -160,8 +160,8 @@
            (setq viewer (instance x::irtviewer :create :title (format nil "~A Kinematics Simulator" (send robot :name)) :view-name (send robot :name) :draw-floor t)))
          (send viewer :objects (list robot))
          (send self :draw-objects)
-         (send self :objects objs)
          (if old-viewer (setq user::*viewer* old-viewer)))
+       (send self :objects objs)
        (ros::advertise (cond
                         (pub-joint-states-topic pub-joint-states-topic)
                         (namespace
