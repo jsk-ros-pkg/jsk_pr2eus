@@ -50,6 +50,19 @@
   (assert (send *ri* :worldcoords))
   )
 
+(deftest test-objects
+  (load "models/room610-scene.l")
+  (room610)
+  (setq *ri* (instance sample-robot-interface :init :objects (send *room610* :objects)))
+  (assert (send *ri* :objects) "robot-interface :objects")
+  )
+
+;; this should be run in the last
+(deftest test-objects-no-display
+  (setq x::*display* nil)
+  (setq *ri* (instance sample-robot-interface :init :objects (send *room610* :objects)))
+  (assert (send *ri* :objects) "robot-interface :objects")
+  )
 
 (run-all-tests)
 (exit)
