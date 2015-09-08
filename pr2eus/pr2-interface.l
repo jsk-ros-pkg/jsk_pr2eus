@@ -1006,7 +1006,7 @@ send-action [ send message to action server, it means robot will move ]"
     (send req :config :doubles
 	  (list (instance dynamic_reconfigure::DoubleParameter :init
 			  :name "inflation_radius" :value range)))
-    (ros::service-call "/move_base_node/local_costmap/set_parameters" req)
+    (ros::service-call "/move_base_node/local_costmap/inflation/set_parameters" req)
     ))
 
 ;; do not use tilt laser
