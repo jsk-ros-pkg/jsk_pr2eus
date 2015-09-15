@@ -617,7 +617,7 @@
                   (/= counter 0))  ;; try at least 1 time
              (progn
                (setq go-pos-unsafe-goal-msg nil) ;; go-pos-unsafe-wait has been called
-               (return-from :go-pos-unsafe-wait nil))
+               (return-from :go-pos-unsafe-wait t))
            )
          (setq go-pos-unsafe-goal-msg (send self :move-trajectory (* x step) (* y step)
                                             (* (deg2rad d) step) msec :stop t))
