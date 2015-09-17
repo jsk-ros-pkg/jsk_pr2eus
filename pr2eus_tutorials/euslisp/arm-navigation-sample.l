@@ -60,7 +60,7 @@
 ")
 
 (defun demo-init ()
-  (pr2-init)
+  (init-robot "pr2")
   ;;(setq *plan-env* (instance arm_planning_environment :init :robot (instance pr2-robot :init)))
   (setq *plan-env* (instance pr2torso_arm_planning_environment :init :robot (instance pr2-robot :init)))
   (send *ri* :arm-planning-environment *plan-env*)

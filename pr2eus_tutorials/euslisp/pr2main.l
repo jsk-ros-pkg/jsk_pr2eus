@@ -1,7 +1,7 @@
 #!/usr/bin/env roseus
 (load "package://pr2eus/pr2-interface.l")
 
-(ros::roseus "pr2_main")
+(robot-init "pr2")
 
 (defmethod pr2-robot
   (:initial-pose ()
@@ -41,6 +41,6 @@
   (if wait (send *ri* :wait-interpolation)))
 
 (warn "
-(pr2-init)
+(robot-init \"pr2\")
 (goto-init-pose)
 ")

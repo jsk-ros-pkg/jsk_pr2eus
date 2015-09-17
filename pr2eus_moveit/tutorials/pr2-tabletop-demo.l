@@ -5,7 +5,7 @@
 
 ;;(setq *ri* (instance pr2-interface :init))
 ;;(pr2)
-(pr2-init)
+(robot-init "pr2")
 (send *ri* :set-moveit-environment (instance moveit-environment :init))
 
 (defun go-to-default-pose ()

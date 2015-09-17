@@ -3,7 +3,7 @@
 
 (init-unit-test)
 
-(pr2-init)
+(robot-init "pr2")
 
 (deftest test-angle-vector
   (let (av0 av1 av2)

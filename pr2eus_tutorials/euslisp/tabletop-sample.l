@@ -15,7 +15,7 @@
                 #'detect-callback)
 
 ;; initialize PR2 ROS-euslisp interface
-(pr2-init t)
+(robot-init "pr2")
 ;; goto initial pose
 (goto-init-pose)
 (send *irtviewer* :draw-objects)
