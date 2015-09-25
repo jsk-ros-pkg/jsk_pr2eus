@@ -826,15 +826,15 @@
    "move robot toward x, y, degree and wait to reach that goal. return t if reached or nil if fail
     the robot moves relative to current position.
     using [m] and [degree] is historical reason from original hrpsys code"
-   (warn "subclass's responsibility for (send ~s :go-pos)~%" self))
+   (error "subclass's responsibility for (send ~s :go-pos)~%" self))
   (:go-pos-no-wait
    (x y &optional (d 0)) ;; [m] [m] [degree]
    "no-wait version of :go-pos. this function is always assumed to return t"
-   (warn "subclass's responsibility for (send ~s :go-pos-no-wait)~%" self))
+   (error "subclass's responsibility for (send ~s :go-pos-no-wait)~%" self))
   (:go-wait
    ()
    "wait until :go-pos-no-wait reached to the goal, return t if reached or nil if fail"
-   (warn "subclass's responsibility for (send ~s :go-wait)~%" self))
+   (error "subclass's responsibility for (send ~s :go-wait)~%" self))
   (:go-velocity
    (x y d ;; [m/sec] [m/sec] [rad/sec]
     &optional (msec 1000) ;; msec is total animation time [msec]
@@ -842,11 +842,11 @@
    "move robot at given speed for given msec.
     if stop is t, robot stops after msec, use wait t for blocking call
     return nil if aborted while waiting by enabling :wait, otherwise return t"
-   (warn "subclass's responsibility for (send ~s :go-velocity)~%" self))
+   (error "subclass's responsibility for (send ~s :go-velocity)~%" self))
   (:go-stop
    ()
    "stop go-velocity. return t if robot successfly stops, otherwise return nil"
-   (warn "subclass's responsibility for (send ~s :stop)~%" self))
+   (error "subclass's responsibility for (send ~s :stop)~%" self))
   ) ;; robot-interface
 ;; ros visualization methods
 (defmethod robot-interface
