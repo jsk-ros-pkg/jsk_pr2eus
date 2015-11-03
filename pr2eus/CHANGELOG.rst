@@ -2,6 +2,70 @@
 Changelog for package pr2eus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Bug Fixes
+
+  * [robot-interface.l] change-inflation-range to use new service name (https://github.com/jsk-ros-pkg/jsk_pr2eus/pull/169)
+  * :interpolating-smoothp not working (https://github.com/jsk-ros-pkg/jsk_pr2eus/pull/158)
+
+    * [pr2eus/robot-interface] fix to work :wait-interpolation-smooth  (https://github.com/jsk-ros-pkg/jsk_pr2eus/pull/159)
+    * test/default-ri-test.l: add test code for :wait-interpolation-smooth,
+    * mv default-ri-test.launch-> default-ri-test.test, and add to CMakeLists.txt
+
+
+* Add :go-* prototype functions  (https://github.com/jsk-ros-pkg/jsk_pr2eus/pull/164, https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/171)
+
+  * robot-interface.l: use error instead of warn for :go-* prototype  functions (https://github.com/jsk-ros-pkg/jsk_pr2eus/pull/163)
+  * [pr2eus/pr2-interface.l] fix return value of `:go-pos-unsafe-wait` along with (https://github.com/jsk-ros-pkg/jsk_pr2eus/pull/164)
+  * [pr2eus/robot-inferface.l] clarify return value policy (https://github.com/k-okada/jsk_pr2eus/pull/5)
+  * [pr2eus] fix go-pos-unsafe
+  * pr2-interface.l: add :go-pos-unsafe, :go-pos-unsafe-no-wait, :go-pos-unsafe-wait
+  * robot-interface.l: add go-* function prototype
+  * pr2-interface.l : addk go-pos-no-wait and go-wait
+
+* Support go-pos-no-wait in simulation mode
+
+  * Display objects in simulationp (https://github.com/jsk-ros-pkg/jsk_pr2eus/pull/168)
+
+    *   [robot-interface.l]: (send self :objects objs) should call even in simulationp
+    *   [test/default-ri-test.l] add test for :objects methods
+
+  * Fix :move-to in sim mode (check frame-I'd) add test for :move-to (https://github.com/jsk-ros-pkg/jsk_pr2eus/pull/167)
+
+    * [pr2-interface.l] move to relative to current position only if frame-id argument is /base_footprint
+    * [test/pr2-ri-test-simple.l] add test for move-to
+
+  * Support move-to-no-wait in simplationp (https://github.com/jsk-ros-pkg/jsk_pr2eus/pull/165)
+
+   * [pr2-interface.l] :move-to-send , for simulation mode, do not try to call :lookup-transform
+   * [pr2-interface.l] fix typo : if -> when, return-from :move-to -> return-from :move-to-send, https://github.com/jsk-ros-pkg/jsk_pr2eus/pull/165#discussion_r37421484
+   * [test/pr2-ri-test-simple.l] add test for go-pos, go-pos-no-wait, go-wait
+   * [pr2eus/pr2eus/pr2-interface.l] fix typo (short modify) @h-kamada
+   * test/test-ri-test.l: :wait-interpolation retuns a list of :interpolationg
+   * pr2-interface : support timer-based motion for :move-to
+   * more realistic simulation mode
+
+* use default pr2_description (https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/149)
+
+  * [pr2eus] change pr2 camera frame namespace from /openni to  /kinect_head (https://github.com/jsk-ros-pkg/jsk_pr2eus/pull/153)
+
+* Other New Features
+
+  * [pr2eus/robot-interface.l] add method :find-object to  robot-interface and test code (https://github.com/jsk-ros-pkg/jsk_pr2eus/pull/180)
+
+* Misc Updates
+
+  * [pr2eus/CMakeLists.txt]: remove old groovy codes
+  * [pr2eus/speak.l] refactor speak.l (https://github.com/jsk-ros-pkg/jsk_pr2eus/pull/176)
+    - super easy to read code
+    - support wait and timeout for every speaking
+    - support multi language with google engine
+  * pass additional-weight-list when calling super class method (https://github.com/jsk-ros-pkg/jsk_pr2eus/pull/148)
+  * [pr2ues/robot-interface.l] check length of avs and tms in  :angle-vector-sequence; add test code (https://github.com/jsk-ros-pkg/jsk_pr2eus/pull/151)
+
+* Contributors: Kamada Hitoshi, Kei Okada, Masaki Murooka, Yuki Furuta, Yuto Inagaki
+
 0.1.11 (2015-06-11)
 -------------------
 * [pr2eus] Print warning message if controller-timeout is nil in robot-interface
