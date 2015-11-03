@@ -2,8 +2,8 @@
 Changelog for package pr2eus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.2.0 (2015-11-03)
+------------------
 * Bug Fixes
 
   * [robot-interface.l] change-inflation-range to use new service name (https://github.com/jsk-ros-pkg/jsk_pr2eus/pull/169)
