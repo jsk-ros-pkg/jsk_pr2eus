@@ -783,6 +783,11 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
      (send viewer :look-all (send (geo::make-bounding-box (flatten (send-all (x::draw-things robot) :vertices))) :grow 0.3))
      (send viewer :draw-objects)
      (x::window-main-one)))
+  (:find-object (name-or-obj) "Returns objects with given name or object of the same name."
+   (let ((name (if (derivedp name-or-obj cascaded-link) (send name-or-obj :name) name-or-obj)))
+     (append
+      (mapcan #'(lambda (x) (if (derivedp x scene-model) (send x :find-object name) nil)) objects)
+      (mapcan #'(lambda (x) (if (string= name (send x :name)) (list x))) objects))))
   ;;
   (:joint-action-enable (&optional (e :dummy)) (if (not (eq e :dummy)) (setq joint-action-enable e)) joint-action-enable)
   (:simulation-modep () "Check if simulation mode" (null joint-action-enable))
