@@ -1,0 +1,11 @@
+<launch>
+  <test test-name="speak_test_node" pkg="roseus" type="roseus"
+        args="$(find pr2eus)/test/speak-test.l" time-limit="1800" />
+  <node pkg="sound_play" type="soundplay_node.py" name="sound_play">
+    <remap from="sound_play" to="robotsound" />
+  </node>
+  <node pkg="sound_play" type="soundplay_node.py" name="sound_node_jp">
+    <remap from="robotsound" to="robotsound_jp" />
+    <remap from="sound_play" to="robotsound_jp" />
+  </node>
+</launch>
