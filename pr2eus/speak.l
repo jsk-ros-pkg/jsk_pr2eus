@@ -4,17 +4,24 @@
 (ros::load-ros-manifest "sound_play")
 
 (defun send-speak-msg (msg &key (topic-name "robotsound") (timeout 0) wait)
-  (let ((ac (instance ros::simple-action-client :init
-                      topic-name sound_play::SoundRequestAction :groupname "speak"))
-        (goal (instance sound_play::SoundRequestActionGoal :init)))
-    (unless (send ac :wait-for-server timeout)
-      (ros::ros-error "action server /~A is not found. sound_play node is not alive?" topic-name)
-      (return-from send-speak-msg nil))
-    (send goal :goal :sound_request msg)
-    (send ac :send-goal goal)
-    (if wait
-        (send ac :wait-for-result :timeout timeout)
-        t)))
+  (if (boundp 'sound_play::soundrequestaction)
+      (let ((ac (instance ros::simple-action-client :init
+                          topic-name sound_play::SoundRequestAction :groupname "speak"))
+            (goal (instance sound_play::SoundRequestActionGoal :init)))
+        (unless (send ac :wait-for-server timeout)
+          (ros::ros-error "action server /~A is not found. sound_play node is not alive?" topic-name)
+          (return-from send-speak-msg nil))
+        (send goal :goal :sound_request msg)
+        (send ac :send-goal goal)
+        (if wait
+            (send ac :wait-for-result :timeout timeout) t))
+    ;; for backward compatibility
+    (progn
+      (unless (ros::get-topic-publisher topic-name)
+        (ros::advertise topic-name sound_play::SoundRequest 5)
+        (unix:sleep 1))
+      (ros::publish topic-name msg)
+      t)))
 
 (defun speak-google (str &key (lang :ja) wait (topic-name "robotsound") (timeout 20))
   (let* ((qstr (escaped-url-string-from-namestring
