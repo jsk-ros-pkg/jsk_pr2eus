@@ -735,6 +735,9 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
       (send robot :angle-vector))
      (:torque-vector
       (send robot :torque-vector))
+     (:effort-vector
+      (map float-vector #'(lambda (j) (send j :joint-torque))
+           (send robot :joint-list)))
      (:worldcoords
       (send *tfl* :lookup-transform (or (cadr args) "/map") "/base_footprint" (ros::time)))
      (t
