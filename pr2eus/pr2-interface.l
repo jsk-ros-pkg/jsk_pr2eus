@@ -124,7 +124,7 @@
                                  (if (derivedp x rotational-joint) 0.05 0.001)))
                   (send robot :joint-list))
        (return)))
-   (send-super :wait-interpolatingp ctype))
+   (send-all controller-actions :interpolatingp))
   ;;
   ;;
   (:larm-controller
