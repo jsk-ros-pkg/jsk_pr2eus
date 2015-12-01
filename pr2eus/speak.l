@@ -3,7 +3,9 @@
 
 (ros::load-ros-manifest "sound_play")
 
-(defun send-speak-msg (msg &key (topic-name "robotsound") (timeout 0) wait)
+(defparameter *speak-wait* nil)
+
+(defun send-speak-msg (msg &key (topic-name "robotsound") (timeout 0) (wait *speak-wait*))
   (if (boundp 'sound_play::soundrequestaction)
       (let ((ac (instance ros::simple-action-client :init
                           topic-name sound_play::SoundRequestAction :groupname "speak"))
@@ -23,7 +25,7 @@
       (ros::publish topic-name msg)
       t)))
 
-(defun speak-google (str &key (lang :ja) wait (topic-name "robotsound") (timeout 20))
+(defun speak-google (str &key (lang :ja) (wait *speak-wait*) (topic-name "robotsound") (timeout 20))
   (let* ((qstr (escaped-url-string-from-namestring
                 (concatenate string
                              "http://translate.google.com/translate_tts?tl="
@@ -38,7 +40,7 @@
                     :wait wait
                     :timeout timeout)))
 
-(defun speak-jp (str &key wait google (topic-name "robotsound_jp") (timeout 20))
+(defun speak-jp (str &key google (wait *speak-wait*) (topic-name "robotsound_jp") (timeout 20))
   (when google
       (return-from speak-jp
         (speak-google str :lang :ja :wait wait :timeout timeout)))
@@ -52,7 +54,7 @@
    :wait wait
    :timeout timeout))
 
-(defun speak-en (str &key wait google (topic-name "robotsound") (timeout 20))
+(defun speak-en (str &key google (wait *speak-wait*) (topic-name "robotsound") (timeout 20))
   (when google
     (return-from speak-en
             (speak-google str :lang :en :wait wait :timeout timeout)))
