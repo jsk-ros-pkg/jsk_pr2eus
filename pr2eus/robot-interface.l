@@ -778,9 +778,10 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
                 (send viewer :objects (append (list robot) objects))
                 (send self :draw-objects)))
 	    objects)
-  (:draw-objects ()
+  (:draw-objects (&key (look-all t))
    (when viewer
-     (send viewer :look-all (send (geo::make-bounding-box (flatten (send-all (x::draw-things robot) :vertices))) :grow 0.3))
+     (when look-all
+       (send viewer :look-all (send (geo::make-bounding-box (flatten (send-all (x::draw-things robot) :vertices))) :grow 0.3)))
      (send viewer :draw-objects)
      (x::window-main-one)))
   (:find-object (name-or-obj) "Returns objects with given name or object of the same name."
