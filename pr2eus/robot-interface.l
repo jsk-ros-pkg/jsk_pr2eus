@@ -76,7 +76,7 @@
   :slots (robot objects robot-state joint-action-enable warningp
                 controller-type controller-actions controller-timeout
                 namespace controller-table ;; hashtable :type -> (action)
-                visualization-topic
+                visualization-topic simulation-default-look-all-p
                 joint-states-topic pub-joint-states-topic
                 viewer groupname)
   :documentation "robot-interface is object for interacting real robot thorugh JointTrajectoryAction servers and JointState topics, this function uses old nervous-style interface for histrical reason. If JointTrajectoryAcion serve is not found, this instance runs as simulation mode, see \"Kinematics Simulator\" view as simulatied robot,
@@ -95,6 +95,7 @@
           ((:publish-joint-states-topic pjst) nil)
           ((:controller-timeout ct) 3)
           ((:visuzlization-marker-topic vmt) "robot_interface_marker_array")
+          ((:simulation-look-all sim-look-all) t)
           &allow-other-keys)
    "Create robot interface
 - robot : class name of robot
@@ -169,6 +170,7 @@
                         (t joint-states-topic))
                        sensor_msgs::JointState)
        (setq *top-selector-interval* 0.01)
+       (setq simulation-default-look-all-p sim-look-all)
        (pushnew `(lambda () (send ,self :robot-interface-simulation-callback)) *timer-job*) ;; FIXME need to remove old one
        (print *timer-job*)
        ))
@@ -778,9 +780,12 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
                 (send viewer :objects (append (list robot) objects))
                 (send self :draw-objects)))
 	    objects)
-  (:draw-objects ()
+  (:set-simulation-default-look-at (look-at-p)
+   (setq simulation-default-look-all-p look-at-p))
+  (:draw-objects (&key look-all)
    (when viewer
-     (send viewer :look-all (send (geo::make-bounding-box (flatten (send-all (x::draw-things robot) :vertices))) :grow 0.3))
+     (when (or simulation-default-look-all-p look-all)
+       (send viewer :look-all (send (geo::make-bounding-box (flatten (send-all (x::draw-things robot) :vertices))) :grow 0.3)))
      (send viewer :draw-objects)
      (x::window-main-one)))
   (:find-object (name-or-obj) "Returns objects with given name or object of the same name."
