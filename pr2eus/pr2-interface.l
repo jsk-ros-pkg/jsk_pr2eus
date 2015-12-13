@@ -62,6 +62,10 @@
                    #'send self :pr2-fingertip-callback :rarm-pressure :groupname groupname)
    (ros::subscribe "/pressure/l_gripper_motor" pr2_msgs::PressureState
                    #'send self :pr2-fingertip-callback :larm-pressure :groupname groupname)
+   (ros::subscribe "/r_gripper_sensor_controller/state" pr2_controllers_msgs::JointControllerState
+                   #'send self :pr2-gripper-state-callback :rarm :groupname groupname)
+   (ros::subscribe "/l_gripper_sensor_controller/state" pr2_controllers_msgs::JointControllerState
+                   #'send self :pr2-gripper-state-callback :larm :groupname groupname)
    ;;
    (setq r-gripper-action (instance ros::simple-action-client :init
                                     "/r_gripper_controller/gripper_action"
@@ -242,6 +246,19 @@
        (send client :send-goal goal))
      (if wait (send-all clients :wait-for-result))
      ))
+  (:gripper (&rest args)
+   (when (eq (car args) :arms)
+     (return-from :gripper
+       (mapcar #'(lambda (x)
+                   (send self :gripper x (cadr args)))
+               '(:larm :rarm))))
+   (unless (memq (car args) '(:larm :rarm))
+     (error "you must specify arm ~A from ~A" (car args) '(:larm :rarm))
+     (return-from :gripper nil))
+   (send self :state
+         (intern
+          (format nil "~A-~A" (string (car args)) (string (cadr args)))
+          *keyword-package*)))
   (:start-grasp
    (&optional (arm :arms) &key ((:gain g) 0.01) ((:objects objs) objects))
    (send self :move-gripper arm 0.0 :effort (* 2000 g) :wait t)
@@ -308,6 +325,14 @@
 	 (send robot arm :end-coords :dissoc obj))))
    t)
   ;;
+  (:pr2-gripper-state-callback
+   (arm msg)
+   (dolist (i (list
+               (cons (format nil "~A-POSITION" (string arm))
+                     (* 1000.0 (send msg :process_value)))
+               (cons (format nil "~A-VELOCITY" (string arm))
+                     (* 1000.0 (/ (send msg :process_value_dot) (send msg :time_step))))))
+     (send self :set-robot-state1 (intern (car i) *keyword-package*) (cdr i))))
   (:pr2-fingertip-callback
    (arm msg) ;; arm = :(r|l)arm-pressure
    (let ((pressure (list (send msg :l_finger_tip) (send msg :r_finger_tip))))
