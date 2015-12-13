@@ -742,6 +742,8 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
            (send robot :joint-list)))
      (:worldcoords
       (send *tfl* :lookup-transform (or (cadr args) "/map") "/base_footprint" (ros::time)))
+     (:gripper
+      (send self :gripper (cdr args)))
      (t
       (let ((mm (find (car args) (remove-if-not #'(lambda (x) (substringp "-VECTOR" (string x))) (send self :methods)))))
         (if mm ;; if xx-vector method exists
@@ -903,6 +905,10 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
    ()
    "stop go-velocity. return t if robot successfly stops, otherwise return nil"
    (error "subclass's responsibility for (send ~s :stop)~%" self))
+  (:gripper
+   (&rest args)
+   "get information about gripper"
+   (error "This method is responsible to sub class~%"))
   ) ;; robot-interface
 ;; ros visualization methods
 (defmethod robot-interface
