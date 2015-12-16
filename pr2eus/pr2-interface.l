@@ -247,6 +247,11 @@
      (if wait (send-all clients :wait-for-result))
      ))
   (:gripper (&rest args)
+   "get information of gripper
+Arguments:
+ - arm (:larm :rarm :arms)
+ - type (:position :velocity :pressure)
+Example: (send self :gripper :rarm :position) => 0.00"
    (when (eq (car args) :arms)
      (return-from :gripper
        (mapcar #'(lambda (x)
