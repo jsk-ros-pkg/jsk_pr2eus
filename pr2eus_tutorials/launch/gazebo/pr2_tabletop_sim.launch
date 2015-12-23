@@ -3,7 +3,7 @@
   <arg name="use_arm_navigation" default="true" />
 
   <!-- env name="ROBOT" value="sim"/ -->
-  <include file="$(find pr2eus_tutorials)/launch/pr2_gazebo_objects.launch" >
+  <include file="$(find pr2eus_tutorials)/launch/gazebo/pr2_gazebo_objects.launch" >
     <arg name="run_rviz" value="false" />
     <arg name="table_x_pos" value="0.16" />
   </include>
@@ -22,7 +22,7 @@
 
   <node if="$(arg run_rviz)"
         pkg="rviz" name="pr2_rviz" type="rviz"
-        args="-d $(find pr2eus_tutorials)/launch/pr2_tabletop_sim.vcg" />
+        args="-d $(find pr2eus_tutorials)/config/pr2_tabletop_sim.vcg" />
 
   <!--include if="$(arg use_arm_navigation)"
            file="$(find pr2jsk_arm_navigation_with_torso)/pr2jsk_arm_navigation.launch" /-->

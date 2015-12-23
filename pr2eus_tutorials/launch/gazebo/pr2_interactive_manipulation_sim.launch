@@ -1,6 +1,6 @@
 <launch>
   <!-- env name="ROBOT" value="sim"/ -->
-  <include file="$(find pr2eus_tutorials)/launch/pr2_gazebo_objects.launch" >
+  <include file="$(find pr2eus_tutorials)/launch/gazebo/pr2_gazebo_objects.launch" >
     <arg name="run_rviz" value="false" />
   </include>
 
