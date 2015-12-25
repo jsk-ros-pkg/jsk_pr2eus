@@ -535,7 +535,10 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
    t)
   ;;
   (:worldcoords () "Returns world coords of robot, This method uses caced data" (send robot :copy-worldcoords))
-  (:torque-vector () "Return torque vector of robot, This method uses caced data" (send robot :torque-vector))
+  (:torque-vector
+   ()
+   "Return torque vector of robot, This method uses caced data"
+   (coerce (send-all (send robot :joint-list) :joint-torque) float-vector))
   (:potentio-vector () "Retuns current robot angle vector, This method uses caced data" (send robot :angle-vector))
   (:reference-vector () "Return reference joint angle vector, This method uread current state." (send self :state-vector :desired))
   (:actual-vector () "Returns current robot angle vector, This method read curren tstate." (send self :state-vector :actual))
@@ -736,10 +739,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
      ((:potentio-vector :angle-vector)
       (send robot :angle-vector))
      (:torque-vector
-      (send robot :torque-vector))
-     (:effort-vector
-      (map float-vector #'(lambda (j) (send j :joint-torque))
-           (send robot :joint-list)))
+      (send self :torque-vector))
      (:worldcoords
       (send *tfl* :lookup-transform (or (cadr args) "/map") "/base_footprint" (ros::time)))
      (:gripper
