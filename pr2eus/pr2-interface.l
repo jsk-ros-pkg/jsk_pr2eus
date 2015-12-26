@@ -1026,7 +1026,7 @@ send-action [ send message to action server, it means robot will move ]"
   (call-empty-service "/move_base_node/clear_costmaps"))
 
 ;; change inflation range of local costmap
-(defun change-inflation-range (&optional (range 0.55))
+(defun change-inflation-range (&optional (range 0.2))
   (let ((req (instance dynamic_reconfigure::ReconfigureRequest :init)))
     (send req :config :doubles
 	  (list (instance dynamic_reconfigure::DoubleParameter :init
