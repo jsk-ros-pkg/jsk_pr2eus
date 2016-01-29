@@ -541,6 +541,20 @@
          ))
      (setq move-base-goal-msg nil) ;; :move-to-wait has been called
      ret))
+
+  (:go-waitp
+   ()
+   (send self :spin-once) ;; update
+   (when (send self :simulation-modep)
+     (return-from :go-waitp nil)) ;; temporary
+   (cond
+    ((or
+      (equal (send move-base-action :get-state) ros::*simple-goal-state-active*)
+      (equal (send move-base-trajectory-action :get-state) ros::*simple-goal-state-active*))
+     (return-from :go-waitp t))
+    (t
+     (return-from :go-waitp nil))))
+
   (:go-pos
    (x y &optional (d 0)) ;; [m] [m] [degree]
    (let (c)

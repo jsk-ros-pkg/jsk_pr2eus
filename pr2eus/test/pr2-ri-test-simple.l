@@ -55,6 +55,7 @@
     (send *ri* :go-pos 1 0 0) ;; go-pos is relative to current position
     (send *ri* :go-pos 0 1 90)
     (send *ri* :go-pos-no-wait -1 1 -90)
+    (send *ri* :go-waitp)
     (send *ri* :go-wait)
     (assert (eps-v= (send (send *ri* :worldcoords ) :worldpos) #f(0 0 0)))
     ))
