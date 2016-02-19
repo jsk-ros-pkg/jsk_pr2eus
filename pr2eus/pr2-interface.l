@@ -260,8 +260,8 @@
           (format nil "~A-~A" (string (car args)) (string (cadr args)))
           *keyword-package*)))
   (:start-grasp
-   (&optional (arm :arms) &key ((:gain g) 0.01) ((:objects objs) objects))
-   (send self :move-gripper arm 0.0 :effort (* 2000 g) :wait t)
+   (&optional (arm :arms) &key ((:gain g) 0.01) ((:objects objs) objects) ((:wait wait) t))
+   (send self :move-gripper arm 0.0 :effort (* 2000 g) :wait wait)
    (unless joint-action-enable
      (dolist (a (if (eq arm :arms) '(:larm :rarm) (list arm)))
        (let ((grasp-convex
@@ -308,7 +308,7 @@
            (ros::ros-debug ";; :move-gripper ~A need to resend goal, position = ~A/~A, result and udpate-body differs" (send ajoint :name) (* 1000 (send aresult :position)) (send ajoint :joint-angle))
            (setq resend-goal t)))
        (incf resend-count)
-       (if resend-goal (send self :move-gripper arm 0.0 :effort (* 2000 g) :wait t)))
+       (if resend-goal (send self :move-gripper arm 0.0 :effort (* 2000 g) :wait wait)))
      (setq ret
            (case arm
              (:rarm (* 1000 (send (send r-gripper-action :get-result) :position)))
@@ -316,6 +316,34 @@
              (:arms (mapcar #'(lambda (c) (* 1000 (send (send c :get-result) :position))) (list r-gripper-action l-gripper-action)))))
      (ros::ros-debug ";; :move-gripper ~A returns ~A" (send ajoint :name) ret)
      ret))
+
+  (:get-grasp-result
+   (&optional (arm :arms))
+   (let (rres lres)
+     (send self :spin-once)
+     (when (or (eq arm :arms) (eq arm :rarm))
+       (when (eq (send r-gripper-action :get-state) actionlib_msgs::GoalStatus::*succeeded*)
+         (setq rres (send r-gripper-action :get-result)))
+       (when (eq (send r-gripper-action :get-state) actionlib_msgs::GoalStatus::*active*)
+         (send r-gripper-action :wait-for-result)
+         (setq rres (send r-gripper-action :get-result))
+         ))
+     (when (or (eq arm :arms) (eq arm :larm))
+       (when (eq (send l-gripper-action :get-state) actionlib_msgs::GoalStatus::*succeeded*)
+         (setq lres (send l-gripper-action :get-result)))
+       (when (eq (send l-gripper-action :get-state) actionlib_msgs::GoalStatus::*active*)
+         (send l-gripper-action :wait-for-result)
+         (setq lres (send l-gripper-action :get-result))
+         ))
+     (setq ret
+           (case arm
+                 (:rarm (if rres (* 1000 (send rres :position))))
+                 (:larm (if lres (* 1000 (send lres :position))))
+                 (:arms (mapcar #'(lambda (c) (if c (* 1000 (send c :position))))
+                                (list rres lres)))))
+     ret
+     ))
+
   (:stop-grasp
    (&optional (arm :arms) &key (wait nil))
    (send self :move-gripper arm 0.09 :wait wait)
