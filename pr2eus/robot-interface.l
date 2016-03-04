@@ -745,7 +745,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
      (:worldcoords
       (send *tfl* :lookup-transform (or (cadr args) "/map") "/base_footprint" (ros::time)))
      (:gripper
-      (send self :gripper (cdr args)))
+      (apply #'send self :gripper (cdr args)))
      (t
       (let ((mm (find (car args) (remove-if-not #'(lambda (x) (substringp "-VECTOR" (string x))) (send self :methods)))))
         (if mm ;; if xx-vector method exists

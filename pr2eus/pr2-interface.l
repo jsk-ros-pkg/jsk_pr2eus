@@ -55,9 +55,9 @@
                    #'send self :pr2-fingertip-callback :rarm-pressure :groupname groupname)
    (ros::subscribe "/pressure/l_gripper_motor" pr2_msgs::PressureState
                    #'send self :pr2-fingertip-callback :larm-pressure :groupname groupname)
-   (ros::subscribe "/r_gripper_sensor_controller/state" pr2_controllers_msgs::JointControllerState
+   (ros::subscribe "/r_gripper_controller/state" pr2_controllers_msgs::JointControllerState
                    #'send self :pr2-gripper-state-callback :rarm :groupname groupname)
-   (ros::subscribe "/l_gripper_sensor_controller/state" pr2_controllers_msgs::JointControllerState
+   (ros::subscribe "/l_gripper_controller/state" pr2_controllers_msgs::JointControllerState
                    #'send self :pr2-gripper-state-callback :larm :groupname groupname)
    ;;
    (setq r-gripper-action (instance ros::simple-action-client :init
