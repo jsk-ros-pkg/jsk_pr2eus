@@ -2,8 +2,8 @@
 Changelog for package pr2eus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.2.1 (2016-03-04)
+------------------
 
 * add robot-move-base-interface, which support move_base interface (`#208 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/208>`_)
 
