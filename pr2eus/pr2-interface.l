@@ -101,24 +101,18 @@
   (:publish-joint-state () ;; overwrite for pr2
    (send-super :publish-joint-state (append (send robot :joint-list) (send robot :larm :gripper :joint-list) (send robot :rarm :gripper :joint-list))))
   ;;
-  (:wait-interpolation (&rest args);; overwrite for pr2, due to some joint is stll moving after joint-trajectry-action stops
+  (:wait-interpolation (&optional (ctype) (timeout 0)) ;; overwrite for pr2, due to some joint is stll moving after joint-trajectry-action stops
    (when (send self :simulation-modep) (return-from :wait-interpolation (send-super :wait-interpolation)))
-   (let (result)
-     (ros::ros-info "wait-interpolation debug: start")
-   ;;  (setq result (send-all controller-actions :wait-for-result))
-     ;;(setq result (send-super* :wait-interpolation args))
-     (dolist (ca controller-actions)
-       (push (send ca :wait-for-result) result))
-     (ros::ros-info "wait-interpolation debug: end")
-     (setq result (reverse result))
-	 (while (ros::ok)
-	   (send self :update-robot-state)
-	   (when (every #'(lambda(x)(< (abs (send x :joint-velocity))
-				       (if (derivedp x rotational-joint) 0.05 0.001)))
-			  (send robot :joint-list))
-		 (return)))
-	 result))
-
+   (ros::ros-info "wait-interpolation debug: start")
+   (send-super :wait-interpolation ctype timeout)
+   (ros::ros-info "wait-interpolation debug: end")
+   (while (ros::ok)
+    (send self :update-robot-state)
+     (when (every #'(lambda(x)(< (abs (send x :joint-velocity))
+                                 (if (derivedp x rotational-joint) 0.05 0.001)))
+                  (send robot :joint-list))
+       (return)))
+   (send-all controller-actions :interpolatingp))
   ;;
   ;;
   (:larm-controller
