@@ -2,6 +2,45 @@
 Changelog for package pr2eus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
+* add robot-move-base-interface, which support move_base interface (`#208 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/208>`_)
+
+* [pr2eus/pr2-interface.l] default argument of change-inflation-range 0.55 -> 0.2 according with the change of default value https://github.com/jsk-ros-pkg/jsk_robot/pull/535 (`#204 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/204>`_)
+
+* add :state :gripper method (`#190 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/190>`_)
+
+  * [pr2eus/pr2-interface.l] add :state :gripper method to fetch information of gripper
+  * [pr2eus/robot-interface.l] add :gripper virtual method; :state :gripper accessor to :gripper
+
+* fix `#179 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/179>`_
+
+  * [pr2eus/robot-interface.l] add variable to change default look-all behavior on draw-objects
+  * [pr2eus/robot-interface.l] add option :look-all when :draw-objects
+
+* [pr2eus/pr2-interface.l] fix gripper method (`#201 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/201>`_)
+* [pr2eus/pr2-interface.l] add document of :gripper method (`#199 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/199>`_)
+
+* [pr2eus/robot-interface.l, pr2eus/pr2-interface.l] fix: :wait-interpolation returns :interpolatingp on real robot (`#191 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/191>`_)
+
+  * [pr2eus/pr2-interface.l] :wait-interpolation returns results of :interpolatingp of controllers on real robot
+  * [pr2eus/robot-interface.l] :wait-interpolation returns results of :interpolatingp of controllers on real robot
+
+* [pr2eus] add :go-waitp (`#196 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/196>`_)
+
+* add :effort-vector for reading effort of joint_states (`#188 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/188>`_ )
+
+  * [pr2eus/robot-interface.l] Revert https://github.com/jsk-ros-pkg/jsk_pr2eus/pull/188 and fix :torque-vector to return joint torques.
+
+* update speak command
+
+  * [speak.l] add default variable for waiting speak
+  * [speak.l] add speak backward compatibility
+  * [test/speak-test.test] add test for speak.l
+
+* Contributors: Kei Okada, Ryohei Ueda, Shunichi Nozawa, Yohei Kakiuchi, Yuki Furuta, Hitoshi Kamada
+
 0.2.0 (2015-11-03)
 ------------------
 * Bug Fixes
