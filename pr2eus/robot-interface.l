@@ -1602,18 +1602,4 @@ send-action [ send message to action server, it means robot will move ]"
           (nreverse tms))
     ))
 
-(defun make-robot-interface-from-name (name &rest args)
-  "make a robot model from string: (make-robot-model \"pr2\")"
-  (let ((klass (read-from-string (format nil "~A-interface" robot-name))))
-    (if (and (boundp klass) (subclassp (eval klass) robot-interface))
-        (instance* (eval klass) :init args)
-      (error "No such subclass of robot-interface : ~A~%" klass))))
-
-(defun init-robot-from-name (robot-name &rest args)
-  "call ${robot}-init function"
-  (apply (symbol-function
-          (intern (string-upcase (format nil "~A-init" robot-name)))) args)
-  (setq *robot* (eval (intern (string-upcase (format nil "*~A*" robot-name))))))
-
-
 (provide :robot-interface "robot-interface.l")
