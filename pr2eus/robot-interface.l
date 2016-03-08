@@ -1083,6 +1083,9 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
                      "/base_controller/joint_trajectory_action"
                      pr2_controllers_msgs::JointTrajectoryAction
                      :groupname groupname))
+     (unless (send move-base-trajectory-action :wait-for-server 3)
+       (ros::ros-warn "move-base-trajectory-action is not found")
+       (setq move-base-trajectory-action nil))
      (ros::subscribe odom-topic-name nav_msgs::Odometry
 		     #'send self :odom-callback :groupname groupname)
      ))
@@ -1334,6 +1337,9 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
 	 (send robot :newcoords (midcoords (/ curr-tm (float msec)) orig-coords coords))
 	 (if viewer (send self :draw-objects))))
      (return-from :go-velocity t))
+   (unless move-base-trajectory-action
+     (ros::ros-warn ":go-velocity is disabled. (move-base-trajectory-action is not found)")
+     (return-from :go-velocity t))
    (let ((goal (send self :move-trajectory x y d msec :stop stop)))
      (prog1
          (send move-base-trajectory-action :send-goal goal)
@@ -1355,6 +1361,9 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
          (send robot :newcoords (midcoords (/ curr-tm 1000.0) orig-coords coords))
          (if viewer (send self :draw-objects))))
      (return-from :go-pos-unsafe-no-wait t))
+   (unless move-base-trajectory-action
+     (ros::ros-warn ":go-pose-unsafe-no-wait is disabled. (move-base-trajectory-action is not found)")
+     (return-from :go-pos-unsafe-no-wait t))
    (let (msec step (maxvel 0.295) (maxrad 0.495))
      ;; package://pr2_base_trajectory_action/config/pr2_base_link.yaml
      ;; 80% of maxvel = 0.3[m/sec]
@@ -1370,6 +1379,9 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
   (:go-pos-unsafe-wait ()
    (let (x y d msec step goal (maxvel 0.295) (maxrad 0.495) (counter 0))
      (if (null go-pos-unsafe-goal-msg) (return-from :go-pos-unsafe-wait nil))
+     (unless move-base-trajectory-action
+       (ros::ros-warn ":go-pose-unsafe-wait is disabled. (move-base-trajectory-action is not found)")
+       (return-from :go-pos-unsafe-wait t))
      (while (< counter 3) ;; magic number 3 times
        (let ((acret
               (send move-base-trajectory-action :wait-for-result)))
@@ -1510,7 +1522,7 @@ send-action [ send message to action server, it means robot will move ]"
          (send msg :points (list pt1 pt2)))
        ))
      (send goal :goal :trajectory msg)
-     (when send-action
+     (when send-action and move-base-trajectory-action
        (send move-base-trajectory-action :send-goal goal)
        (let ((acret
               (send move-base-trajectory-action :wait-for-result)))
