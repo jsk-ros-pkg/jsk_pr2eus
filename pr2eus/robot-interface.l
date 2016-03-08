@@ -1064,14 +1064,17 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
   :slots (move-base-action move-base-trajectory-action
                            move-base-goal-msg move-base-goal-coords  move-base-goal-map-to-frame
 			   base-frame-id
+			   odom-topic
                            go-pos-unsafe-goal-msg
                            current-goal-coords)) ;; for simulation-callback
 (defmethod robot-move-base-interface
   (:init
    (&rest args &key
-          (move-base-action-name "move_base") ((:base-frame-id base-frame-id-name) "/base_footprint") &allow-other-keys)
+          (move-base-action-name "move_base") ((:base-frame-id base-frame-id-name) "/base_footprint")
+	  ((:odom-topic odom-topic-name) "/base_odometry/odom") &allow-other-keys)
    (prog1 (send-super* :init args)
      (setq base-frame-id base-frame-id-name)
+     (setq odom-topic odom-topic-name)
      (setq move-base-action (instance ros::simple-action-client :init
                                       move-base-action-name move_base_msgs::MoveBaseAction
                                       :groupname groupname))
@@ -1080,8 +1083,21 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
                      "/base_controller/joint_trajectory_action"
                      pr2_controllers_msgs::JointTrajectoryAction
                      :groupname groupname))
+     (ros::subscribe odom-topic-name nav_msgs::Odometry
+		     #'send self :odom-callback :groupname groupname)
      ))
   ;;
+  (:odom-callback
+   (msg)
+   (let ((parsed
+	  (list
+	   (cons :stamp (send msg :header :stamp))
+	   (cons :pose (ros::tf-pose->coords (send msg :pose :pose)))
+	   (cons :velocity (float-vector
+			    (* 1000 (send msg :twist :twist :linear :x))
+			    (* 1000 (send msg :twist :twist :linear :y))
+			    (send msg :twist :twist :angular :z))))))
+     (send self :set-robot-state1 :odom parsed)))
   ;;
   (:go-stop (&optional (force-stop t))
    (when joint-action-enable
