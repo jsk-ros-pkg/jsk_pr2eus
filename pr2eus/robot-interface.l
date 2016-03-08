@@ -742,8 +742,6 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
       (send robot :angle-vector))
      (:torque-vector
       (send self :torque-vector))
-     (:worldcoords
-      (send *tfl* :lookup-transform (or (cadr args) "/map") "/base_footprint" (ros::time)))
      (:gripper
       (apply #'send self :gripper (cdr args)))
      (t
@@ -1065,13 +1063,15 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
   :super robot-interface
   :slots (move-base-action move-base-trajectory-action
                            move-base-goal-msg move-base-goal-coords  move-base-goal-map-to-frame
+			   base-frame-id
                            go-pos-unsafe-goal-msg
                            current-goal-coords)) ;; for simulation-callback
 (defmethod robot-move-base-interface
   (:init
    (&rest args &key
-          (move-base-action-name "move_base") &allow-other-keys)
+          (move-base-action-name "move_base") ((:base-frame-id base-frame-id-name) "/base_footprint") &allow-other-keys)
    (prog1 (send-super* :init args)
+     (setq base-frame-id base-frame-id-name)
      (setq move-base-action (instance ros::simple-action-client :init
                                       move-base-action-name move_base_msgs::MoveBaseAction
                                       :groupname groupname))
@@ -1099,7 +1099,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
 	 map-to-base
 	 res
 	 plan-cds-seq)
-     (setq map-to-base (send *tfl* :lookup-transform "/map" "/base_footprint" (ros::time 0)))
+     (setq map-to-base (send *tfl* :lookup-transform "/map" base-frame-id (ros::time 0)))
      (setq map-to-frame (send *tfl* :lookup-transform "/map" start-frame-id (ros::time 0)))
      (send req :start :header :stamp)
      (send req :start :header :stamp tm)
@@ -1146,7 +1146,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
    (setq move-base-goal-coords coords)
    (if (send self :simulation-modep)
        (let ()
-         (cond ((equal frame-id "/base_footprint")
+         (cond ((equal frame-id base-frame-id)
                 (setq current-goal-coords (send coords :transform robot :world))) ;; for simulation-callback
                (t
                 (setq current-goal-coords (send coords :copy-worldcoords)))) ;; for simulation-callback
@@ -1207,17 +1207,17 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
        (let (diff diff-len current-coords lret map-goal-coords)
          ;;
          (setq map-goal-coords
-               (if (string= frame-id "/base_footprint")
+               (if (string= frame-id base-frame-id)
                    (send (send map-to-frame :copy-worldcoords) :transform (send coords :worldcoords))
                  (send (send *tfl* :lookup-transform "/map" frame-id (ros::time 0))
                        :transform (send coords :copy-worldcoords)))) ;; goal-coords in /map coordinates
-         (setq lret (send *tfl* :wait-for-transform "/map" "/base_footprint" (ros::time-now) 5))
-         (ros::ros-warn ":move-to wait-for transform /map to /base_footprint -> ~A" lret)
+         (setq lret (send *tfl* :wait-for-transform "/map" base-frame-id (ros::time-now) 5))
+         (ros::ros-warn ":move-to wait-for transform /map to ~A -> ~A" base-frame-id lret)
          (when (null lret)
-           (ros::ros-error ":move-to wait-for transform /map to /base_footprint failed")
+           (ros::ros-error ":move-to wait-for transform /map to ~A failed" base-frame-id)
            (setq move-base-goal-msg nil)
            (return-from :move-to-no-wait nil))
-         (setq current-coords (send *tfl* :lookup-transform "/map" "/base_footprint" (ros::time 0)))
+         (setq current-coords (send *tfl* :lookup-transform "/map" base-frame-id (ros::time 0)))
          (setq diff (send current-coords :transformation map-goal-coords))
          (ros::ros-warn ":move-to current-coords  ~A" current-coords)
          (ros::ros-warn "         mapgoal-coords  ~A" map-goal-coords)
@@ -1251,17 +1251,17 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
                ))
            ;;
            (setq map-goal-coords
-                 (if (string= frame-id "/base_footprint")
+                 (if (string= frame-id base-frame-id)
                      (send (send map-to-frame :copy-worldcoords) :transform (send coords :worldcoords))
                    (send (send *tfl* :lookup-transform "/map" frame-id (ros::time 0))
                          :transform (send coords :copy-worldcoords)))) ;; goal-coords in /map coordinates
-           (setq lret (send *tfl* :wait-for-transform "/map" "/base_footprint" (ros::time-now) 5))
-           (ros::ros-warn ":move-to wait-for transform /map to /base_footprint -> ~A" lret)
+           (setq lret (send *tfl* :wait-for-transform "/map" base-frame-id (ros::time-now) 5))
+           (ros::ros-warn ":move-to wait-for transform /map to ~A -> ~A" base-frame-id lret)
            (when (null lret)
-             (ros::ros-error ":move-to wait-for transform /map to /base_footprint failed")
+             (ros::ros-error ":move-to wait-for transform /map to ~A failed" base-frame-id)
              (setq move-base-goal-msg nil)
              (return-from :move-to-wait nil))
-           (setq current-coords (send *tfl* :lookup-transform "/map" "/base_footprint" (ros::time 0)))
+           (setq current-coords (send *tfl* :lookup-transform "/map" base-frame-id (ros::time 0)))
            (setq diff (send current-coords :transformation map-goal-coords))
            (ros::ros-warn ":move-to current-coords  ~A" current-coords)
            (ros::ros-warn "         mapgoal-coords  ~A" map-goal-coords)
@@ -1290,19 +1290,19 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
    (let (c)
      (setq c (make-coords :pos (float-vector (* 1000 x) (* y 1000) 0)
 			  :rpy (float-vector (deg2rad d) 0 0)))
-     (send self :move-to c :retry 1 :frame-id "/base_footprint")
+     (send self :move-to c :retry 1 :frame-id base-frame-id)
      ))
   (:go-pos-no-wait
    (x y &optional (d 0)) ;; [m] [m] [degree]
    (let (c)
      (setq c (make-coords :pos (float-vector (* 1000 x) (* y 1000) 0)
 			  :rpy (float-vector (deg2rad d) 0 0)))
-     (send self :move-to c :retry 1 :frame-id "/base_footprint" :no-wait t)
+     (send self :move-to c :retry 1 :frame-id base-frame-id :no-wait t)
      ))
   (:go-wait
    ()
    (let ()
-     (send self :move-to-wait :retry 1 :frame-id "/base_footprint" :no-wait nil)
+     (send self :move-to-wait :retry 1 :frame-id base-frame-id :no-wait nil)
      ))
   (:go-velocity
    (x y d ;; [m/sec] [m/sec] [rad/sec]
@@ -1502,6 +1502,17 @@ send-action [ send message to action server, it means robot will move ]"
          (send move-base-trajectory-action :spin-once)))
      ;;
      goal))
+  ;;
+  (:state
+   (&rest args)
+   (prog1
+       (send-super* :state args)
+     (case (car args)
+       (:worldcoords
+	(unless joint-action-enable
+	  (return-from :state (send self :worldcoords)))
+	(return-from :state (send *tfl* :lookup-transform (or (cadr args) "/map") base-frame-id (ros::time)))))))
+
   )
 
 ;;;;
