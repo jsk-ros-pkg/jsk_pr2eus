@@ -1655,4 +1655,21 @@ send-action [ send message to action server, it means robot will move ]"
   (setq *robot* (eval (intern (string-upcase (format nil "*~A*" robot-name))))))
 
 
+;;
+;; navigation-client.l
+;;
+
+;; reset local costmap and clear unknown grid around robot
+(defun clear-costmap ()
+  (call-empty-service "/move_base_node/clear_costmaps"))
+
+;; change inflation range of local costmap
+(defun change-inflation-range (&optional (range 0.2))
+  (let ((req (instance dynamic_reconfigure::ReconfigureRequest :init)))
+    (send req :config :doubles
+	  (list (instance dynamic_reconfigure::DoubleParameter :init
+			  :name "inflation_radius" :value range)))
+    (ros::service-call "/move_base_node/local_costmap/inflation/set_parameters" req)
+    ))
+
 (provide :robot-interface "robot-interface.l")

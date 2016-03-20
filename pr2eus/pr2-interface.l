@@ -580,23 +580,6 @@ Example: (send self :gripper :rarm :position) => 0.00"
     (send *ri* :wait-interpolation)
     ))
 
-;;
-;; navigation-client.l
-;;
-
-;; reset local costmap and clear unknown grid around robot
-(defun clear-costmap ()
-  (call-empty-service "/move_base_node/clear_costmaps"))
-
-;; change inflation range of local costmap
-(defun change-inflation-range (&optional (range 0.2))
-  (let ((req (instance dynamic_reconfigure::ReconfigureRequest :init)))
-    (send req :config :doubles
-	  (list (instance dynamic_reconfigure::DoubleParameter :init
-			  :name "inflation_radius" :value range)))
-    (ros::service-call "/move_base_node/local_costmap/inflation/set_parameters" req)
-    ))
-
 ;; do not use tilt laser
 (defun use-tilt-laser-obstacle-cloud (enable)
   ;; check if we have service call
