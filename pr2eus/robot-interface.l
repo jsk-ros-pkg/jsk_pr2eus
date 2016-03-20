@@ -8,6 +8,8 @@
 (ros::load-ros-manifest "control_msgs")
 ;;(ros::roseus-add-msgs "sensor_msgs") ;; roseus depends on sensor_msgs
 ;;(ros::roseus-add-msgs "visualization_msgs") ;; roseus depends on visualization_msgs
+(ros::roseus-add-msgs "move_base_msgs")
+(ros::roseus-add-msgs "nav_msgs")
 
 ;; add ros-joint-angle method using meter/radian
 (defmethod rotational-joint
@@ -76,7 +78,7 @@
   :slots (robot objects robot-state joint-action-enable warningp
                 controller-type controller-actions controller-timeout
                 namespace controller-table ;; hashtable :type -> (action)
-                visualization-topic
+                visualization-topic simulation-default-look-all-p
                 joint-states-topic pub-joint-states-topic
                 viewer groupname)
   :documentation "robot-interface is object for interacting real robot thorugh JointTrajectoryAction servers and JointState topics, this function uses old nervous-style interface for histrical reason. If JointTrajectoryAcion serve is not found, this instance runs as simulation mode, see \"Kinematics Simulator\" view as simulatied robot,
@@ -95,6 +97,7 @@
           ((:publish-joint-states-topic pjst) nil)
           ((:controller-timeout ct) 3)
           ((:visuzlization-marker-topic vmt) "robot_interface_marker_array")
+          ((:simulation-look-all sim-look-all) t)
           &allow-other-keys)
    "Create robot interface
 - robot : class name of robot
@@ -160,8 +163,8 @@
            (setq viewer (instance x::irtviewer :create :title (format nil "~A Kinematics Simulator" (send robot :name)) :view-name (send robot :name) :draw-floor t)))
          (send viewer :objects (list robot))
          (send self :draw-objects)
-         (send self :objects objs)
          (if old-viewer (setq user::*viewer* old-viewer)))
+       (send self :objects objs)
        (ros::advertise (cond
                         (pub-joint-states-topic pub-joint-states-topic)
                         (namespace
@@ -169,6 +172,7 @@
                         (t joint-states-topic))
                        sensor_msgs::JointState)
        (setq *top-selector-interval* 0.01)
+       (setq simulation-default-look-all-p sim-look-all)
        (pushnew `(lambda () (send ,self :robot-interface-simulation-callback)) *timer-job*) ;; FIXME need to remove old one
        (print *timer-job*)
        ))
@@ -476,15 +480,15 @@
 - ctype : controller to be wait
 - timeout : max time of for waiting
 - return values is a list of interpolatingp for all controllers, so (null (some #'identity (send *ri* :wait-interpolation))) -> t if all interpolation has stopped"
-   (when (send self :simulation-modep)
-     (while (some #'(lambda (a) (send a :interpolatingp)) controller-actions)
-       (send self :robot-interface-simulation-callback))
-     (return-from :wait-interpolation (send-all controller-actions :interpolatingp)))
-   (cond
-    (ctype
-     (let ((cacts (gethash ctype controller-table)))
-       (send-all cacts :wait-for-result :timeout timeout)))
-    (t (send-all controller-actions :wait-for-result :timeout timeout))))
+   (if (send self :simulation-modep)
+       (while (some #'(lambda (a) (send a :interpolatingp)) controller-actions)
+              (send self :robot-interface-simulation-callback))
+       (cond ;; real robot
+         (ctype
+          (let ((cacts (gethash ctype controller-table)))
+            (send-all cacts :wait-for-result :timeout timeout)))
+         (t (send-all controller-actions :wait-for-result :timeout timeout))))
+   (send-all controller-actions :interpolatingp))
   (:interpolatingp (&optional (ctype)) ;; controller-type ;; check someone is moving
 "Check if the last sent motion is executing
 return t if interpolating"
@@ -533,7 +537,10 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
    t)
   ;;
   (:worldcoords () "Returns world coords of robot, This method uses caced data" (send robot :copy-worldcoords))
-  (:torque-vector () "Return torque vector of robot, This method uses caced data" (send robot :torque-vector))
+  (:torque-vector
+   ()
+   "Return torque vector of robot, This method uses caced data"
+   (coerce (send-all (send robot :joint-list) :joint-torque) float-vector))
   (:potentio-vector () "Retuns current robot angle vector, This method uses caced data" (send robot :angle-vector))
   (:reference-vector () "Return reference joint angle vector, This method uread current state." (send self :state-vector :desired))
   (:actual-vector () "Returns current robot angle vector, This method read curren tstate." (send self :state-vector :actual))
@@ -734,9 +741,9 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
      ((:potentio-vector :angle-vector)
       (send robot :angle-vector))
      (:torque-vector
-      (send robot :torque-vector))
-     (:worldcoords
-      (send *tfl* :lookup-transform (or (cadr args) "/map") "/base_footprint" (ros::time)))
+      (send self :torque-vector))
+     (:gripper
+      (apply #'send self :gripper (cdr args)))
      (t
       (let ((mm (find (car args) (remove-if-not #'(lambda (x) (substringp "-VECTOR" (string x))) (send self :methods)))))
         (if mm ;; if xx-vector method exists
@@ -778,11 +785,19 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
                 (send viewer :objects (append (list robot) objects))
                 (send self :draw-objects)))
 	    objects)
-  (:draw-objects ()
+  (:set-simulation-default-look-at (look-at-p)
+   (setq simulation-default-look-all-p look-at-p))
+  (:draw-objects (&key look-all)
    (when viewer
-     (send viewer :look-all (send (geo::make-bounding-box (flatten (send-all (x::draw-things robot) :vertices))) :grow 0.3))
+     (when (or simulation-default-look-all-p look-all)
+       (send viewer :look-all (send (geo::make-bounding-box (flatten (send-all (x::draw-things robot) :vertices))) :grow 0.3)))
      (send viewer :draw-objects)
      (x::window-main-one)))
+  (:find-object (name-or-obj) "Returns objects with given name or object of the same name."
+   (let ((name (if (derivedp name-or-obj cascaded-link) (send name-or-obj :name) name-or-obj)))
+     (append
+      (mapcan #'(lambda (x) (if (derivedp x scene-model) (send x :find-object name) nil)) objects)
+      (mapcan #'(lambda (x) (if (string= name (send x :name)) (list x))) objects))))
   ;;
   (:joint-action-enable (&optional (e :dummy)) (if (not (eq e :dummy)) (setq joint-action-enable e)) joint-action-enable)
   (:simulation-modep () "Check if simulation mode" (null joint-action-enable))
@@ -863,6 +878,37 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
        (if spin-self (send self :spin-once))
        (ros::sleep)))
    t)
+  ;;
+  (:go-pos
+   (x y &optional (d 0)) ;; [m] [m] [degree]
+   "move robot toward x, y, degree and wait to reach that goal. return t if reached or nil if fail
+    the robot moves relative to current position.
+    using [m] and [degree] is historical reason from original hrpsys code"
+   (error "subclass's responsibility for (send ~s :go-pos)~%" self))
+  (:go-pos-no-wait
+   (x y &optional (d 0)) ;; [m] [m] [degree]
+   "no-wait version of :go-pos. this function is always assumed to return t"
+   (error "subclass's responsibility for (send ~s :go-pos-no-wait)~%" self))
+  (:go-wait
+   ()
+   "wait until :go-pos-no-wait reached to the goal, return t if reached or nil if fail"
+   (error "subclass's responsibility for (send ~s :go-wait)~%" self))
+  (:go-velocity
+   (x y d ;; [m/sec] [m/sec] [rad/sec]
+    &optional (msec 1000) ;; msec is total animation time [msec]
+    &key (stop t) (wait))
+   "move robot at given speed for given msec.
+    if stop is t, robot stops after msec, use wait t for blocking call
+    return nil if aborted while waiting by enabling :wait, otherwise return t"
+   (error "subclass's responsibility for (send ~s :go-velocity)~%" self))
+  (:go-stop
+   ()
+   "stop go-velocity. return t if robot successfly stops, otherwise return nil"
+   (error "subclass's responsibility for (send ~s :stop)~%" self))
+  (:gripper
+   (&rest args)
+   "get information about gripper"
+   (error "This method is responsible to sub class~%"))
   ) ;; robot-interface
 ;; ros visualization methods
 (defmethod robot-interface
@@ -1013,6 +1059,491 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
    )
   )
 ;;
+(defclass robot-move-base-interface
+  :super robot-interface
+  :slots (move-base-action move-base-trajectory-action
+                           move-base-goal-msg move-base-goal-coords  move-base-goal-map-to-frame
+			   base-frame-id
+			   odom-topic
+                           go-pos-unsafe-goal-msg
+                           current-goal-coords)) ;; for simulation-callback
+(defmethod robot-move-base-interface
+  (:init
+   (&rest args &key
+          (move-base-action-name "move_base") ((:base-frame-id base-frame-id-name) "/base_footprint")
+	  ((:odom-topic odom-topic-name) "/base_odometry/odom") &allow-other-keys)
+   (prog1 (send-super* :init args)
+     (setq base-frame-id base-frame-id-name)
+     (setq odom-topic odom-topic-name)
+     (setq move-base-action (instance ros::simple-action-client :init
+                                      move-base-action-name move_base_msgs::MoveBaseAction
+                                      :groupname groupname))
+     (setq move-base-trajectory-action
+           (instance ros::simple-action-client :init
+                     "/base_controller/joint_trajectory_action"
+                     pr2_controllers_msgs::JointTrajectoryAction
+                     :groupname groupname))
+     (unless (send move-base-trajectory-action :wait-for-server 3)
+       (ros::ros-warn "move-base-trajectory-action is not found")
+       (setq move-base-trajectory-action nil))
+     (ros::subscribe odom-topic-name nav_msgs::Odometry
+		     #'send self :odom-callback :groupname groupname)
+     ))
+  ;;
+  (:odom-callback
+   (msg)
+   (let ((parsed
+	  (list
+	   (cons :stamp (send msg :header :stamp))
+	   (cons :pose (ros::tf-pose->coords (send msg :pose :pose)))
+	   (cons :velocity (float-vector
+			    (* 1000 (send msg :twist :twist :linear :x))
+			    (* 1000 (send msg :twist :twist :linear :y))
+			    (send msg :twist :twist :angular :z))))))
+     (send self :set-robot-state1 :odom parsed)))
+  ;;
+  (:go-stop (&optional (force-stop t))
+   (when joint-action-enable
+     (send move-base-action :cancel-all-goals)
+     (prog1
+         (send move-base-trajectory-action :cancel-all-goals)
+       (if force-stop (send self :go-velocity 0 0 0)))
+     ))
+
+  (:make-plan
+   (st-cds goal-cds &key (start-frame-id "/world") (goal-frame-id "/world"))
+   (let ((req (instance nav_msgs::GetPlanRequest :init))
+	 (tm (ros::time-now))
+	 map-to-frame
+	 map-to-base
+	 res
+	 plan-cds-seq)
+     (setq map-to-base (send *tfl* :lookup-transform "/map" base-frame-id (ros::time 0)))
+     (setq map-to-frame (send *tfl* :lookup-transform "/map" start-frame-id (ros::time 0)))
+     (send req :start :header :stamp)
+     (send req :start :header :stamp tm)
+     (if map-to-frame
+	 (progn
+	   (send req :start :header :frame_id "/map")
+	   (send req :start :pose (ros::coords->tf-pose (send (send st-cds :copy-worldcoords) :transform map-to-frame :world))))
+       (progn
+	   (send req :start :header :frame_id frame-id)
+	   (send req :start :pose (ros::coords->tf-pose st-cds))))
+     (setq map-to-frame (send *tfl* :lookup-transform "/map" goal-frame-id (ros::time 0)))
+     (send req :goal :header :stamp tm)
+     (if map-to-frame
+	 (progn
+	   (send req :goal :header :frame_id "/map")
+	   (send req :goal :pose (ros::coords->tf-pose (send (send goal-cds :copy-worldcoords) :transform map-to-frame :world))))
+       (progn
+	 (send req :start :header :frame_id frame-id)
+	 (send req :start :pose (ros::coords->tf-pose st-cds))))
+
+     (setq res (ros::service-call "/move_base_node/make_plan" req))
+     (unless (send res :plan :poses)
+       (return-from :make-plan nil))
+     (setq plan-cds-seq (mapcar #'(lambda (p-stamped)
+				    (let ((cds (ros::tf-pose->coords (send p-stamped :pose))))
+				      (if map-to-base
+					  (progn
+					    (send cds :transform (send map-to-base :inverse-transformation) :world)
+					;;(send cds :transform (send *pr2* :copy-worldcoords) :world))
+					    )
+					cds)))
+				(send res :plan :poses)))
+     plan-cds-seq))
+  ;;
+  ;;
+  (:move-to
+   (coords &rest args &key (no-wait nil) &allow-other-keys)
+   (send* self :move-to-send coords args)
+   (if (not no-wait)
+       (send* self :move-to-wait args)))
+  (:move-to-send
+   (coords &key (frame-id "/world") (wait-for-server-timeout 5) (count 0) &allow-other-keys)
+   (setq move-base-goal-msg (instance move_base_msgs::MoveBaseActionGoal :init))
+   (setq move-base-goal-coords coords)
+   (if (send self :simulation-modep)
+       (let ()
+         (cond ((equal frame-id base-frame-id)
+                (setq current-goal-coords (send coords :transform robot :world))) ;; for simulation-callback
+               (t
+                (setq current-goal-coords (send coords :copy-worldcoords)))) ;; for simulation-callback
+         (return-from :move-to-send)))
+   (let (ret (count 0) (tm (ros::time-now))
+	     (map-to-frame (send *tfl* :lookup-transform "/map" frame-id (ros::time 0))))
+     ;; store in slot variable for :move-to-wait
+     (setq move-base-goal-map-to-frame map-to-frame)
+     ;;
+     (when (not (send move-base-action :wait-for-server wait-for-server-timeout))
+       (return-from :move-to-send))
+     ;;
+     (send move-base-goal-msg :header :stamp tm)
+     (send move-base-goal-msg :goal :target_pose :header :stamp tm)
+     (if map-to-frame
+	 (progn
+	   (send move-base-goal-msg :goal :target_pose :header :frame_id "/map")
+	   (send move-base-goal-msg :goal :target_pose :pose
+		 (ros::coords->tf-pose (send (send coords :copy-worldcoords) :transform map-to-frame :world))))
+       (progn ;; fail to find "/map" to frame_id
+	   (send move-base-goal-msg :goal :target_pose :header :frame_id frame-id)
+	   (send move-base-goal-msg :goal :target_pose :pose (ros::coords->tf-pose coords))
+	 ))
+     (send move-base-goal-msg :header :seq count)
+     (send move-base-goal-msg :goal :target_pose :header :seq count)
+     (ros::ros-info "move-to : send-goal to ~A at ~A (~d)" (ros::tf-point->pos (send move-base-goal-msg :goal :target_pose :pose :position)) (send move-base-goal-msg :goal :target_pose :header :frame_id) count)
+     (send move-base-action :send-goal move-base-goal-msg)
+     move-base-goal-msg))
+  (:move-to-wait
+   (&rest args &key (retry 10) (frame-id "/world") &allow-other-keys)
+   (let (ret (count 0) (tm (ros::time-now))
+	     (map-to-frame move-base-goal-map-to-frame)
+             (coords move-base-goal-coords))
+     (when (send self :simulation-modep)
+         ;; wait for-result
+         (while current-goal-coords
+           (send self :robot-interface-simulation-callback))
+         (return-from :move-to-wait t)) ;; simlation-modep
+     (if (null move-base-goal-msg) (return-from :move-to-wait nil))
+     (while (and (null ret) (<= count retry))
+       (when (> count 0) ;; retry
+         (clear-costmap)
+         (send move-base-goal-msg :header :seq count)
+         (send move-base-goal-msg :goal :target_pose :header :seq count)
+         (ros::ros-info "move-to : send-goal to ~A at ~A (~d)" (ros::tf-point->pos (send move-base-goal-msg :goal :target_pose :pose :position)) (send move-base-goal-msg :goal :target_pose :header :frame_id) count)
+         (send move-base-action :send-goal move-base-goal-msg))
+       (send move-base-action :wait-for-result)
+       (when (eq (send move-base-action :get-state)
+                 actionlib_msgs::GoalStatus::*preempted*)
+         (setq ret nil)
+         (return))
+       (if (eq (send move-base-action :get-state) actionlib_msgs::GoalStatus::*succeeded*)
+           (setq ret t))
+       (incf count))
+     (ros::ros-info "move-to : ~A" (if ret 'succeeded 'failed))
+     ;;
+     (when ret
+       (let (diff diff-len current-coords lret map-goal-coords)
+         ;;
+         (setq map-goal-coords
+               (if (string= frame-id base-frame-id)
+                   (send (send map-to-frame :copy-worldcoords) :transform (send coords :worldcoords))
+                 (send (send *tfl* :lookup-transform "/map" frame-id (ros::time 0))
+                       :transform (send coords :copy-worldcoords)))) ;; goal-coords in /map coordinates
+         (setq lret (send *tfl* :wait-for-transform "/map" base-frame-id (ros::time-now) 5))
+         (ros::ros-warn ":move-to wait-for transform /map to ~A -> ~A" base-frame-id lret)
+         (when (null lret)
+           (ros::ros-error ":move-to wait-for transform /map to ~A failed" base-frame-id)
+           (setq move-base-goal-msg nil)
+           (return-from :move-to-no-wait nil))
+         (setq current-coords (send *tfl* :lookup-transform "/map" base-frame-id (ros::time 0)))
+         (setq diff (send current-coords :transformation map-goal-coords))
+         (ros::ros-warn ":move-to current-coords  ~A" current-coords)
+         (ros::ros-warn "         mapgoal-coords  ~A" map-goal-coords)
+         (ros::ros-warn "          error-coords   ~A" diff)
+         (ros::ros-warn "         target-coords   ~A" coords)
+         ;;
+         (dotimes (i 2)
+           (if (< (setq diff-len (norm (subseq (send diff :worldpos) 0 2))) 200) ;; move_base thre = 200mm
+               (let* ((msec (* diff-len 10))
+                      (x (/ (elt (send diff :worldpos) 0) msec))
+                      (y (/ (elt (send diff :worldpos) 1) msec))
+                      (d (/ (elt (car (rpy-angle (send diff :worldrot))) 0) (/ msec 1000))))
+                 (ros::ros-warn ":move-to -> :go-velocity x:~A y:~A d:~A msec:~A" x y d msec)
+                 (unix:usleep (* 400 1000)) ;; 400ms ???
+                 (let ((acret (send self :go-velocity x y d msec :wait t)))
+                   (unless acret
+                     (setq move-base-goal-msg nil)
+                     (return-from :move-to-wait nil)))
+                 ;;(unix::usleep (* (round msec) 1000)) ;; why time wait
+                 )
+             (progn
+               (ros::ros-error "too far from goal position ~A mm (> 200mm)" diff-len)
+	       ;; move-to suceeded buf away from 200 mm
+	       (ros::ros-error ":move-to try to send /move_base_simple/goal")
+	       (ros::advertise "/move_base_simple/goal" geometry_msgs::PoseStamped 1)
+	       (send move-base-goal-msg :goal :target_pose :header :seq (1+ count))
+	       (ros::publish "/move_base_simple/goal" (send move-base-goal-msg :goal :target_pose))
+	       (unix:sleep 3)
+               (setq move-base-goal-msg nil)
+               (return-from :move-to-wait nil)
+               ))
+           ;;
+           (setq map-goal-coords
+                 (if (string= frame-id base-frame-id)
+                     (send (send map-to-frame :copy-worldcoords) :transform (send coords :worldcoords))
+                   (send (send *tfl* :lookup-transform "/map" frame-id (ros::time 0))
+                         :transform (send coords :copy-worldcoords)))) ;; goal-coords in /map coordinates
+           (setq lret (send *tfl* :wait-for-transform "/map" base-frame-id (ros::time-now) 5))
+           (ros::ros-warn ":move-to wait-for transform /map to ~A -> ~A" base-frame-id lret)
+           (when (null lret)
+             (ros::ros-error ":move-to wait-for transform /map to ~A failed" base-frame-id)
+             (setq move-base-goal-msg nil)
+             (return-from :move-to-wait nil))
+           (setq current-coords (send *tfl* :lookup-transform "/map" base-frame-id (ros::time 0)))
+           (setq diff (send current-coords :transformation map-goal-coords))
+           (ros::ros-warn ":move-to current-coords  ~A" current-coords)
+           (ros::ros-warn "         mapgoal-coords  ~A" map-goal-coords)
+           (ros::ros-warn "          error-coords   ~A" diff)
+           (ros::ros-warn "         target-coords   ~A" coords)
+           ) ;;  (do (i 2)
+         ))
+     (setq move-base-goal-msg nil) ;; :move-to-wait has been called
+     ret))
+
+  (:go-waitp
+   ()
+   (send self :spin-once) ;; update
+   (when (send self :simulation-modep)
+     (return-from :go-waitp nil)) ;; temporary
+   (cond
+    ((or
+      (equal (send move-base-action :get-state) ros::*simple-goal-state-active*)
+      (equal (send move-base-trajectory-action :get-state) ros::*simple-goal-state-active*))
+     (return-from :go-waitp t))
+    (t
+     (return-from :go-waitp nil))))
+
+  (:go-pos
+   (x y &optional (d 0)) ;; [m] [m] [degree]
+   (let (c)
+     (setq c (make-coords :pos (float-vector (* 1000 x) (* y 1000) 0)
+			  :rpy (float-vector (deg2rad d) 0 0)))
+     (send self :move-to c :retry 1 :frame-id base-frame-id)
+     ))
+  (:go-pos-no-wait
+   (x y &optional (d 0)) ;; [m] [m] [degree]
+   (let (c)
+     (setq c (make-coords :pos (float-vector (* 1000 x) (* y 1000) 0)
+			  :rpy (float-vector (deg2rad d) 0 0)))
+     (send self :move-to c :retry 1 :frame-id base-frame-id :no-wait t)
+     ))
+  (:go-wait
+   ()
+   (let ()
+     (send self :move-to-wait :retry 1 :frame-id base-frame-id :no-wait nil)
+     ))
+  (:go-velocity
+   (x y d ;; [m/sec] [m/sec] [rad/sec]
+    &optional (msec 1000) ;; msec is total animation time [msec]
+    &key (stop t) (wait))
+   (unless joint-action-enable
+     (let ((orig-coords (send robot :copy-worldcoords))
+	   (coords (send robot :copy-worldcoords)))
+       (send coords :translate (float-vector (* x msec) (* y msec) 0)) ;; [m/sec] * [msec] = [mm]
+       (send coords :rotate (deg2rad (/ (* d msec) 1000.0)) :z) ;; [rad/sec] * [msec] / 1000 = [rad]->(deg2rad)->[deg]
+       (do ((curr-tm 0.0 (+ curr-tm 100.0)))
+	   ((> curr-tm msec))
+	 (send robot :newcoords (midcoords (/ curr-tm (float msec)) orig-coords coords))
+	 (if viewer (send self :draw-objects))))
+     (return-from :go-velocity t))
+   (unless move-base-trajectory-action
+     (ros::ros-warn ":go-velocity is disabled. (move-base-trajectory-action is not found)")
+     (return-from :go-velocity t))
+   (let ((goal (send self :move-trajectory x y d msec :stop stop)))
+     (prog1
+         (send move-base-trajectory-action :send-goal goal)
+       (if wait (send move-base-trajectory-action :wait-for-result)))
+     ))
+  (:go-pos-unsafe (&rest args)
+    (send* self :go-pos-unsafe-no-wait args)
+    (send self :go-pos-unsafe-wait))
+  (:go-pos-unsafe-no-wait
+   (x y &optional (d 0)) ;; [m] [m] [degree]
+   (ros::ros-info "go-pos-unsafe (x y d) = (~A ~A ~A)" x y d)
+   (unless joint-action-enable
+     (let ((orig-coords (send robot :copy-worldcoords))
+           (coords (send robot :copy-worldcoords)))
+       (send coords :translate (float-vector (* x 1000) (* y 1000) 0))
+       (send coords :rotate (deg2rad d) :z)
+       (do ((curr-tm 0.0 (+ curr-tm 100.0)))
+           ((> curr-tm 1000))
+         (send robot :newcoords (midcoords (/ curr-tm 1000.0) orig-coords coords))
+         (if viewer (send self :draw-objects))))
+     (return-from :go-pos-unsafe-no-wait t))
+   (unless move-base-trajectory-action
+     (ros::ros-warn ":go-pose-unsafe-no-wait is disabled. (move-base-trajectory-action is not found)")
+     (return-from :go-pos-unsafe-no-wait t))
+   (let (msec step (maxvel 0.295) (maxrad 0.495))
+     ;; package://pr2_base_trajectory_action/config/pr2_base_link.yaml
+     ;; 80% of maxvel = 0.3[m/sec]
+     ;; 80% of maxrad = 0.5[rad/sec]
+     (setq msec (* 1000 (max (/ (norm (float-vector x y)) (* maxvel 0.8))
+                             (/ (abs (deg2rad d)) (* maxrad 0.8)))))
+     (setq msec (max msec 1000))
+     (setq step (/ 1000.0 msec))
+     (setq go-pos-unsafe-goal-msg (send self :move-trajectory (* x step) (* y step)
+                                        (* (deg2rad d) step) msec :stop t))
+     (send move-base-trajectory-action :send-goal go-pos-unsafe-goal-msg)
+     ))
+  (:go-pos-unsafe-wait ()
+   (let (x y d msec step goal (maxvel 0.295) (maxrad 0.495) (counter 0))
+     (if (null go-pos-unsafe-goal-msg) (return-from :go-pos-unsafe-wait nil))
+     (unless move-base-trajectory-action
+       (ros::ros-warn ":go-pose-unsafe-wait is disabled. (move-base-trajectory-action is not found)")
+       (return-from :go-pos-unsafe-wait t))
+     (while (< counter 3) ;; magic number 3 times
+       (let ((acret
+              (send move-base-trajectory-action :wait-for-result)))
+         (unless acret
+           (return-from :go-pos-unsafe-wait nil))
+         (send move-base-trajectory-action :spin-once))
+       (send self :spin-once)
+       (send self :spin-once)
+       (let ((goal-position (send (elt (send go-pos-unsafe-goal-msg :goal :trajectory :points) 1) :positions)) ;; goal
+             (odom-pos (scale 0.001 (send (send self :state :odom :pose) :pos)))
+             (odom-angle (elt (car (send (send self :state :odom :pose) :rpy-angle)) 0))
+             diff-position v)
+         (setq diff-position (v- goal-position (v+ odom-pos (float-vector 0 0 odom-angle))))
+         (setq v (v- (rotate-vector (float-vector (elt diff-position 0) (elt diff-position 1) 0)
+                                    (- odom-angle) :z)
+                     (float-vector 0 0 odom-angle)))
+         (setq x (elt v 0)
+               y (elt v 1)
+               d (rad2deg (elt diff-position 2)))
+         (if (> d (* 360 0.8)) (setq d (- d 360)))
+         (if (< d (* -360 0.8)) (setq d (+ d 360)))
+         (setq msec (* 1000 (max (/ (norm (float-vector x y)) (* maxvel 0.8))
+                                 (/ (abs (deg2rad d)) (* maxrad 0.8)))))
+         (setq msec (max msec 1000))
+         (setq step (/ 1000.0 msec))
+         (ros::ros-info "                diff-pos ~A ~A, diff-angle ~A" x y d)
+
+         (if (and (<= (sqrt (+ (* x x) (* y y)))  0.025)
+                  (<= (abs d) 2.5) ;; 3 cm and 3deg
+                  (/= counter 0))  ;; try at least 1 time
+             (progn
+               (setq go-pos-unsafe-goal-msg nil) ;; go-pos-unsafe-wait has been called
+               (return-from :go-pos-unsafe-wait t))
+           )
+         (setq go-pos-unsafe-goal-msg (send self :move-trajectory (* x step) (* y step)
+                                            (* (deg2rad d) step) msec :stop t))
+         (send move-base-trajectory-action :send-goal go-pos-unsafe-goal-msg)
+         ) ;; let
+       (incf counter)
+       ) ;; while
+     (setq go-pos-unsafe-goal-msg nil) ;; go-pos-unsafe-wait has been called
+     t))
+  ;;
+  (:move-trajectory-sequence
+   (trajectory-points time-list &key (stop t) (start-time) (send-action nil))
+   "trajectory-points [ list of #f(x y d) ] time-list [list of time span]
+stop [ stop after msec moveing ]
+start-time [ robot will move at start-time ]
+send-action [ send message to action server, it means robot will move ]"
+   (send self :move-trajectory trajectory-points time-list nil nil
+         :stop stop :start-time start-time :send-action send-action))
+  (:move-trajectory
+   (x y d &optional (msec 1000) &key (stop t) (start-time) (send-action nil))
+" x [m/sec] y [m/sec] d [rad/sec] msec [milli second]
+stop [ stop after msec moveing ]
+start-time [ robot will move at start-time ]
+send-action [ send message to action server, it means robot will move ]"
+   (send self :spin-once)
+   (let ((odom-cds (send self :state :odom :pose))
+         (msg (instance trajectory_msgs::JointTrajectory :init))
+         (goal (instance pr2_controllers_msgs::JointTrajectoryActionGoal :init)))
+     (cond
+      ((numberp start-time)
+       (send msg :header :stamp (ros::time+ (ros::time-now) (ros::time start-time))))
+      (start-time (send msg :header :stamp start-time))
+      (t (send msg :header :stamp (ros::time-now))))
+     (send msg :joint_names (list "base_link_x" "base_link_y" "base_link_pan"))
+     (cond
+      ((and (listp x) (listp y))
+       (let ((traj-lst
+              (mapcar #'(lambda (vec)
+                          (send
+                           (make-coords :pos (float-vector (elt vec 0) (elt vec 1) 0)
+                                        :rpy (list (elt vec 2) 0 0))
+                           :transform odom-cds :world)) x))
+             (cur-cds (send odom-cds :copy-worldcoords))
+             (cur-time 0)
+             nxt-cds nxt-time ret)
+         (pprint traj-lst)
+         (setq nxt-cds  (pop traj-lst)
+               nxt-time (pop y))
+         (while nxt-cds
+           (let* ((vr (send cur-cds :transformation nxt-cds))
+                  (vp (send cur-cds :rotate-vector (send vr :pos))))
+             (push
+              (instance trajectory_msgs::JointTrajectoryPoint :init
+                        :positions (float-vector
+                                    (/ (elt (send cur-cds :pos) 0) 1000)
+                                    (/ (elt (send cur-cds :pos) 1) 1000)
+                                    (caar (send cur-cds :rpy-angle)))
+                        :velocities (float-vector
+                                     (/ (elt vp 0) nxt-time)
+                                     (/ (elt vp 1) nxt-time)
+                                     (/ (caar (send vr :rpy-angle)) nxt-time 0.001))
+                        :time_from_start (ros::time cur-time))
+              ret))
+           (incf cur-time (/ nxt-time 1000.0))
+           (setq cur-cds  nxt-cds
+                 nxt-cds  (pop traj-lst)
+                 nxt-time (pop y))
+           ) ;; (while nxt-cds
+         (push ;; push last point
+          (instance trajectory_msgs::JointTrajectoryPoint :init
+                    :positions (float-vector
+                                (/ (elt (send cur-cds :pos) 0) 1000)
+                                (/ (elt (send cur-cds :pos) 1) 1000)
+                                (caar (send cur-cds :rpy-angle)))
+                    :velocities (if stop (float-vector 0 0 0)
+                                  (send (car ret) :velocities))
+                    :time_from_start (ros::time cur-time))
+          ret)
+         (send msg :points (nreverse ret))
+         ))
+      (t
+       (let ((sec (/ msec 1000.0))
+             (odom-angle (elt (car (send odom-cds :rpy-angle)) 0))
+             (odom-pos (scale 0.001 (send odom-cds :pos)))
+             (pt1 (instance trajectory_msgs::JointTrajectoryPoint :init))
+             (pt2 (instance trajectory_msgs::JointTrajectoryPoint :init)))
+         (send pt1 :time_from_start (ros::time))
+         (send pt2 :time_from_start (ros::time sec))
+         (send pt1 :positions (v+ odom-pos
+                                  (float-vector 0 0 odom-angle)))
+         (send pt2 :positions (v+ (v+ odom-pos
+                                      (float-vector 0 0 (+ odom-angle (* sec d))))
+                                  (rotate-vector (scale sec (float-vector x y 0))
+                                                 odom-angle :z)))
+         (send pt1 :velocities (rotate-vector (float-vector x y d) odom-angle :z))
+         (if stop
+             (send pt2 :velocities (float-vector 0 0 0)) ;; To stop just
+           (send pt2 :velocities (rotate-vector (float-vector x y d) odom-angle :z)))
+
+         (ros::ros-debug "move-trajectory (x y d msec) = (~A ~A ~A ~A)" (* sec x) (* sec y) (* sec d) msec)
+         (ros::ros-debug "                odom-pos ~A, odom-angle ~A" odom-pos odom-angle)
+         (ros::ros-debug "                pt1 ~A" (send pt1 :positions))
+         (ros::ros-debug "                pt2 ~A" (send pt2 :positions))
+         ;;
+         (send msg :points (list pt1 pt2)))
+       ))
+     (send goal :goal :trajectory msg)
+     (when send-action and move-base-trajectory-action
+       (send move-base-trajectory-action :send-goal goal)
+       (let ((acret
+              (send move-base-trajectory-action :wait-for-result)))
+         (unless acret (return-from :move-trajectory nil))
+         (send move-base-trajectory-action :spin-once)))
+     ;;
+     goal))
+  ;;
+  (:state
+   (&rest args)
+   (prog1
+       (send-super* :state args)
+     (case (car args)
+       (:worldcoords
+	(unless joint-action-enable
+	  (return-from :state (send self :worldcoords)))
+	(return-from :state (send *tfl* :lookup-transform (or (cadr args) "/map") base-frame-id (ros::time)))))))
+
+  )
+
+;;;;
 (defclass ros-interface
   :super robot-interface
   :slots ())
@@ -1123,5 +1654,26 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
           (intern (string-upcase (format nil "~A-init" robot-name)))) args)
   (setq *robot* (eval (intern (string-upcase (format nil "*~A*" robot-name))))))
 
+
+;;
+;; navigation-client.l
+;;
+
+(defun clear-costmap (&key (node-name "/move_base_node"))
+  "reset local costmap and clear unknown grid around robot"
+  (call-empty-service (format nil "/~A/clear_costmaps" node-name)))
+
+(defun change-inflation-range (&optional (range 0.2)
+                                         &key (node-name "/move_base_node")
+                                              (costmap-name "local_costmap")
+                                              (inflation-name "inflation")
+                                         )
+  "change inflation range of local costmap"
+  (let ((req (instance dynamic_reconfigure::ReconfigureRequest :init)))
+    (send req :config :doubles
+          (list (instance dynamic_reconfigure::DoubleParameter :init
+                          :name "inflation_radius" :value range)))
+    (ros::service-call (format nil "~A/~A/~A/set_parameters" node-name costmap-name inflation-name) req)
+    ))
 
 (provide :robot-interface "robot-interface.l")
