@@ -2,6 +2,20 @@
 Changelog for package pr2eus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
+* add robot-move-base-interface class
+
+  * [robot-interface.l] fix clear-costmap/change-inflation-range to support different move_base node name
+  * [robot-interface.l,pr2-interface.l] move clear-costmap and hcange-inflation-range from pr2-interface.l to robot-interface.l
+  * [robot-interface.l] check if move-base-trajectory-action is available
+  * [robot-interface.l,pr2-interface.l] move odom-callback to robot-move-base-interface class
+  * [robot-interface.l] enable to set base_footprint name
+  * [test/pr2-ri-test-simple.l] add test for move-to
+
+* Contributors: Kei Okada
+
 0.2.1 (2016-03-04)
 ------------------
 
