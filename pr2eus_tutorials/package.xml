@@ -16,17 +16,14 @@
 
   <!-- Dependencies needed to compile this package. -->
   <build_depend>pr2eus</build_depend>
-  <build_depend>pr2_gazebo</build_depend>
   <build_depend>jsk_pcl_ros</build_depend>
 
   <!-- Dependencies needed after this package is compiled. -->
   <run_depend>pr2eus</run_depend>
-  <run_depend>pr2_gazebo</run_depend>
   <run_depend>jsk_pcl_ros</run_depend>
 
   <!-- Dependencies needed only for running tests. -->
   <!-- <test_depend>roseus</test_depend> -->
-  <!-- <test_depend>pr2_gazebo</test_depend> -->
   <!-- <test_depend>pr2_interactive_manipulation</test_depend> -->
 
 </package>
