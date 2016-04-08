@@ -37,7 +37,7 @@
 
   <!-- openni -->
   <group if="$(arg launch_openni)">
-    <include file="$(find pr2eus_tutorials)/launch/gazebo_image_relay.launch"/>
+    <include file="$(find pr2eus_tutorials)/launch/gazebo/gazebo_image_relay.launch"/>
     <include file="$(find jsk_pr2_startup)/jsk_pr2_sensors/kinect_head.launch" >
       <arg name="launch_openni" value="false"/>
     </include>

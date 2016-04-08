@@ -6,9 +6,9 @@
 
   <node if="$(arg run_rviz)"
         pkg="rviz" name="pr2_rviz" type="rviz"
-        args="-d $(find pr2eus_tutorials)/launch/pr2_planning.vcg" />
+        args="-d $(find pr2eus_tutorials)/config/pr2_planning.vcg" />
 
-  <include file="$(find pr2eus_tutorials)/launch/spawn_objects.launch" />
+  <include file="$(find pr2eus_tutorials)/launch/gazebo/spawn_objects.launch" />
 
   <node pkg="pr2eus_tutorials" name="start_tilt_laser" type="start_laser.py" />
 </launch>

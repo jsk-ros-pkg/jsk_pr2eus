@@ -7,7 +7,7 @@
 
   <node if="$(arg RUN_RVIZ)"
         pkg="rviz" name="pr2_rviz" type="rviz"
-        args="-d $(find pr2eus_tutorials)/launch/pr2_planning.rviz" />
+        args="-d $(find pr2eus_tutorials)/config/pr2_planning.rviz" />
 
   <include if="$(arg LAUNCH_NAVI)"
            file="$(find pr2_2dnav)/pr2_2dnav.launch" />
