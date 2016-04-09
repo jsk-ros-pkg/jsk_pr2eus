@@ -10,6 +10,6 @@
 
   <node if="$(arg run_rviz)"
         pkg="rviz" name="pr2_rviz" type="rviz"
-        args="-d $(find pr2eus_tutorials)/config/tabletop.rviz" />
+        args="-d $(find pr2eus_tutorials)/config/pr2_tabletop.rviz" />
 
 </launch>
