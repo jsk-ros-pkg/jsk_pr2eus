@@ -1,3 +1,33 @@
+# pr2eus_tutorials
+
+This is a repository for tutorials of pr2eus
+
+## Demos
+
+### PR2 Tabletop Object Detection
+
+#### Real robot
+
+```bash
+# on PR2 real robot
+roslaunch pr2eus_tutorials pr2_tabletop.launch
+```
+
+#### Simulation
+
+```bash
+# on local machine
+rosrun pr2eus_tutorials pr2_tabletop_sim.sh # PLEASE NOTE NOT `roslaunch` BUT `rosrun`!
+```
+
+In sample code, pr2 brings up detected object.
+
+```bash
+rosrun pr2eus_tutorials pr2-tabletop-sample.l
+```
+
+![pr2_tabletop_sim](https://gist.githubusercontent.com/furushchev/b3f3bb08953407966f80f4b0ac70c7dd/raw/pr2_tabletop_screen.png)
+
 ## Reach Object Demo
 ### Reach Object Demo with PR2
 
