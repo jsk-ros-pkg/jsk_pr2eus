@@ -10,4 +10,7 @@ install(DIRECTORY euslisp launch scripts
   USE_SOURCE_PERMISSIONS
   )
 
-
+if(CATKIN_ENABLE_TESTING)
+  find_package(rostest REQUIRED)
+  add_rostest(test/test_pr2_tabletop_sim.test)
+endif()
