@@ -1,0 +1,15 @@
+<launch>
+  <arg name="run_rviz" default="true" />
+  <arg name="gui" default="true" />
+
+  <!-- load scenario in gazebo -->
+  <include file="$(find jsk_pr2_startup)/pr2_gazebo.launch">
+    <arg name="gui" value="$(arg gui)" />
+    <arg name="launch_pr2" value="false" />
+  </include>
+  <include file="$(find pr2eus_tutorials)/launch/gazebo/spawn_objects.launch" />
+
+  <include file="$(find pr2eus_tutorials)/launch/pr2_tabletop_grasp.launch">
+    <arg name="run_rviz" value="$(arg run_rviz)" />
+  </include>
+</launch>
