@@ -8,7 +8,7 @@ Panels:
         - /Status1
         - /TF1/Frames1
       Splitter Ratio: 0.5
-    Tree Height: 1467
+    Tree Height: 1495
   - Class: rviz/Selection
     Name: Selection
   - Class: rviz/Tool Properties
@@ -680,14 +680,18 @@ Visualization Manager:
           Value: false
         r_wrist_roll_link:
           Value: false
+        segmentation_decomposeroutput00:
+          Value: true
+        segmentation_decomposeroutput01:
+          Value: true
+        segmentation_decomposeroutput02:
+          Value: true
+        segmentation_decomposeroutput03:
+          Value: true
+        segmentation_decomposeroutput04:
+          Value: true
         sensor_mount_link:
           Value: false
-        table:
-          Value: true
-        tabletop_object1:
-          Value: true
-        tabletop_object2:
-          Value: true
         torso_lift_link:
           Value: false
         torso_lift_motor_screw_link:
@@ -736,11 +740,6 @@ Visualization Manager:
                 {}
               fr_caster_r_wheel_link:
                 {}
-            table:
-              tabletop_object1:
-                {}
-              tabletop_object2:
-                {}
             torso_lift_link:
               head_pan_link:
                 head_tilt_link:
@@ -751,7 +750,16 @@ Visualization Manager:
                           {}
                         head_mount_kinect_rgb_link:
                           head_mount_kinect_rgb_optical_frame:
-                            {}
+                            segmentation_decomposeroutput00:
+                              {}
+                            segmentation_decomposeroutput01:
+                              {}
+                            segmentation_decomposeroutput02:
+                              {}
+                            segmentation_decomposeroutput03:
+                              {}
+                            segmentation_decomposeroutput04:
+                              {}
                       head_mount_prosilica_link:
                         head_mount_prosilica_optical_frame:
                           {}
@@ -884,26 +892,61 @@ Visualization Manager:
       Use Fixed Frame: true
       Use rainbow: true
       Value: true
-    - Class: rviz/MarkerArray
+    - Class: jsk_rviz_plugin/BoundingBoxArray
       Enabled: true
-      Marker Topic: /tabletop_detection_marker_array
       Name: Tabletop Objects
-      Namespaces:
-        "": true
-      Queue Size: 100
+      Topic: /segmentation_decomposer/boxes
+      Unreliable: false
       Value: true
-    - Class: rviz/Marker
+      alpha: 0.8
+      color: 25; 255; 0
+      coloring: Auto
+      line width: 0.005
+      only edge: false
+      show coords: true
+    - Alpha: 1
+      Class: jsk_rviz_plugin/PolygonArray
+      Color: 25; 255; 0
       Enabled: true
-      Marker Topic: /tabletop_segmentation_markers
-      Name: Segmented Table
-      Namespaces:
-        tabletop_node: true
-      Queue Size: 100
+      Name: Tables
+      Topic: /multi_plane_estimate/output_refined_polygon
+      Unreliable: false
       Value: true
+      coloring: Auto
+      normal length: 0.1
+      only border: true
+      show normal: true
+    - Class: rviz/InteractiveMarkers
+      Enable Transparency: true
+      Enabled: true
+      Name: TabletopObjectsInteractiveMarkers
+      Show Axes: false
+      Show Descriptions: true
+      Show Visual Aids: false
+      Update Topic: /bounding_box_interactive_marker/update
+      Value: true
+    - Background Alpha: 0.8
+      Background Color: 0; 0; 0
+      Class: jsk_rviz_plugin/OverlayText
+      Enabled: true
+      Foreground Alpha: 0.8
+      Foreground Color: 25; 255; 240
+      Name: Grasp Status
+      Overtake Color Properties: false
+      Overtake Position Properties: false
+      Topic: /tabletop_object_grasp_status
+      Value: true
+      font: DejaVu Sans Mono
+      height: 128
+      left: 0
+      line width: 2
+      text size: 12
+      top: 0
+      width: 128
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
-    Fixed Frame: base_link
+    Fixed Frame: base_footprint
     Frame Rate: 30
   Name: root
   Tools:
@@ -936,18 +979,18 @@ Visualization Manager:
         Z: 0.06337
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.874797
+      Pitch: 0.6598
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 5.47358
+      Yaw: 1.89858
     Saved: ~
 Window Geometry:
   Displays:
     collapsed: false
-  Height: 1748
+  Height: 1776
   Hide Left Dock: false
   Hide Right Dock: false
-  QMainWindow State: 000000ff00000000fd00000004000000000000016a0000064afc0200000008fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000006400fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c00610079007301000000280000064a000000dd00fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261000000010000010f0000064afc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a0056006900650077007300000000280000064a000000b000fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000005860000003efc0100000002fb0000000800540069006d0065010000000000000586000002f600fffffffb0000000800540069006d00650100000000000004500000000000000000000004160000064a00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd00000004000000000000016a00000666fc0200000008fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000006400fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000002800000666000000dd00fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261000000010000010f0000064afc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a0056006900650077007300000000280000064a000000b000fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e1000001970000000300000b0d0000003efc0100000002fb0000000800540069006d0065010000000000000b0d000002f600fffffffb0000000800540069006d006501000000000000045000000000000000000000099d0000066600000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Time:
@@ -956,6 +999,6 @@ Window Geometry:
     collapsed: false
   Views:
     collapsed: false
-  Width: 1414
-  X: 41
-  Y: 14
+  Width: 2829
+  X: 51
+  Y: 24
