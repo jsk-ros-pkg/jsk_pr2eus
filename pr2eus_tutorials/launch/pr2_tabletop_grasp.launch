@@ -1,0 +1,26 @@
+<launch>
+  <arg name="run_rviz" default="false" />
+  <arg name="manager" default="pr2_tabletop_object_detector_nodelet_manager"/>
+  <arg name="machine" default="c2" />
+
+  <include file="$(find pr2_machine)/$(env ROBOT).machine" />
+
+  <include file="$(find jsk_pcl_ros)/sample/tabletop_object_detector.launch">
+    <arg name="input" value="/kinect_head_c2/depth_registered/points_throttle" />
+    <arg name="sensor_frame" value="/head_mount_kinect_rgb_optical_frame" />
+    <arg name="manager" value="$(arg manager)" />
+    <arg name="machine" value="$(arg machine)" />
+    <arg name="launch_openni" value="false" />
+    <arg name="launch_tracking" value="true" />
+    <arg name="launch_rviz" value="false" />
+    <arg name="publish_tf" value="false" />
+  </include>
+
+  <node name="pr2_interactive_object_grasp_node" pkg="roseus" type="roseus"
+        args="$(find pr2eus_tutorials)/euslisp/pr2-tabletop-object-grasp.l"
+        output="screen" />
+
+  <node if="$(arg run_rviz)"
+        pkg="rviz" name="pr2_rviz" type="rviz"
+        args="-d $(find pr2eus_tutorials)/config/pr2_tabletop.rviz" />
+</launch>

@@ -22,6 +22,8 @@
   <run_depend>pr2eus</run_depend>
   <run_depend>roseus_tutorials</run_depend>
   <run_depend>jsk_pcl_ros</run_depend>
+  <run_depend>jsk_recognition_msgs</run_depend>
+  <run_depend>jsk_rviz_plugins</run_depend>
 
   <!-- Dependencies needed only for running tests. -->
   <test_depend>rostest</test_depend>
