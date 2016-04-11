@@ -19,19 +19,17 @@
   (send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
   (send *ri* :wait-interpolation)
 
-  (unix:sleep 3)
-
-  (setq base->ball (send *tfl* :lookup-transform "/base_footprint" "/tabletop_object1" (ros::time 0)))
-  (setq base->beer (send *tfl* :lookup-transform "/base_footprint" "/tabletop_object2" (ros::time 0)))
-  (setq base->cylinder (send *tfl* :lookup-transform "/base_footprint" "/tabletop_object3" (ros::time 0)))
-
-  (ros::ros-info "base->ball: ~A" base->ball)
-  (ros::ros-info "base->beer: ~A" base->beer)
-  (ros::ros-info "base->cylinder: ~A" base->cylinder)
-
-  (assert base->ball "base_footprint -> ball(tabletop_object1) not resolved in tf")
-  (assert base->beer "base_footprint -> beer(tabletop_object2) not resolved in tf")
-  (assert base->cylinder "base_footprint -> cylinder(tabletop_object3) not resolved in tf"))
+  (setq start-time (ros::time-now))
+  (setq foundp nil)
+  (while (and (not foundp)
+              (> (send (ros::time- (ros::time-now) start-time) :to-sec) 120))
+    (when (find-if #'(lambda (f)
+                       (substringp "segmentation_decomposeroutput" f))
+                   (send *tfl* :get-frame-strings))
+        (setq foundp t))
+    (ros::spin-once)
+    (ros::sleep))
+  (assert foundp "tabletop object not found"))
 
 (unix:sleep 20)
 (run-all-tests)

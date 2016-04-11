@@ -2,7 +2,6 @@
   <arg name="run_rviz" default="true" />
   <arg name="gui" default="true" />
   <arg name="publish_objects_tf" default="true" />
-  <arg name="always_publish" default="false" />
 
   <!-- load scenario in gazebo -->
   <include file="$(find jsk_pr2_startup)/pr2_gazebo.launch">
@@ -14,6 +13,5 @@
   <include file="$(find pr2eus_tutorials)/launch/pr2_tabletop.launch">
     <arg name="run_rviz" value="$(arg run_rviz)" />
     <arg name="publish_objects_tf" value="$(arg publish_objects_tf)" />
-    <arg name="always_publish" value="$(arg always_publish)" />
   </include>
 </launch>
