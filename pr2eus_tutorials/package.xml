@@ -25,6 +25,8 @@
   <run_depend>jsk_interactive_marker</run_depend>
   <run_depend>jsk_recognition_msgs</run_depend>
   <run_depend>jsk_rviz_plugins</run_depend>
+  <run_depend>jsk_pr2_startup</run_depend>
+  <run_depend>jsk_maps</run_depend>
 
   <!-- Dependencies needed only for running tests. -->
   <test_depend>rostest</test_depend>
