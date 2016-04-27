@@ -35,8 +35,5 @@
   <run_depend>dynamic_reconfigure</run_depend>
   <run_depend>sound_play</run_depend>
 
-  <export>
-    <pr2eus robot-name="pr2" interface-file="${prefix}/pr2-interface.l" />
-  </export>
 </package>
 
