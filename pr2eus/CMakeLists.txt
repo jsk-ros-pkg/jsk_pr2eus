@@ -36,6 +36,7 @@ if(CATKIN_ENABLE_TESTING)
   add_rostest(test/robot-no-clock.test)
   add_rostest(test/default-ri-test.test)
   add_rostest(test/speak-test.test)
+  add_rostest(test/robot-init-test.test)
 endif()
 
 generate_eusdoc(robot-interface.l)
