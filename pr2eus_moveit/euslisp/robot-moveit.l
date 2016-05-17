@@ -232,7 +232,7 @@
      (send* self :motion-plan-constraints confkey :goal-constraints (list const) args)
      ))
   (:motion-plan-constraints
-   (confkey &key (scene) (planner-id "")
+   (confkey &key (scene) (planner-id "RRTConnectkConfigDefault")
             (planning-attempts 1) (planning-time 5.0)
             (workspace-x 1.0) (workspace-y 1.0) (workspace-z 1.6)
             (goal-constraints) (extra-goal-constraints)
