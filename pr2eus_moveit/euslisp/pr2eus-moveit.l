@@ -109,8 +109,8 @@
     ((find-method robot (intern (string-upcase link-name) *keyword-package*))
      (send robot (intern (string-upcase link-name) *keyword-package*)))
     (t
-     (find-if #'(lambda (l) (cond ((symbolp (send l :name) (string= (symbol-string (send l :name)))))
-                                  ((stirngp (send l :name) (string= (send l :name))))
+     (find-if #'(lambda (l) (cond ((symbolp (send l :name)) (string= (symbol-string (send l :name)) link-name))
+                                  ((stringp (send l :name)) (string= (send l :name) link-name))
                                   (t nil))) (send robot :links))
      )))
   (:copy-robot-state (rb)
