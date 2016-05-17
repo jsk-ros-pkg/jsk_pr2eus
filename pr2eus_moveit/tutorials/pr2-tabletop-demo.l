@@ -6,7 +6,7 @@
 ;;(setq *ri* (instance pr2-interface :init))
 ;;(pr2)
 (pr2-init)
-(send *ri* :set-moveit-environment (instance moveit-environment :init))
+(send *ri* :set-moveit-environment (instance pr2-moveit-environment :init))
 
 (defun go-to-default-pose ()
   (send *pr2* :angle-vector

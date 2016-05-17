@@ -5,7 +5,7 @@
 (load "package://pr2eus_moveit/euslisp/pr2eus-moveit.l");;
 
 (pr2)
-(setq me (instance moveit-environment :init))
+(setq me (instance pr2-moveit-environment :init))
 (ros::spin-once)
 
 (setq pose-1 #f(168.25 0.0 0.0 0.0 -65.068 0.0 -60.1606 0.0 0.0 0.0 0.0 -65.068 0.0 -60.1606 0.0 0.0 0.0))
