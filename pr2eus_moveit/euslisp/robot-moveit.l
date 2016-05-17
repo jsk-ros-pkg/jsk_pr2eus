@@ -474,6 +474,7 @@
            (return-from :angle-vector-motion-plan nil))
          (ros::ros-warn "reset Trajectory Total time")
          (setq traj (send self :trajectory-filter traj :total-time reset-total-time)))
+       (ros::ros-info ";; generated ~A points for ~A sec" (length (send traj :points)) (send (send (car (last (send traj :points))) :time_from_start) :to-sec))
        (if use-send-angle-vector
            (send* self :joint-trajectory-to-angle-vector-list move-arm traj args)
          (send* self :send-trajectory traj args))
