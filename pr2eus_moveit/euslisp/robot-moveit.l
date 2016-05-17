@@ -206,7 +206,7 @@
        (send robot :angle-vector)
        )))
   (:execute-trajectory
-   (msg &optional (wait nil))
+   (msg &key (wait nil))
    (let ((req (instance moveit_msgs::ExecuteKnownTrajectoryRequest :init
                         :trajectory msg)))
      (send req :wait_for_execution wait)
