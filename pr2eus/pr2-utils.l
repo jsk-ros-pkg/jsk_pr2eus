@@ -144,17 +144,40 @@
            (:rarm
             (* (send self :r_gripper_l_finger_joint :joint-angle) 2)))
        (let ((a/2 (/ (cadr args) 2)))
-         (case limb
-           (:larm
-            (send self :l_gripper_l_finger_joint :joint-angle a/2)
-            (send self :l_gripper_r_finger_joint :joint-angle a/2)
-            (send self :l_gripper_l_finger_tip_joint :joint-angle a/2)
-            (send self :l_gripper_r_finger_tip_joint :joint-angle a/2))
-           (:rarm
-            (send self :r_gripper_l_finger_joint :joint-angle a/2)
-            (send self :r_gripper_r_finger_joint :joint-angle a/2)
-            (send self :r_gripper_l_finger_tip_joint :joint-angle a/2)
-            (send self :r_gripper_r_finger_tip_joint :joint-angle a/2)))
+         (cond
+          ((and (memq :relative args)
+                (eq (cadr (memq :relative args)) t))
+           (case limb
+             (:larm
+              (send self :l_gripper_l_finger_joint :joint-angle
+                    (+ (send self :l_gripper_l_finger_joint :joint-angle) a/2))
+              (send self :l_gripper_r_finger_joint :joint-angle
+                    (+ (send self :l_gripper_r_finger_joint :joint-angle) a/2))
+              (send self :l_gripper_l_finger_tip_joint :joint-angle
+                    (+ (send self :l_gripper_l_finger_tip_joint :joint-angle) a/2))
+              (send self :l_gripper_r_finger_tip_joint :joint-angle
+                    (+ (send self :l_gripper_r_finger_tip_joint :joint-angle) a/2)))
+             (:rarm
+              (send self :r_gripper_l_finger_joint :joint-angle
+                    (+ (send self :r_gripper_l_finger_joint :joint-angle) a/2))
+              (send self :r_gripper_r_finger_joint :joint-angle
+                    (+ (send self :r_gripper_r_finger_joint :joint-angle) a/2))
+              (send self :r_gripper_l_finger_tip_joint :joint-angle
+                    (+ (send self :r_gripper_l_finger_tip_joint :joint-angle) a/2))
+              (send self :r_gripper_r_finger_tip_joint :joint-angle
+                    (+ (send self :r_gripper_r_finger_tip_joint :joint-angle) a/2)))))
+          (t
+           (case limb
+             (:larm
+              (send self :l_gripper_l_finger_joint :joint-angle a/2)
+              (send self :l_gripper_r_finger_joint :joint-angle a/2)
+              (send self :l_gripper_l_finger_tip_joint :joint-angle a/2)
+              (send self :l_gripper_r_finger_tip_joint :joint-angle a/2))
+             (:rarm
+              (send self :r_gripper_l_finger_joint :joint-angle a/2)
+              (send self :r_gripper_r_finger_joint :joint-angle a/2)
+              (send self :r_gripper_l_finger_tip_joint :joint-angle a/2)
+              (send self :r_gripper_r_finger_tip_joint :joint-angle a/2)))))
          (* a/2 2))))
     (t (send-super* :gripper limb args))
     ))
@@ -189,6 +212,117 @@
        (send self j :max-joint-torque r))
      ) ;; dolist
    (send-super :init-ending)) ;;
+
+  (:grasping-obj
+   (arm &optional (target t))
+   (cond
+    ((or (derivedp target body) (derivedp target cascaded-coords))
+     (case arm
+       (:rarm (setq rarm-grasping-obj target))
+       (:larm (setq larm-grasping-obj target))
+       ))
+    (target
+     (case arm
+       (:rarm rarm-grasping-obj)
+       (:larm larm-grasping-obj)
+       ))
+    ((null target) ;; setq grasping-obj nil
+     (case arm
+       (:rarm (setq rarm-grasping-obj nil))
+       (:larm (setq larm-grasping-obj nil))
+       ))
+    (t
+     )))
+
+  (:gripper_finger_joint
+   (arm)
+   (case arm
+     (:rarm (send self :r_gripper_r_finger_joint))
+     (:larm (send self :l_gripper_l_finger_joint))
+     ))
+
+  (:start-grasp
+   (&optional (arm :arms) arg1 arg2)
+   (let ((angle 0) target
+         (arm-lst (case arm
+                    ((:rarm :larm) (list arm))
+                    (:arms (list :rarm :larm))))
+         )
+     (cond
+      ((or (derivedp arg1 body) (derivedp arg1 cascaded-coords))
+       (setq target arg1)
+       (dolist (am arm-lst)
+         (let ((gripper-angle (send self :gripper am :joint-angle))
+               )
+           (while t
+             (send self :gripper am :joint-angle -0.5 :relative t)
+             (when (= (send self :gripper am :joint-angle) 0)
+               (send self :gripper am :joint-angle gripper-angle)
+               (return)
+               )
+             (when  (or (< 0 (pqp-collision-check
+                              (elt (send self am :gripper :links) 0) target))
+                        (< 0 (pqp-collision-check
+                              (elt (send self am :gripper :links) 1) target))
+                        (< 0 (pqp-collision-check
+                              (elt (send self am :gripper :links) 2) target))
+                        (< 0 (pqp-collision-check
+                              (elt (send self am :gripper :links) 3) target))
+                        (< 0 (pqp-collision-check
+                              (elt (send self am :gripper :links) 4) target)))
+               (send self :gripper am :joint-angle 0.5 :relative t)
+               (ros::ros-info "catched:~A" target)
+               (send self :grasping-obj am target)
+               (send (send self :gripper_finger_joint am) :parent-link :assoc target)
+               (return)
+               )))))
+      (t
+       (when (numberp arg1)
+         (setq angle arg1 target arg2))
+       (dolist (am arm-lst)
+         (send self :gripper am :joint-angle angle)
+         )
+       (when target
+         (case arm
+           (:arms
+            (ros::ros-error "select which arm to use for grasping. (rarm or larm)")
+            (return-from :start-grasp nil)
+            )
+           (t
+            (send self :grasping-obj arm target)
+            (send (send self :gripper_finger_joint arm) :parent-link :assoc target)
+            )))))))
+
+  (:stop-grasp
+   (&optional (arm :arms) arg1 arg2)
+   (let (angle target finger-joint
+               (arm-lst (case arm
+                          ((:rarm :larm) (list arm))
+                          (:arms (list :rarm :larm)))))
+     (cond
+      ((and (numberp arg1) (derivedp arg2 body))
+       (setq angle arg1 target arg2)
+       (dolist (am arm-lst)
+         (when (eq (send self :grasping-obj am) target)
+           (send self :grasping-obj am nil)
+           (send (send self :gripper_finger_joint am) :parent-link :dissoc target))
+         (send self :gripper am :joint-angle angle)
+         ))
+      ((numberp arg1)
+       (setq angle arg1)
+       (dolist (am arm-lst)
+         (send self :gripper am :joint-angle angle)
+         ))
+      (t
+       (when (derivedp arg1 body) (setq target arg1))
+       (dolist (am arm-lst)
+         (when (null target)
+           (setq target (send self :grasping-obj am)))
+         (send self :grasping-obj am nil)
+         (send (send self :gripper_finger_joint am) :parent-link :dissoc target)
+         (send self :gripper am :joint-angle
+               (+ (send (send self :gripper_finger_joint am) :max-angle) 15))
+         )))))
   )
 
 
