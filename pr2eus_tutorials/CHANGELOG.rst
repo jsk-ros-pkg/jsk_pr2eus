@@ -2,6 +2,17 @@
 Changelog for package pr2eus_tutorials
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* [pr2eus_tutorials/package.xml] add roseus_tutorials to run_depend
+* [pr2eus_tutorials/launch/pr2_tabletop.launch] fix camera namespace openni -> kinect_head_c2
+* [pr2eus_tutorials/launch/pr2_tabletop.launch] fix rviz config path
+* [pr2eus_tutorials] cleanup directory
+  - move gazebo related launch files to `launch/gazebo` directory
+  - move rviz config file to `config` directory
+  - fix include path in launch files
+* Contributors: Yuki Furuta
+
 0.3.0 (2016-03-20)
 ------------------
 * add files for reach object demo.

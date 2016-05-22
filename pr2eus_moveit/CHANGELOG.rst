@@ -2,6 +2,18 @@
 Changelog for package pr2eus_moveit
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* add pr2eus_moveit/README.md
+* pr2eus_moveit: add test program
+* robot-moveit.l : add info message for mumber of points and duration
+* use RRTConnectkConfigDefault as a defualt planner
+* robot-moveit.l : fix wrong commit on https://github.com/jsk-ros-pkg/jsk_pr2eus/commit/7d461b7ef199e26f0f9826ed4f1b1fd4cea606fe#commitcomment-17502889
+* move pr2eus-moveit -> robot-moveit.l
+* pr2eus_moveit: CMakeLists.txt install euslisp/ tutorials/ directory
+* pr2eus-moveit.l : fix wrong commit on https://github.com/jsk-ros-pkg/jsk_pr2eus/commit/a55cfb08724ae0034382e2407f60d6830729e04b#commitcomment-17500452
+* Contributors: Kei Okada
+
 0.3.0 (2016-03-20)
 ------------------
 

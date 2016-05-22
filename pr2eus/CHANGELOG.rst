@@ -2,6 +2,15 @@
 Changelog for package pr2eus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* [pr2eus/pr2-utils.l] add start-grasp, stop-grasp for *pr2*
+* [pr2eus/test/robot-init-test.*, pr2eus/CMakeLists.txt] Add robot-init function rostest. Add rostest execution for it in CMakeLists.txt.
+* [package.xml] Add setting for robot-init to package.xml using export tag and rospack plugin functionality (http://wiki.ros.org/pluginlib).
+* [pr2eus/robot-interface.l] Add robot-init function. Add documentation string for it.
+* [pr2eus/robot-interface.l] wait /clock publish for a while when /use_sim_time is true
+* Contributors: Kamada Hitoshi, Shunichi Nozawa, Yuki Furuta
+
 0.3.0 (2016-03-20)
 ------------------
 
