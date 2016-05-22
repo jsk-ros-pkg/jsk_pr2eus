@@ -27,8 +27,10 @@
   <run_depend>roseus</run_depend>
 
   <!-- Dependencies needed only for running tests. -->
-  <!-- <test_depend>pr2eus</test_depend> -->
-  <!-- <test_depend>moveit_msgs</test_depend> -->
-  <!-- <test_depend>control_msgs</test_depend> -->
+  <test_depend>rostest</test_depend>
+  <test_depend>pr2_gazebo</test_depend>
+  <test_depend>pr2_moveit_config</test_depend>
+  <test_depend>pr2_moveit_plugins</test_depend>
+  <test_depend>moveit_planners_ompl</test_depend>
 
 </package>
