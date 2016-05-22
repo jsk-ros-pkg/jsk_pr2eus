@@ -2,8 +2,8 @@
 Changelog for package pr2eus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.3.1 (2016-05-22)
+------------------
 * [pr2eus/pr2-utils.l] add start-grasp, stop-grasp for *pr2*
 * [pr2eus/test/robot-init-test.*, pr2eus/CMakeLists.txt] Add robot-init function rostest. Add rostest execution for it in CMakeLists.txt.
 * [package.xml] Add setting for robot-init to package.xml using export tag and rospack plugin functionality (http://wiki.ros.org/pluginlib).

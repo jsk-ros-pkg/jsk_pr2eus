@@ -2,8 +2,8 @@
 Changelog for package pr2eus_tutorials
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.3.1 (2016-05-22)
+------------------
 * [pr2eus_tutorials/package.xml] add roseus_tutorials to run_depend
 * [pr2eus_tutorials/launch/pr2_tabletop.launch] fix camera namespace openni -> kinect_head_c2
 * [pr2eus_tutorials/launch/pr2_tabletop.launch] fix rviz config path
