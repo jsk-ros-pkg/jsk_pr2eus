@@ -231,6 +231,7 @@
               (if action (push action tmp-actions))
               ))
         (send self ctype))
+       (setq tmp-actions (nreverse tmp-actions))
        ))
      ;;
      (setf (gethash ctype controller-table) tmp-actions)
