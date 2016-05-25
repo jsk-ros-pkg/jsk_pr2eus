@@ -2,6 +2,9 @@
 Changelog for package pr2eus_moveit
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 0.3.1 (2016-05-22)
 ------------------
 * add pr2eus_moveit/README.md

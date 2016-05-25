@@ -2,6 +2,13 @@
 Changelog for package pr2eus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* fix typo topuc -> topic
+* robot-interface.l : add option to set queue size for /joint_state subscriber
+* robot-interface.l : need a consistency of controller order in the the entry of controller-table fix `#227 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/227>`_
+* Contributors: Kei Okada
+
 0.3.1 (2016-05-22)
 ------------------
 * [pr2eus/pr2-utils.l] add start-grasp, stop-grasp for *pr2*

@@ -2,6 +2,9 @@
 Changelog for package pr2eus_tutorials
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 0.3.1 (2016-05-22)
 ------------------
 * [pr2eus_tutorials/package.xml] add roseus_tutorials to run_depend
