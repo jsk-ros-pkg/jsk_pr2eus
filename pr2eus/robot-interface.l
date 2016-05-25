@@ -94,6 +94,7 @@
    (&rest args &key ((:robot r)) ((:objects objs)) (type :default-controller)
           (use-tf2) ((:groupname nh) "robot_multi_queue") ((:namespace ns))
           ((:joint-states-topic jst) "joint_states")
+          ((:joint-states-queue-size jsq) 1)
           ((:publish-joint-states-topic pjst) nil)
           ((:controller-timeout ct) 3)
           ((:visuzlization-marker-topic vmt) "robot_interface_marker_array")
@@ -106,7 +107,9 @@
 - use-tf2 : use tf2
 - groupname : ros nodehandle group name
 - namespace : ros nodehandle name space
-- publish-joint-state-topic :  name for publishing joint state topuc (only for simulation)
+- joint-states-topic jst : name for subscribing joint state topic
+- joint-states-queue-size : queue size of joint state topic. if you have two different node publishing joint_state, better to use 2. default is 1
+- publish-joint-state-topic :  name for publishing joint state topic (only for simulation)
 - conter-timeout : timeout seconds for controller lookup
 - visualizatoin-marker-topic : topic name for visualize
 "
@@ -155,7 +158,7 @@
 
    (ros::subscribe (if namespace (format nil "~A/~A" namespace joint-states-topic)
                      joint-states-topic) sensor_msgs::JointState
-                   #'send self :ros-state-callback :groupname groupname)
+                   #'send self :ros-state-callback jsq :groupname groupname)
    ;;
    (setq controller-table (make-hash-table :size 14 :test #'eq :rehash-size 1.2))
    (setq controller-type type)
