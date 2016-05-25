@@ -109,7 +109,7 @@
 - namespace : ros nodehandle name space
 - joint-states-topic jst : name for subscribing joint state topic
 - joint-states-queue-size : queue size of joint state topic. if you have two different node publishing joint_state, better to use 2. default is 1
-- publish-joint-state-topic :  name for publishing joint state topuc (only for simulation)
+- publish-joint-state-topic :  name for publishing joint state topic (only for simulation)
 - conter-timeout : timeout seconds for controller lookup
 - visualizatoin-marker-topic : topic name for visualize
 "
