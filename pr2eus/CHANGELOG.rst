@@ -2,8 +2,8 @@
 Changelog for package pr2eus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.3.2 (2016-05-26)
+------------------
 * fix typo topuc -> topic
 * robot-interface.l : add option to set queue size for /joint_state subscriber
 * robot-interface.l : need a consistency of controller order in the the entry of controller-table fix `#227 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/227>`_

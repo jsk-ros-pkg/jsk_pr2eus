@@ -6,7 +6,7 @@
   <author email="k-okada@jsk.t.u-tokyo.ac.jp">Kei Okada</author>
   <maintainer email="k-okada@jsk.t.u-tokyo.ac.jp">Kei Okada</maintainer>
   <license>BSD</license>
-  <version>0.3.1</version>
+  <version>0.3.2</version>
   <url>http://ros.org/wiki/pr2eus</url>
   <buildtool_depend>catkin</buildtool_depend>
 
