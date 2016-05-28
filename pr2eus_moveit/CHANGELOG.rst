@@ -2,6 +2,11 @@
 Changelog for package pr2eus_moveit
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* CMakeLists.txt : forget to install euslisp directory ( `#230 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/230>`_ )
+* Contributors: Kei Okada
+
 0.3.2 (2016-05-26)
 ------------------
 

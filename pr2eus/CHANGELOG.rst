@@ -2,6 +2,9 @@
 Changelog for package pr2eus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 0.3.2 (2016-05-26)
 ------------------
 * fix typo topuc -> topic
