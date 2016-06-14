@@ -3,6 +3,42 @@
 ;;
 (require :pr2 "package://pr2eus/pr2.l")
 
+;;Take account of redundant links when calculate collision
+(defmethod euscollada-robot
+  (:make-collision-model-for-links
+   (&key (fat 0) (collision-func 'pqp-collision-check) ((:links ls) (send self :links)))
+
+
+   (dolist (ll ls)
+     (send ll
+           (read-from-string
+            (format nil ":make-~Amodel"
+                    (string-right-trim "-COLLISION-CHECK" (string collision-func))))
+           :fat fat
+           :faces (flatten (mapcar #'(lambda (rl)
+                                       (mapcar #'(lambda (x)
+                                                   ;; (list nil))
+                                                   (cond
+                                                    ((find-method x :def-gl-vertices)
+                                                     (send (x . glvertices) :convert-to-faces :wrt :world))
+                                                    (t
+                                                     (send x :faces))))
+                                               (send rl :bodies)))
+                                   (send self :get-redundant-links ll))))
+     )
+   )
+
+  (:get-redundant-links
+   (l)
+   (let ((r (list l))
+         (ls (send self :links)))
+     (dolist (d (send l :descendants))
+       (when (and (derivedp d bodyset-link) (not (memq d ls)))
+         (setq r (append r (send self :get-redundant-links d)))))
+     r))
+  )
+
+
 (defmethod pr2-robot
   (:select-target-arm
    (c)
