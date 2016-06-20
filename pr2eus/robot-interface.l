@@ -29,20 +29,23 @@
 
 (defclass controller-action-client
   :super ros::simple-action-client
-  :slots (time-to-finish
+  :slots (time-to-finish last-feedback-msg-stamp
           ri angle-vector-sequence timer-sequence current-time current-angle-vector previous-angle-vector scale-angle-vector;; slot for angle-vector-sequence
           ))
 (defmethod controller-action-client
   (:init (r &rest args)
     (setq ri r) ;; robot-interface
     (setq time-to-finish 0)
+    (setq last-feedback-msg-stamp (ros::time-now)) ;; this is for real robot
     (send-super* :init args))
+  (:last-feedback-msg-stamp () last-feedback-msg-stamp)
   (:time-to-finish ()
     (ros::ros-debug "[~A] time-to-fnish ~A" ros::name-space time-to-finish)
     time-to-finish)
   (:action-feedback-cb (msg)
    (let ((finish-time) (current-time))
      (ros::ros-debug "[~A] feedback-cb ~A" ros::name-space msg)
+     (setq last-feedback-msg-stamp (send msg :header :stamp))
      (unless (and (send ros::comm-state :action-goal) (not (equal (send (class ros::action-spec) :name) 'control_msgs::SingleJointPositionAction))) (return-from :action-feedback-cb nil))
      (setq current-time (send msg :feedback :error :time_from_start)
            finish-time (send (car (last (send (send ros::comm-state :action-goal) :goal :trajectory :points))) :time_from_start))
@@ -517,6 +520,14 @@ return t if interpolating"
 	    (send *ri* :angle-vector av)
 	    (send *ri* :wait-interpolation-smooth 300))
 Return value is a list of interpolatingp for all controllers, so (null (some #'identity (send *ri* :wait-interpolation))) -> t if all interpolation has stopped"
+    (when (not (send self :simulation-modep))
+      (let ((tm (ros::time-now))
+            (cacts (cond
+                    (ctype (gethash ctype controller-table))
+                    (t     controller-actions))))
+        (while (some #'(lambda (x) (<= (send (ros::time- (send x :last-feedback-msg-stamp) tm) :to-sec) 0)) cacts)
+          (send self :spin-once) ;; need to wait for feedback
+          (send self :ros-wait 0.005))))
     (while (null (send self :interpolating-smoothp time-to-finish ctype))
       (send self :ros-wait 0.005)))
   (:interpolating-smoothp (time-to-finish &optional (ctype)) ;; controller-type
