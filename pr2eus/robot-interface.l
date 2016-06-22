@@ -2,9 +2,7 @@
 ;;; robot interface to ROS based pr2 system
 ;;;
 (ros::load-ros-manifest "roseus")
-(ros::load-ros-manifest "pr2_msgs")
 (ros::load-ros-manifest "rosgraph_msgs")
-(ros::load-ros-manifest "pr2_controllers_msgs")
 (ros::load-ros-manifest "control_msgs")
 ;;(ros::roseus-add-msgs "sensor_msgs") ;; roseus depends on sensor_msgs
 ;;(ros::roseus-add-msgs "visualization_msgs") ;; roseus depends on visualization_msgs
@@ -47,11 +45,12 @@
      (ros::ros-debug "[~A] feedback-cb ~A" ros::name-space msg)
      (setq last-feedback-msg-stamp (send msg :header :stamp))
      (unless (and (send ros::comm-state :action-goal) (not (equal (send (class ros::action-spec) :name) 'control_msgs::SingleJointPositionAction))) (return-from :action-feedback-cb nil))
-     ;; Type: pr2_controllers_msgs/JointTrajectoryActionFeedback does not have :error
-     (cond ((derivedp msg pr2_controllers_msgs::jointtrajectoryactionfeedback)
-            (setq current-time (ros::time- (ros::time-now) (send msg :status :goal_id :stamp))))
+     (cond ((derivedp msg control_msgs::followjointtrajectoryactionfeedback)
+            (setq current-time (send msg :feedback :error :time_from_start)))
            (t
-            (setq current-time (send msg :feedback :error :time_from_start))))
+            (ros::ros-warn "feedback message type is not control_msgs/FollowJointTrajectoryActionFeedback.")
+            ;; e.g. Type: pr2_controllers_msgs/JointTrajectoryActionFeedback does not have :error
+            (setq current-time (ros::time- (ros::time-now) (send msg :status :goal_id :stamp)))))
      (setq finish-time (send (car (last (send (send ros::comm-state :action-goal) :goal :trajectory :points))) :time_from_start))
      (when (string= (send (send ros::comm-state :action-goal) :goal_id :id)
                     (send msg :status :goal_id :id))
@@ -225,7 +224,7 @@
                 (key (intern (string-upcase controller-state) *keyword-package*)))
            (ros::subscribe (if namespace (format nil "~A/~A" namespace controller-state)
                              controller-state)
-                           pr2_controllers_msgs::JointTrajectoryControllerState
+                           control_msgs::JointTrajectoryControllerState
                            #'send self :set-robot-state1 key :groupname groupname)))
        )
       (t ;; not creating actions, just search
@@ -793,7 +792,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
     (list
      (cons :controller-action "fullbody_controller/joint_trajectory_action")
      (cons :controller-state "fullbody_controller/state")
-     (cons :action-type pr2_controllers_msgs::JointTrajectoryAction)
+     (cons :action-type control_msgs::FollowJointTrajectoryAction)
      (cons :joint-names (mapcar #'(lambda (n) (if (symbolp n) (symbol-name n) n)) (send-all (send robot :joint-list) :name))))))
   ;;
   (:sub-angle-vector (v0 v1)
@@ -1114,8 +1113,8 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
                                       :groupname groupname))
      (setq move-base-trajectory-action
            (instance ros::simple-action-client :init
-                     "/base_controller/joint_trajectory_action"
-                     pr2_controllers_msgs::JointTrajectoryAction
+                     "/base_controller/follow_joint_trajectory"
+                     control_msgs::FollowJointTrajectoryAction
                      :groupname groupname))
      (unless (send move-base-trajectory-action :wait-for-server 3)
        (ros::ros-warn "move-base-trajectory-action is not found")
@@ -1476,7 +1475,7 @@ send-action [ send message to action server, it means robot will move ]"
    (send self :spin-once)
    (let ((odom-cds (send self :state :odom :pose))
          (msg (instance trajectory_msgs::JointTrajectory :init))
-         (goal (instance pr2_controllers_msgs::JointTrajectoryActionGoal :init)))
+         (goal (instance control_msgs::FollowJointTrajectoryActionGoal :init)))
      (cond
       ((numberp start-time)
        (send msg :header :stamp (ros::time+ (ros::time-now) (ros::time start-time))))
@@ -1556,7 +1555,7 @@ send-action [ send message to action server, it means robot will move ]"
          (send msg :points (list pt1 pt2)))
        ))
      (send goal :goal :trajectory msg)
-     (when send-action and move-base-trajectory-action
+     (when (and send-action move-base-trajectory-action)
        (send move-base-trajectory-action :send-goal goal)
        (let ((acret
               (send move-base-trajectory-action :wait-for-result)))
