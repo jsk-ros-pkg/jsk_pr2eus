@@ -2,8 +2,8 @@
 Changelog for package pr2eus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.3.4 (2016-06-22)
+------------------
 * Merge pull request `#235 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/235>`_ from k-okada/fix_smooth
   fix :wait-interpolation-smooth for pr2_controllers_msgs/JointTrajectoryActionFeedback
 * add code when last-feedback-msgs-stamp is not updated
