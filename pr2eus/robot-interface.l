@@ -47,8 +47,12 @@
      (ros::ros-debug "[~A] feedback-cb ~A" ros::name-space msg)
      (setq last-feedback-msg-stamp (send msg :header :stamp))
      (unless (and (send ros::comm-state :action-goal) (not (equal (send (class ros::action-spec) :name) 'control_msgs::SingleJointPositionAction))) (return-from :action-feedback-cb nil))
-     (setq current-time (send msg :feedback :error :time_from_start)
-           finish-time (send (car (last (send (send ros::comm-state :action-goal) :goal :trajectory :points))) :time_from_start))
+     ;; Type: pr2_controllers_msgs/JointTrajectoryActionFeedback does not have :error
+     (cond ((derivedp msg pr2_controllers_msgs::jointtrajectoryactionfeedback)
+            (setq current-time (ros::time- (ros::time-now) (send msg :status :goal_id :stamp))))
+           (t
+            (setq current-time (send msg :feedback :error :time_from_start))))
+     (setq finish-time (send (car (last (send (send ros::comm-state :action-goal) :goal :trajectory :points))) :time_from_start))
      (when (string= (send (send ros::comm-state :action-goal) :goal_id :id)
                     (send msg :status :goal_id :id))
        (setq time-to-finish (send (ros::time- finish-time current-time) :to-sec)))
