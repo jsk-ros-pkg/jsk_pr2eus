@@ -731,6 +731,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
      (while t
        (when (null (position-if #'null (mapcar #'(lambda (ts) (> (send ts :to-nsec) initial-time)) (cdr (assoc :stamp-list robot-state)))))
          (return-from nil nil))
+       (if (send self :simulation-modep) (send self :robot-interface-simulation-callback)) ;; to update robot-state
        (send self :spin-once)
        )))
   (:update-robot-state

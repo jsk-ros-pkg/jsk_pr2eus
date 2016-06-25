@@ -46,7 +46,7 @@
   (assert (< (norm (v- (send *robot* :angle-vector) (send *ri* :potentio-vector))) 10.0))
   )
 
-(deftest test-state-:wait-until-update
+(deftest test-state-wait-until-update
   (assert (send *robot* :reset-pose))
   (assert (send *ri* :angle-vector (send *robot* :angle-vector) 2000))
   (assert (send *ri* :state :potentio-vector))
