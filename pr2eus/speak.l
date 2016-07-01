@@ -4,21 +4,28 @@
 (ros::load-ros-manifest "sound_play")
 
 (defparameter *speak-wait* nil)
+(defparameter *speak-action-clients* (make-hash-table))
 
-(defun send-speak-msg (msg &key (topic-name "robotsound") (timeout 0) (wait *speak-wait*))
-  (if (boundp 'sound_play::soundrequestaction)
-      (let ((ac (instance ros::simple-action-client :init
-                          topic-name sound_play::SoundRequestAction :groupname "speak"))
-            (goal (instance sound_play::SoundRequestActionGoal :init)))
-        (unless (send ac :wait-for-server timeout)
-          (ros::ros-error "action server /~A is not found. sound_play node is not alive?" topic-name)
-          (return-from send-speak-msg nil))
-        (send goal :goal :sound_request msg)
-        (send ac :send-goal goal)
-        (if wait
-            (send ac :wait-for-result :timeout timeout) t))
-    ;; for backward compatibility
-    (progn
+(defun send-speak-msg (msg
+                       &key (topic-name "robotsound") (timeout 0)
+                            (wait *speak-wait*))
+  (cond
+    ((boundp 'sound_play::soundrequestaction)
+      (let ((goal (instance sound_play::SoundRequestActionGoal :init))
+            (action-client-key (intern (string-upcase topic-name) *keyword-package*)))
+        (unless (gethash action-client-key *speak-action-clients*)
+          (setf (gethash action-client-key *speak-action-clients*)
+                (instance ros::simple-action-client :init
+                          topic-name sound_play::SoundRequestAction :groupname "speak")))
+        (let ((ac (gethash action-client-key *speak-action-clients*)))
+          (unless (send ac :wait-for-server timeout)
+            (ros::ros-error "action server /~A is not found. sound_play node is not alive?" topic-name)
+            (return-from send-speak-msg nil))
+          (send goal :goal :sound_request msg)
+          (send ac :send-goal goal)
+          (if wait
+            (send ac :wait-for-result :timeout timeout) t))))
+    (t ;; action client is not used for backward compatibility
       (unless (ros::get-topic-publisher topic-name)
         (ros::advertise topic-name sound_play::SoundRequest 5)
         (unix:sleep 1))
