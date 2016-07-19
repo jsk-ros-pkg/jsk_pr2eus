@@ -6,12 +6,7 @@ find_package(catkin REQUIRED COMPONENTS euscollada control_msgs nav_msgs dynamic
   )
 
 
-catkin_package(
-    DEPENDS 
-    CATKIN-DEPENDS 
-    INCLUDE_DIRS 
-    LIBRARIES 
-)
+catkin_package()
 
 install(DIRECTORY test
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
