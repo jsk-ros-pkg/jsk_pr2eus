@@ -1556,7 +1556,7 @@ send-action [ send message to action server, it means robot will move ]"
          (send msg :points (list pt1 pt2)))
        ))
      (send goal :goal :trajectory msg)
-     (when send-action and move-base-trajectory-action
+     (when and send-action move-base-trajectory-action
        (send move-base-trajectory-action :send-goal goal)
        (let ((acret
               (send move-base-trajectory-action :wait-for-result)))
