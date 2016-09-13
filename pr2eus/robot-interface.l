@@ -533,7 +533,10 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
                           (<= (send (ros::time- (send x :last-feedback-msg-stamp) tm) :to-sec) 0)
                           (let ((goal (send (x . ros::comm-state) :action-goal)))
                             (>= (send (ros::time- (ros::time+ (send goal :header :stamp)
-                                                              (send (car (last (send goal :goal :trajectory :points))) :time_from_start))
+							      (cond ((derivedp goal control_msgs::singlejointpositionactiongoal)
+								     (send goal :goal :min_duration))
+								    (t
+								     (send (car (last (send goal :goal :trajectory :points))) :time_from_start))))
                                                   (ros::time-now)) :to-sec) 0))))
                      cacts)
           (send self :spin-once) ;; need to wait for feedback
