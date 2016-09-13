@@ -4,16 +4,18 @@
 (require :pr2 "package://pr2eus/pr2.l")
 (require :pr2-utils "package://pr2eus/pr2-utils.l")
 (require :robot-interface "package://pr2eus/robot-interface.l")
+(require :speak "package://pr2eus/speak.l")
+
+(ros::load-ros-manifest "control_msgs")
+(ros::load-ros-manifest "pr2eus")
+(ros::load-ros-manifest "pr2_msgs")
+(ros::load-ros-manifest "pr2_controllers_msgs")
 (ros::load-ros-manifest "topic_tools")
 
 ;;;
 ;;; pr2 robot interface
 ;;;
 
-(ros::load-ros-manifest "pr2eus")
-(ros::roseus-add-msgs "sound_play")
-(ros::roseus-add-msgs "control_msgs")
-(load "package://pr2eus/speak.l")
 
 (defmethod pr2-robot
   (:torque-vector
