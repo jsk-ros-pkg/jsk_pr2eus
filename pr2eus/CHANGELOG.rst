@@ -2,6 +2,32 @@
 Changelog for package pr2eus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
+* robot-interface.l
+
+  * fix :wait-intepolation-smooth for SinglePointJointAcionGoal (`#245 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/245>`_)
+  * use control_msgs/FollowJointTrajectoryAction for base trajectory action (`#237 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/237>`_)
+  * fix: wrong code in  :move-trajectory (`#240 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/240>`_)
+  * the implementation of condition to break loop in :wait-until-update-all-joints. (`#239 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/239>`_)
+  * :wait-until-update-all-joints need to call :robot-interface-simulation-callback explicitly (`#238 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/238>`_)
+
+* sometines :state .. :wait-unitl-update t did not return (https://github.com/jsk-ros-pkg/jsk_robot/pull/627)
+
+  * add test-state-wait-until-updatee (`#238 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/238>`_)
+  * include also redundant links when calculate collision
+
+* speak.l
+
+  * add *speak-timeout* param to wait action server (`#246 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/246>`_)
+  * use single speak-action-client (`#241 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/241>`_)
+
+* CMakeLists.txt: remove unused variable from catkin_package (`#243 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/243>`_)
+* pr2.l: comment out pr2 function for pr2-robot (`#242 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/242>`_)
+
+* Contributors: Kei Okada, MasakiMurooka, Yuki Furuta, Chi Wun Au
+
 0.3.4 (2016-06-22)
 ------------------
 * Merge pull request `#235 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/235>`_ from k-okada/fix_smooth
