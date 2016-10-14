@@ -793,7 +793,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
    ()
    (list
     (list
-     (cons :controller-action "fullbody_controller/joint_trajectory_action")
+     (cons :controller-action "fullbody_controller/follow_joint_trajectory_action")
      (cons :controller-state "fullbody_controller/state")
      (cons :action-type control_msgs::FollowJointTrajectoryAction)
      (cons :joint-names (mapcar #'(lambda (n) (if (symbolp n) (symbol-name n) n)) (send-all (send robot :joint-list) :name))))))
