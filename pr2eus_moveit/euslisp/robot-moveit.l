@@ -487,7 +487,7 @@
          (setq traj (send* self :trajectory-filter traj :start-offset-time start-offset-time :total-time orig-total-time args))
          (ros::ros-info ";; Scaled Trajectory Total Time ~7,3f [sec]" orig-total-time))
 
-       (ros::ros-info ";; generated ~A points for ~A sec" (length (send traj :points)) orig-total-time)
+       (ros::ros-info ";; generated ~A points for ~A sec using [~A] group" (length (send traj :points)) orig-total-time (send ret :group_name))
        ;;
        (mapcar
         #'(lambda (action param)
