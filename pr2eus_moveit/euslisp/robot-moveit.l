@@ -504,21 +504,23 @@
        )))
   (:trajectory-filter ;; simple trajectory for zero duration
    (traj &key (copy) (total-time 5000.0) (minimum-time 0.001) (start-offset-time) &rest args &allow-other-keys)
+   (let ((orig-total-time (send (send (car (last (send traj :points))) :time_from_start) :to-sec)))
    (when (and minimum-time (not start-offset-time)
-              (> (send (send (car (last (send traj :points))) :time_from_start) :to-sec)
+              (> orig-total-time
                  minimum-time))
-     (ros::ros-warn ";; Trajectory Filter will not work, start-offset-time : ~A, minimum-time : ~A, first point in trajectory ~A" start-offset-time minimum-time (send (send (car (last (send traj :points))) :time_from_start) :to-sec))
+     (ros::ros-warn ";; Trajectory Filter will not work, start-offset-time : ~A, minimum-time : ~A, first point in trajectory ~A" start-offset-time minimum-time orig-total-time)
      (return-from :trajectory-filter traj))
    (when copy
      (setq traj (copy-object traj)))
    (let* ((points (send traj :points))
           (size (length points))
           (time-step (/ 1 (float (1- size))))
+          (time-scale (/ (/ total-time 1000.0) orig-total-time))
           (cntr 0))
      (dolist (pt points)
-       (send pt :time_from_start (ros::time (+ start-offset-time (* (/ total-time 1000) cntr time-step))))
+       (send pt :time_from_start (ros::time (+ start-offset-time (* time-scale (send (send pt :time_from_start) :to-sec)))))
        (incf cntr))
-     traj))
+     traj)))
   )
 
 (defun make-box-shape (x &optional y z)
