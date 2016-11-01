@@ -463,7 +463,7 @@
                     cds confkey :end-coords ed-lst args))
      ret))
   (:angle-vector-motion-plan ;;
-   (av &rest args &key (move-arm :larm) (reset-total-time 5000.0) (use-send-angle-vector) &allow-other-keys)
+   (av &rest args &key (total-time) (move-arm :larm) (reset-total-time 5000.0) (use-send-angle-vector) &allow-other-keys)
    (let (traj ret)
      (setq ret (send* self :angle-vector-make-trajectory av args))
      (when ret
@@ -474,6 +474,13 @@
            (return-from :angle-vector-motion-plan nil))
          (ros::ros-warn "reset Trajectory Total time")
          (setq traj (send* self :trajectory-filter traj :total-time reset-total-time args)))
+       (ros::ros-info ";; Planned Trajectory Total Time ~7,3f [sec]" (send (send (car (last (send traj :points))) :time_from_start) :to-sec))
+       (when (and total-time
+                  (< (send (send (car (last (send traj :points))) :time_from_start) :to-sec)
+                     (/ total-time 1000)))
+         (setq traj (send* self :trajectory-filter traj :total-time total-time args))
+         (ros::ros-info ";; Scaled Trajectory Total Time ~7,3f [sec]" (send (send (car (last (send traj :points))) :time_from_start) :to-sec)))
+
        (ros::ros-info ";; generated ~A points for ~A sec" (length (send traj :points)) (send (send (car (last (send traj :points))) :time_from_start) :to-sec))
        (if use-send-angle-vector
            (send* self :joint-trajectory-to-angle-vector-list move-arm traj args)
