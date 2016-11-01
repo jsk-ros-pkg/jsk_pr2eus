@@ -473,7 +473,7 @@
            (ros::ros-error "Trajectory has very short duration")
            (return-from :angle-vector-motion-plan nil))
          (ros::ros-warn "reset Trajectory Total time")
-         (setq traj (send self :trajectory-filter traj :total-time reset-total-time)))
+         (setq traj (send* self :trajectory-filter traj :total-time reset-total-time args)))
        (ros::ros-info ";; generated ~A points for ~A sec" (length (send traj :points)) (send (send (car (last (send traj :points))) :time_from_start) :to-sec))
        (if use-send-angle-vector
            (send* self :joint-trajectory-to-angle-vector-list move-arm traj args)
@@ -490,16 +490,17 @@
            (ros::ros-error "Trajectory has very short duration")
            (return-from :move-end-coords-plan nil))
          (ros::ros-warn "reset Trajectory Total time")
-         (setq traj (send self :trajectory-filter traj :total-time reset-total-time)))
+         (setq traj (send* self :trajectory-filter traj :total-time reset-total-time args)))
        (if use-send-angle-vector
            (send* self :joint-trajectory-to-angle-vector-list move-arm traj args)
          (send* self :send-trajectory traj args))
        )))
   (:trajectory-filter ;; simple trajectory for zero duration
-   (traj &key (copy) (total-time 5000.0) (minimum-time 0.001))
-   (when (and minimum-time
+   (traj &key (copy) (total-time 5000.0) (minimum-time 0.001) (start-offset-time) &rest args &allow-other-keys)
+   (when (and minimum-time (not start-offset-time)
               (> (send (send (car (last (send traj :points))) :time_from_start) :to-sec)
                  minimum-time))
+     (ros::ros-warn ";; Trajectory Filter will not work, start-offset-time : ~A, minimum-time : ~A, first point in trajectory ~A" start-offset-time minimum-time (send (send (car (last (send traj :points))) :time_from_start) :to-sec))
      (return-from :trajectory-filter traj))
    (when copy
      (setq traj (copy-object traj)))
@@ -508,7 +509,7 @@
           (time-step (/ 1 (float (1- size))))
           (cntr 0))
      (dolist (pt points)
-       (send pt :time_from_start (ros::time (* (/ total-time 1000) cntr time-step)))
+       (send pt :time_from_start (ros::time (+ start-offset-time (* (/ total-time 1000) cntr time-step))))
        (incf cntr))
      traj))
   )
