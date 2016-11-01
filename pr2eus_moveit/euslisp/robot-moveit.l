@@ -463,25 +463,31 @@
                     cds confkey :end-coords ed-lst args))
      ret))
   (:angle-vector-motion-plan ;;
-   (av &rest args &key (total-time) (move-arm :larm) (reset-total-time 5000.0) (use-send-angle-vector) &allow-other-keys)
-   (let (traj ret)
+   (av &rest args &key (start-offset-time) (total-time) (move-arm :larm) (reset-total-time 5000.0) (use-send-angle-vector) &allow-other-keys)
+   (let (traj ret filtered orig-total-time)
      (setq ret (send* self :angle-vector-make-trajectory av args))
      (when ret
        (setq traj (send ret :trajectory :joint_trajectory))
-       (when (< (send (send (car (last (send traj :points))) :time_from_start) :to-sec) 0.001)
+       (setq orig-total-time (send (send (car (last (send traj :points))) :time_from_start) :to-sec))
+       (when (< orig-total-time 0.001)
          (unless reset-total-time
            (ros::ros-error "Trajectory has very short duration")
            (return-from :angle-vector-motion-plan nil))
          (ros::ros-warn "reset Trajectory Total time")
-         (setq traj (send* self :trajectory-filter traj :total-time reset-total-time args)))
-       (ros::ros-info ";; Planned Trajectory Total Time ~7,3f [sec]" (send (send (car (last (send traj :points))) :time_from_start) :to-sec))
+         (setq traj (send* self :trajectory-filter traj :start-offset-time start-offset-time :total-time reset-total-time args)))
+       (ros::ros-info ";; Planned Trajectory Total Time ~7,3f [sec]" orig-total-time)
        (when (and total-time
-                  (< (send (send (car (last (send traj :points))) :time_from_start) :to-sec)
+                  (< orig-total-time
                      (/ total-time 1000)))
-         (setq traj (send* self :trajectory-filter traj :total-time total-time args))
-         (ros::ros-info ";; Scaled Trajectory Total Time ~7,3f [sec]" (send (send (car (last (send traj :points))) :time_from_start) :to-sec)))
+         (setq filtered t)
+         (setq traj (send* self :trajectory-filter traj :start-offset-time start-offset-time :total-time total-time args))
+         (setq orig-total-time (/ total-time 1000))
+         (ros::ros-info ";; Scaled Trajectory Total Time ~7,3f [sec]" (/ total-time 1000)))
+       (when (and start-offset-time (null filtered))
+         (setq traj (send* self :trajectory-filter traj :start-offset-time start-offset-time :total-time orig-total-time args))
+         (ros::ros-info ";; Scaled Trajectory Total Time ~7,3f [sec]" orig-total-time))
 
-       (ros::ros-info ";; generated ~A points for ~A sec" (length (send traj :points)) (send (send (car (last (send traj :points))) :time_from_start) :to-sec))
+       (ros::ros-info ";; generated ~A points for ~A sec" (length (send traj :points)) orig-total-time)
        (if use-send-angle-vector
            (send* self :joint-trajectory-to-angle-vector-list move-arm traj args)
          (send* self :send-trajectory traj args))
