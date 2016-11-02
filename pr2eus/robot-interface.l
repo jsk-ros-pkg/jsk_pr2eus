@@ -1107,6 +1107,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
   (:init
    (&rest args &key
           (move-base-action-name "move_base") ((:base-frame-id base-frame-id-name) "/base_footprint")
+          (base-controller-action-name "/base_controller/follow_joint_trajectory")
 	  ((:odom-topic odom-topic-name) "/base_odometry/odom") &allow-other-keys)
    (prog1 (send-super* :init args)
      (setq base-frame-id base-frame-id-name)
@@ -1114,14 +1115,15 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
      (setq move-base-action (instance ros::simple-action-client :init
                                       move-base-action-name move_base_msgs::MoveBaseAction
                                       :groupname groupname))
-     (setq move-base-trajectory-action
-           (instance ros::simple-action-client :init
-                     "/base_controller/follow_joint_trajectory"
-                     control_msgs::FollowJointTrajectoryAction
-                     :groupname groupname))
-     (unless (send move-base-trajectory-action :wait-for-server 3)
-       (ros::ros-warn "move-base-trajectory-action is not found")
-       (setq move-base-trajectory-action nil))
+     (when base-controller-action-name
+       (setq move-base-trajectory-action
+             (instance ros::simple-action-client :init
+                       base-controller-action-name
+                       control_msgs::FollowJointTrajectoryAction
+                       :groupname groupname))
+       (unless (send move-base-trajectory-action :wait-for-server 3)
+         (ros::ros-warn "move-base-trajectory-action is not found")
+         (setq move-base-trajectory-action nil)))
      (ros::subscribe odom-topic-name nav_msgs::Odometry
 		     #'send self :odom-callback :groupname groupname)
      ))
