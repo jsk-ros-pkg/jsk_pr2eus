@@ -2,8 +2,8 @@
 Changelog for package pr2eus_moveit
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.3.6 (2016-11-02)
+------------------
 * Update on robot-modeit.l ( `#252 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/252>`_ )
   * :angle-vector-motion send trajectory for joints not incldued in move-arm
   * :trajectory-filter scale based on original time sequences

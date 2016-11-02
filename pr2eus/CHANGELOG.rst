@@ -2,8 +2,8 @@
 Changelog for package pr2eus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.3.6 (2016-11-02)
+------------------
 * add :base-controller-action-name for robot does not have move_base_trajectory_action (`#253 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/253>`_ )
 * [pr2eus/robot-interface.l] update actionlib name of default controller. (`#250 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/250>`_ )
 * Contributors: Kei Okada, Masaki Murooka
