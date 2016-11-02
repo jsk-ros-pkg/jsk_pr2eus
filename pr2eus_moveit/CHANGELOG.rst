@@ -2,6 +2,17 @@
 Changelog for package pr2eus_moveit
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Update on robot-modeit.l ( `#252 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/252>`_ )
+  * :angle-vector-motion send trajectory for joints not incldued in move-arm
+  * :trajectory-filter scale based on original time sequences
+  * add feature to filter trajectory using total-time
+  * robot-moveit.l (:trajectory-filter) add start-offset-time
+  * more message on ros-info
+  * cleanup :angle-vector-motion-plan function using orig-total-time variable
+* Contributors: Kei Okada
+
 0.3.5 (2016-09-16)
 ------------------
 
