@@ -870,8 +870,8 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
              (cond
               ((numberp i)
                (push (elt poss i) plst)
-               (if vels (push (elt vels i) vlst))
-               (if effs (push (elt effs i) elst)))
+               (if (and vels (> (length vels) i)) (push (elt vels i) vlst))
+               (if (and effs (> (length effs) i)) (push (elt effs i) elst)))
               (t
                (push (send i :ros-joint-angle) plst)
                (if vels (push 0 vlst))
