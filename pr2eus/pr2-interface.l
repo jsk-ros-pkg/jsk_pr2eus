@@ -231,7 +231,7 @@ Example: (send self :gripper :rarm :position) => 0.00"
           (format nil "~A-~A" (string (car args)) (string (cadr args)))
           *keyword-package*)))
   (:start-grasp
-   (&optional (arm :arms) &key ((:gain g) 0.01) ((:objects objs) objects))
+   (&optional (arm :arms) &key ((:gain g) 0.01) ((:objects objs) objects) force-assoc)
    (send self :move-gripper arm 0.0 :effort (* 2000 g) :wait t)
    (unless joint-action-enable
      (dolist (a (if (eq arm :arms) '(:larm :rarm) (list arm)))
@@ -244,8 +244,9 @@ Example: (send self :gripper :rarm :position) => 0.00"
 		     (send-all (send l :bodies) :vertices))
 		 (send robot a :gripper :links))))))
 	 (dolist (obj objs)
-	   (when (and (find-method obj :faces)
-		      (not (= (pqp-collision-check grasp-convex obj) 0)))
+	   (when (or force-assoc
+               (and (find-method obj :faces)
+                    (not (= (pqp-collision-check grasp-convex obj) 0))))
 	     (if (send obj :parent) (send (send obj :parent) :dissoc obj))
 	     (send robot a :end-coords :assoc obj)))))
      ;; (send self :update-robot-state) ;; update state of 'robot' for real robot
