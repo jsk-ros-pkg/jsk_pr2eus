@@ -34,7 +34,7 @@
       (unix:sleep 1))
     (ros::publish *grasp-status-topic*
                   (instance jsk_rviz_plugins::OverlayText :init
-                            :width 1920 :height 100
+                            :width 1920 :height 400
                             :left 0 :top 0
                             :line_width 10 :text_size 50
                             :fg_color color
@@ -100,7 +100,8 @@
     (send *ri* :angle-vector (send *pr2* :angle-vector) 3000)
     (send *ri* :wait-interpolation)
     (publish-info "grasping...")
-    (let ((grasp-result (send *ri* :start-grasp *arm*)))
+    (let ((grasp-result (send *ri* :start-grasp *arm* :gain 0.3)))
+      (send *ri* :wait-interpolation)
       (unless (< 5.0 grasp-result)
         (publish-error "failed to grasp ~A" grasp-result)
         (send *ri* :stop-grasp *arm* :wait t)
