@@ -522,7 +522,7 @@
          (send* self :send-trajectory traj args))
        )))
   (:trajectory-filter ;; simple trajectory for zero duration
-   (traj &key (copy) (total-time 5000.0) (minimum-time 0.001) (start-offset-time) &rest args &allow-other-keys)
+   (traj &key (copy) (total-time 5000.0) (minimum-time 0.001) (start-offset-time) (clear-velocities) &rest args &allow-other-keys)
    (let ((orig-total-time (send (send (car (last (send traj :points))) :time_from_start) :to-sec)))
    (when (and minimum-time (not start-offset-time)
               (> orig-total-time
@@ -537,6 +537,9 @@
           (time-scale (/ (/ total-time 1000.0) orig-total-time))
           (cntr 0))
      (dolist (pt points)
+       (when clear-velocities
+         (send pt :velocities #f())
+         (send pt :accelerations #f()))
        (send pt :time_from_start (ros::time (+ start-offset-time (* time-scale (send (send pt :time_from_start) :to-sec)))))
        (incf cntr))
      traj)))
