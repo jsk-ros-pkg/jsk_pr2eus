@@ -2,6 +2,12 @@
 Changelog for package pr2eus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* [pr2eus/pr2-interface.l] add :force-assoc option for :start-grasp
+* robot-interface.l: send-trajectory-each : check if vels/effs is #f()
+* Contributors: Kei Okada, Yuki Furuta
+
 0.3.6 (2016-11-02)
 ------------------
 * add :base-controller-action-name for robot does not have move_base_trajectory_action (`#253 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/253>`_ )
