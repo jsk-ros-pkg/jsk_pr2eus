@@ -2,8 +2,8 @@
 Changelog for package pr2eus_moveit
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.3.7 (2016-11-08)
+------------------
 * :trajectory-filter add clear-velocities
 * Contributors: Kei Okada
 

@@ -2,8 +2,8 @@
 Changelog for package pr2eus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.3.7 (2016-11-08)
+------------------
 * [pr2eus/pr2-interface.l] add :force-assoc option for :start-grasp
 * robot-interface.l: send-trajectory-each : check if vels/effs is #f()
 * Contributors: Kei Okada, Yuki Furuta
