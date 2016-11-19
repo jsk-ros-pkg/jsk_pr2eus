@@ -489,17 +489,17 @@
 
        (ros::ros-info ";; generated ~A points for ~A sec using [~A] group" (length (send traj :points)) orig-total-time (send ret :group_name))
        ;;
-       (mapcar
-        #'(lambda (action param)
-            ;; find controller that does not included in move-arm
-            (unless (intersection (send traj :joint_names) (cdr (assoc :joint-names param)) :test #'string=)
-              ;; send via :angle-vector
-              (maphash #'(lambda (ac ct)
-                           (if (equal (list action) ct)
-                               (send-message self robot-interface :angle-vector av (* orig-total-time 1000) ac)))
-                       controller-table)
-              ))
-        controller-actions (send self controller-type))
+       ;; (mapcar
+       ;;  #'(lambda (action param)
+       ;;      ;; find controller that does not included in move-arm
+       ;;      (unless (intersection (send traj :joint_names) (cdr (assoc :joint-names param)) :test #'string=)
+       ;;        ;; send via :angle-vector
+       ;;        (maphash #'(lambda (ac ct)
+       ;;                     (if (equal (list action) ct)
+       ;;                         (send-message self robot-interface :angle-vector av (* orig-total-time 1000) ac)))
+       ;;                 controller-table)
+       ;;        ))
+       ;;  controller-actions (send self controller-type))
 
        (if use-send-angle-vector
            (send* self :joint-trajectory-to-angle-vector-list move-arm traj args)
