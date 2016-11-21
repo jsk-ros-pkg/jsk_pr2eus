@@ -463,8 +463,14 @@
                     cds confkey :end-coords ed-lst args))
      ret))
   (:angle-vector-motion-plan ;;
-   (av &rest args &key (start-offset-time) (total-time) (move-arm :larm) (reset-total-time 5000.0) (use-send-angle-vector) &allow-other-keys)
+   (av &rest args &key (ctype controller-type) (start-offset-time) (total-time)
+       (move-arm :larm) (reset-total-time 5000.0) (use-send-angle-vector)
+       &allow-other-keys)
    (let (traj ret filtered orig-total-time)
+     (setq ctype (or ctype controller-type))
+     (unless (gethash ctype controller-table)
+       (warn ";; controller-type: ~A not found" ctype)
+       (return-from :angle-vector-motion-plan))
      (setq ret (send* self :angle-vector-make-trajectory av args))
      (when ret
        (setq traj (send ret :trajectory :joint_trajectory))
@@ -492,7 +498,9 @@
        (mapcar
         #'(lambda (action param)
             ;; find controller that does not included in move-arm
-            (unless (intersection (send traj :joint_names) (cdr (assoc :joint-names param)) :test #'string=)
+            (when (and
+                    (find param (send self ctype) :test #'equal)
+                    (not (intersection (send traj :joint_names) (cdr (assoc :joint-names param)) :test #'string=)))
               ;; send via :angle-vector
               (maphash #'(lambda (ac ct)
                            (if (equal (list action) ct)
