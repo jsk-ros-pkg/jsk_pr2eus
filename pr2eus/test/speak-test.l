@@ -21,6 +21,20 @@
 (deftest test-speak-google ()
   (assert (speak-google "bonjour" :timeout 10 :lang :fr)))
 
+(deftest test-speak-en-jp ()
+  (labels ((test-speak
+            ()
+            (and (speak '(("en" . "hello, world") ("jp" . "こんにちは")) :timeout 10)
+            ;;   (speak '(("en" . "hello, world") ("jp" . "こんにちは")) :wait t :debug t)
+                 (speak '(("en" . "hello, world") ("jp" . "こんにちは")) :timeout 10 :google t)
+                 (speak '(("en" . "hello, world")) :timeout 10)
+                 (speak "hello, world" :timeout 10)
+                 )))
+    (assert (progn (test-speak)))
+    (assert (progn (ros::set-param "speak_language" "jp") (test-speak)))
+    (assert (progn (ros::set-param "speak_language" "en") (test-speak)))
+    ))
+
 (run-all-tests)
 (exit)
 
