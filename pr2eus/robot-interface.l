@@ -215,6 +215,8 @@
            (ros::ros-warn "Waiting for actionlib interface forever because controler-timeout is nil"))
          (unless (and joint-action-enable (send action :wait-for-server controller-timeout))
            (ros::ros-warn "~A is not respond, ~A-interface is disabled" action (send robot :name))
+           (ros::ros-warn "~C[3~CmStarting 'Kinematics Simulator'~C[0m" #x1b 49 #x1b)
+           (ros::ros-warn "~C[3~Cm (If you do not intend to start Kinematics Simulator, make sure that you can run 'rostopic echo /~A/goal' and 'rostopic info /~A/goal')~C[0m" #x1b 52 (send action :name) (send action :name) #x1b)
            (when joint-enable-check
              (setq joint-action-enable nil)
              (return))))
