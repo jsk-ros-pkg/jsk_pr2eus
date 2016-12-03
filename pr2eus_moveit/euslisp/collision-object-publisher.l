@@ -39,7 +39,7 @@
      (ros::publish attached-topicname msg)
      obj))
   (:make-object
-   (obj &key (frame-id "base_footprint") (object-frame-id) (relative-pose)
+   (obj &key (frame-id "base_footprint") (relative-pose)
         (object-id (string (gensym "COLOBJ"))) &allow-other-keys)
    (let ((msg (gethash obj object-list)))
      (when msg (return-from :make-object msg)))
