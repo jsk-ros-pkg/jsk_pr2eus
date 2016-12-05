@@ -545,7 +545,7 @@
        (if use-send-angle-vector
            (send* self :joint-trajectory-to-angle-vector-list move-arm traj args)
          (send* self :send-trajectory traj args))
-       )))
+       (if (listp av) av (list av)))))
   (:move-end-coords-plan ;;
    (cds &rest args &key (move-arm :larm) (reset-total-time 5000.0) (use-send-angle-vector) &allow-other-keys)
    (let (traj ret)
