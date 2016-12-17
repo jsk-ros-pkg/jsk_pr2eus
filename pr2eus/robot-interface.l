@@ -356,11 +356,10 @@
 - start-time : time to start moving
 - scale : if tm is not specified, it will use 1/scale of the fastest speed
 - min-time : minimum time to for time to goal
-- -time : minimum time to for time to goal
 - end-coords-interpolation : set t if you want to move robot in cartesian space interpolation
 "
    (if end-coords-interpolation
-     (return-from :anlge-vector (send self :angle-vector-sequence (list av) (list tm) ctype start-time :scale scale :min-time min-time :end-coords-interpolation t)))
+     (return-from :angle-vector (send self :angle-vector-sequence (list av) (list tm) ctype start-time :scale scale :min-time min-time :end-coords-interpolation t)))
    (setq ctype (or ctype controller-type))  ;; use default controller-type if ctype is nil
    (unless (gethash ctype controller-table)
      (warn ";; controller-type: ~A not found" ctype)
