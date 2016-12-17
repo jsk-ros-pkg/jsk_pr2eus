@@ -452,7 +452,11 @@
                  (while (send minjerk :interpolatingp)
                    (send minjerk :pass-time 100)
                    (setq p (elt (send minjerk :position) 0))
+                   ;; set midpoint of av as initial pose of IK
+                   (send robot :angle-vector (midpoint p av-prev av))
                    (dolist (limb target-limbs)
+                     ;; don't move arm by IK when interpolation is already ended
+                     (if (>= p 1) (return))
                      (setq ec-prev (elt end-coords-prev (position limb limbs))
                            ec-current (elt end-coords-current (position limb limbs)))
                      (setq ret (and ret
