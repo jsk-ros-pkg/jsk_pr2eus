@@ -397,7 +397,7 @@
       cacts (send self ctype)))
    av)
   (:angle-vector-sequence
-   (avs &optional (tms (list 3000)) (ctype controller-type) (start-time 0.1) &key (scale 1) (min-time 0.0))
+   (avs &optional (tms (list 3000)) (ctype controller-type) (start-time 0.1) &key (scale 1) (min-time 0.0) (allow-initial-av nil))
    "Send joind angle to robot, this method retuns immediately, so use :wait-interpolation to block until the motion stops."
    (setq ctype (or ctype controller-type))  ;; use default controller-type if ctype is nil
    (unless (gethash ctype controller-table)
@@ -421,6 +421,11 @@
          (setq av (pop avs))
          (setq fastest-tm (* 1000 (send self :angle-vector-duration av-prev av scale min-time ctype)))
          (setq tm (pop tms))
+         (when allow-initial-av ;; let first tm be zero
+           (when (and (numberp tm) (= tm 0))
+             (warning-message 3 "[robot-interface.l] (angle-vector-sequence) let first tm be zero~%")
+             (setq fastest-tm 0))
+           (setq allow-initial-av nil))
          (cond
           ((equal tm :fast)
            (setq tm fastest-tm))
