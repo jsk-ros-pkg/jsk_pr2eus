@@ -536,7 +536,7 @@
               (maphash #'(lambda (ac ct)
                            (if (equal (list action) ct)
                              (if (listp av)
-                               (send-message self robot-interface :angle-vector-sequence av (* orig-total-time) ac)
+                               (send-message self robot-interface :angle-vector-sequence av (* orig-total-time 1000) ac)
                                (send-message self robot-interface :angle-vector av (* orig-total-time 1000) ac))))
                        controller-table)
               ))
