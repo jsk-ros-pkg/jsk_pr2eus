@@ -1,10 +1,9 @@
 language:
-  - cpp
-  - python
-python:
-  - "2.7"
-compiler:
-  - gcc
+  - generic
+sudo: required
+dist: trusty
+services:
+  - docker
 notifications:
   email:
     on_success: always
@@ -13,6 +12,7 @@ notifications:
 env:
   global:
     - secure: "REUwDilheEXGFShSdFNgQ1rRAFBw2QG2eT8XDAQsDFyhPfCnjGDA1Ak25TbVIz4a02M9/hDP4QtsXFj6VRHVs4tV55zrGeLea06+Fw8vjHEICYVtfzYYvZB3pHnWoxxPUcQTU+CgTMGV3lLSupMgvyNNY8J6UdaiW8+Oj7icHc4="
+    - USE_DOCKER=true
     - CATKIN_PARALLEL_TEST_JOBS="-j1 -p1"
     - ROS_PARALLEL_TEST_JOBS="-j1"
   matrix:
