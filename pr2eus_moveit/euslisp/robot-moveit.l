@@ -48,6 +48,7 @@
           planning-scene-world-topic
           robot
           default-frame-id default-link
+          default-planner-id
           multi-dof-name multi-dof-frame
           use-action planning-action-client
           ))
@@ -64,6 +65,7 @@
          ((:planning-scene-world pl-sc-world) "/planning_scene_world")
          ((:state-validity-service sv-srv) "/check_state_validity")
          ((:robot rb)) (frame-id) ;; frame-id needs to be contained in robot_model
+         ((:planner-id pl-id) "RRTConnectkConfigDefault")
          (multi-dof-joint-name "virtual_joint")
          (multi-dof-frame-id "odom_combined"))
    (unless rb
@@ -80,6 +82,7 @@
          planning-scene-world-topic pl-sc-world
          robot rb
          default-frame-id frame-id
+         default-planner-id pl-id
          multi-dof-name multi-dof-joint-name
          multi-dof-frame multi-dof-frame-id)
    (ros::advertise planning-scene-world-topic moveit_msgs::PlanningSceneWorld)
@@ -232,7 +235,7 @@
      (send* self :motion-plan-constraints confkey :goal-constraints (list const) args)
      ))
   (:motion-plan-constraints
-   (confkey &key (scene) (planner-id "RRTConnectkConfigDefault")
+   (confkey &key (scene) (planner-id default-planner-id)
             (planning-attempts 1) (planning-time 5.0)
             (workspace-x 1.0) (workspace-y 1.0) (workspace-z 1.6)
             (goal-constraints) (extra-goal-constraints)
