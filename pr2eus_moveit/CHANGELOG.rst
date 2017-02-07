@@ -2,8 +2,8 @@
 Changelog for package pr2eus_moveit
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.3.8 (2017-02-07)
+------------------
 
 * robot-moveit.l
   * enable set default planner in moveit-env initialization (`#280 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/280>`_ )

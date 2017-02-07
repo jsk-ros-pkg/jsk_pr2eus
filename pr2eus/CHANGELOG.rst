@@ -2,8 +2,8 @@
 Changelog for package pr2eus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.3.8 (2017-02-07)
+------------------
 * add end-coords-interpolation (`#237 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/237>`_ )
   * Fix typos in :angle-vector (if end-coords-interpolation
   * Force end-coords-interpolation to go to given av
