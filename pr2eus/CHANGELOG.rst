@@ -2,6 +2,15 @@
 Changelog for package pr2eus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* add end-coords-interpolation (`#237 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/237>`_ )
+  * Fix typos in :angle-vector (if end-coords-interpolation
+  * Force end-coords-interpolation to go to given av
+  * add end-coords-interpolation in :angle-vector with:end-coords-interpolation t:  move robot in cartesian space interpolation
+* add more message on kinematics simulator mode
+* Contributors: Kei Okada, Shun Hasegawa
+
 0.3.7 (2016-11-08)
 ------------------
 * [pr2eus/pr2-interface.l] add :force-assoc option for :start-grasp
