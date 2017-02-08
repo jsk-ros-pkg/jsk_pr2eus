@@ -1,4 +1,0 @@
-<launch>
-  <test test-name="robot_init_test_node" pkg="roseus" type="roseus"
-        args="$(find pr2eus)/test/robot-init-test.l" time-limit="600" />
-</launch>
