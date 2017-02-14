@@ -301,44 +301,16 @@
    (let ((ret (send* self :motion-plan args)))
      (when ret
        (send self :execute-trajectory (send ret :trajectory) :wait wait))))
-  (:motion-plan-trajectory-constraints
-    (confkey av &rest args
-             &key (joint-list (cdr (assoc :joint-list (cdr (assoc confkey config-list)))))
-             (tolerance-below 0.001) (tolerance-above 0.001)
-             &allow-other-keys)
-    (instance moveit_msgs::Constraints :init :name ""
-              :joint_constraints
-              (mapcar #'(lambda (jn)
-                          (instance moveit_msgs::JointConstraint :init
-                                    :joint_name (send jn :name)
-                                    :position (send jn :ros-joint-angle)
-                                    :tolerance_above tolerance-above
-                                    :tolerance_below tolerance-below
-                                    :weight 1.0))
-                      joint-list)))
   (:planning-make-trajectory
    (confkey &rest args &key (set-angle-vector) (scene) (use-scene t) (planning-time 5.0)
             (planning-attempts 3) (retry) &allow-other-keys)
-   (let (ret trajectory-constraints)
-     (when (and set-angle-vector (listp set-angle-vector))
-       (setq trajectory-constraints
-             (instance moveit_msgs::TrajectoryConstraints :init
-                       :constraints
-                       (mapcar #'(lambda (av)
-                                   (let (const)
-                                     (send robot :angle-vector av)
-                                     (setq const (send* self :motion-plan-trajectory-constraints confkey av args))
-                                   const))
-                               (butlast set-angle-vector))))
-       (send robot :angle-vector (car (last set-angle-vector))))
-     (when (and set-angle-vector (atom set-angle-vector))
-         (send robot :angle-vector set-angle-vector))
+   (let (ret)
+     (when set-angle-vector (send robot :angle-vector set-angle-vector))
      (unless scene (setq scene (send self :get-planning-scene)))
      (setq ret
            (send* self :motion-plan confkey
                   :planning-time planning-time :planning-attempts planning-attempts
                   :scene (if use-scene scene)
-                  :trajectory-constraints trajectory-constraints
                   args))
      (when (and retry (not ret)) ;; retry
        (when get-scene (setq scene (send self :get-planning-scene)))
@@ -347,7 +319,6 @@
                     :planning-time (* 2 planning-time)
                     :planning-attempts (* 2 planning-attempts)
                     :scene (if use-scene scene)
-                    :trajectory-constraints trajectory-constraints
                     args)))
      ret
      ))
