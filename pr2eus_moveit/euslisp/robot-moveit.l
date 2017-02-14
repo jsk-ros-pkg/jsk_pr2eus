@@ -446,15 +446,66 @@
                   :get-ik-for-pose cds confkey :end-coords ed-lst args))
      ret))
   (:angle-vector-make-trajectory
-   (av &rest args &key (move-arm :larm) (use-torso) &allow-other-keys)
+   (av &rest args &key (move-arm :larm) (use-torso)
+                       (start-offset-time 0.01) &allow-other-keys)
    (let* ((r (send self :parse-end-coords move-arm use-torso))
           (confkey (car r))
           (ed-lst (cdr r))
-          ret)
-     (setq ret
-           (send* self :planning-environment
-                  :planning-make-trajectory confkey
-                  :set-angle-vector av :end-coords ed-lst args))
+          failed time-from-start
+          scene joint-state points
+          tmp-ret ret)
+     (if (listp av)
+         (progn
+           (dolist (tmp-av av)
+             (setq joint-state
+                   (joint-list->joint_state (send robot :joint-list)))
+             (setq scene (send self :planning-environment
+                               :get-planning-scene))
+             (send scene :robot_state :joint_state joint-state)
+             (setq tmp-ret
+                   (send* self :planning-environment
+                          :planning-make-trajectory confkey
+                          :set-angle-vector tmp-av :scene scene
+                          :end-coords ed-lst args))
+             (if tmp-ret
+               (progn
+                 (setq points (send tmp-ret :trajectory
+                                    :joint_trajectory :points))
+                 (when time-from-start
+                   (setq points
+                         (let (tmp-points)
+                           (dolist (pt points)
+                             (send pt :time_from_start
+                                   (ros::time
+                                     (+ time-from-start
+                                        start-offset-time
+                                        (send (send pt :time_from_start)
+                                              :to-sec))))
+                             (setq tmp-points
+                                   (append tmp-points (list pt))))
+                           tmp-points)))
+                 (setq ret
+                       (if ret
+                         (progn
+                           (send ret :planning_time
+                                 (+ (send ret :planning_time)
+                                    (send tmp-ret :planning_time)))
+                           (send ret :trajectory :joint_trajectory :points
+                                 (append (send ret :trajectory
+                                               :joint_trajectory :points)
+                                         points))
+                           ret) tmp-ret))
+                 (setq time-from-start
+                       (send (send (car (last points)) :time_from_start)
+                             :to-sec)))
+               (setq failed t))
+             (send robot :angle-vector tmp-av))
+           (when failed (setq ret nil)))
+         (progn
+           (setq ret
+                 (send* self :planning-environment
+                        :planning-make-trajectory confkey
+                        :set-angle-vector av :end-coords ed-lst args))))
      ret))
   (:end-coords-make-trajectory
    (cds &rest args &key (move-arm :larm) (use-torso) &allow-other-keys)
