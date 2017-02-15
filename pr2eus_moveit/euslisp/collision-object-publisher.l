@@ -159,6 +159,7 @@
   (:clear-all ()
    (dolist (obj (send object-list :list-keys))
      (send self :delete-object obj))
+   (setq object-list (make-hash-table))
    t)
   (:clear-attached-all ()
    (dolist (obj (send attached-object-list :list-keys))
