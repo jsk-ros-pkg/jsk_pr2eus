@@ -12,7 +12,8 @@
 	 (ros::ros-error "pr2eus/pr2-interface.l: pr2_contrllers_msgs is not found"))
 	(t
 	 (ros::ros-warn "pr2eus/pr2-interface.l: pr2_contrllers_msgs is not releaed on ~A" (unix::getenv "ROS_DISTRO"))
-	 (exit 1))))
+	 (warning-message 1 "exitting without error....")
+	 (exit 0))))
 
 (ros::load-ros-manifest "control_msgs")
 (ros::load-ros-manifest "pr2eus")
