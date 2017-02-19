@@ -12,6 +12,9 @@
 ;;(deftest test-robot-init-without-param-and-argument ()
 ;;  (assert (not (robot-init)) "This should invoke error."))
 
+;; disaable test for jade/kinetic, which did not load pr2-interface.l, beacuse of missing pr2_controller_msgs
+(when (ros::rospack-find "(pr2_controllers_msgs")
+
 (deftest test-robot-init-with-argument ()
   (assert (progn
             (robot-init "pr2")
@@ -28,6 +31,7 @@
             (and *ri* *pr2*))
           "This should return pr2 and ri.")
   )
+)
 
 (run-all-tests)
 (exit)
