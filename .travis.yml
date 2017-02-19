@@ -31,9 +31,7 @@ matrix:
   allow_failures:
     - env: ROS_DISTRO=hydro   USE_DEB=false
     - env: ROS_DISTRO=indigo  USE_DEB=false
-    - env: ROS_DISTRO=jade    USE_DEB=true
     - env: ROS_DISTRO=jade    USE_DEB=false
-    - env: ROS_DISTRO=kinetic USE_DEB=true
     - env: ROS_DISTRO=kinetic USE_DEB=false
 script: source .travis/travis.sh
 after_success:
