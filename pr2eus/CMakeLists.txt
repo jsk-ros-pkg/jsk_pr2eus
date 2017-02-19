@@ -33,14 +33,16 @@ install(FILES pr2-send-joints.l pr2-read-state.l
 
 if(CATKIN_ENABLE_TESTING)
   find_package(catkin REQUIRED COMPONENTS rostest)
-  add_rostest(test/pr2eus-test.launch)
-  add_rostest(test/make-pr2-model-file-test.launch)
-  #add_rostest(test/pr2-ri-test.launch)
-  add_rostest(test/pr2-ri-test-simple.launch)
+  if(pr2_controllers_msgs_FOUND)
+    add_rostest(test/pr2eus-test.launch)
+    add_rostest(test/make-pr2-model-file-test.launch)
+    #add_rostest(test/pr2-ri-test.launch)
+    add_rostest(test/pr2-ri-test-simple.launch)
+    add_rostest(test/robot-init-test.test) # this uses pr2
+  endif()
   add_rostest(test/robot-no-clock.test)
   add_rostest(test/default-ri-test.test)
   add_rostest(test/speak-test.test)
-  add_rostest(test/robot-init-test.test)
 endif()
 
 generate_eusdoc(robot-interface.l)

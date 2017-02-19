@@ -6,6 +6,14 @@
 (require :robot-interface "package://pr2eus/robot-interface.l")
 (require :speak "package://pr2eus/speak.l")
 
+(unless (ros::rospack-find "pr2_controllers_msgs")
+  (cond ((or (string= (unix::getenv "ROS_DISTRO") "indigo")
+	     (string< (unix::getenv "ROS_DISTRO") "indigo"))
+	 (ros::ros-error "pr2eus/pr2-interface.l: pr2_contrllers_msgs is not found"))
+	(t
+	 (ros::ros-warn "pr2eus/pr2-interface.l: pr2_contrllers_msgs is not releaed on ~A" (unix::getenv "ROS_DISTRO"))
+	 (exit 1))))
+
 (ros::load-ros-manifest "control_msgs")
 (ros::load-ros-manifest "pr2eus")
 (ros::load-ros-manifest "pr2_msgs")
