@@ -6,7 +6,7 @@ if(pr2_controllers_msgs_FOUND)
   message(STATUS "pr2_controllers_msgs FOUND")
   # set(PR2_CONTROLLERS_MSGS_PACKAGE pr2_controllers_msgs) ## Somehow this does not work on hydro...
   find_package(catkin REQUIRED COMPONENTS euscollada control_msgs nav_msgs dynamic_reconfigure rosgraph_msgs move_base_msgs pr2_msgs pr2_controllers_msgs sound_play
-  roseus # this load roseus.cmake, so it needs to be located in the end
+  geneus roseus # this load roseus.cmake, so it needs to be located in the end
   )
 else()
   message(STATUS "pr2_controllers_msgs IS DEPRECATED")
