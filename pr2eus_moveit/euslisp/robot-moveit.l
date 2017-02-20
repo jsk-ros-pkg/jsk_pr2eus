@@ -301,44 +301,16 @@
    (let ((ret (send* self :motion-plan args)))
      (when ret
        (send self :execute-trajectory (send ret :trajectory) :wait wait))))
-  (:motion-plan-trajectory-constraints
-    (confkey av &rest args
-             &key (joint-list (cdr (assoc :joint-list (cdr (assoc confkey config-list)))))
-             (tolerance-below 0.001) (tolerance-above 0.001)
-             &allow-other-keys)
-    (instance moveit_msgs::Constraints :init :name ""
-              :joint_constraints
-              (mapcar #'(lambda (jn)
-                          (instance moveit_msgs::JointConstraint :init
-                                    :joint_name (send jn :name)
-                                    :position (send jn :ros-joint-angle)
-                                    :tolerance_above tolerance-above
-                                    :tolerance_below tolerance-below
-                                    :weight 1.0))
-                      joint-list)))
   (:planning-make-trajectory
    (confkey &rest args &key (set-angle-vector) (scene) (use-scene t) (planning-time 5.0)
             (planning-attempts 3) (retry) &allow-other-keys)
-   (let (ret trajectory-constraints)
-     (when (and set-angle-vector (listp set-angle-vector))
-       (setq trajectory-constraints
-             (instance moveit_msgs::TrajectoryConstraints :init
-                       :constraints
-                       (mapcar #'(lambda (av)
-                                   (let (const)
-                                     (send robot :angle-vector av)
-                                     (setq const (send* self :motion-plan-trajectory-constraints confkey av args))
-                                   const))
-                               (butlast set-angle-vector))))
-       (send robot :angle-vector (car (last set-angle-vector))))
-     (when (and set-angle-vector (atom set-angle-vector))
-         (send robot :angle-vector set-angle-vector))
+   (let (ret)
+     (when set-angle-vector (send robot :angle-vector set-angle-vector))
      (unless scene (setq scene (send self :get-planning-scene)))
      (setq ret
            (send* self :motion-plan confkey
                   :planning-time planning-time :planning-attempts planning-attempts
                   :scene (if use-scene scene)
-                  :trajectory-constraints trajectory-constraints
                   args))
      (when (and retry (not ret)) ;; retry
        (when get-scene (setq scene (send self :get-planning-scene)))
@@ -347,7 +319,6 @@
                     :planning-time (* 2 planning-time)
                     :planning-attempts (* 2 planning-attempts)
                     :scene (if use-scene scene)
-                    :trajectory-constraints trajectory-constraints
                     args)))
      ret
      ))
@@ -475,15 +446,66 @@
                   :get-ik-for-pose cds confkey :end-coords ed-lst args))
      ret))
   (:angle-vector-make-trajectory
-   (av &rest args &key (move-arm :larm) (use-torso) &allow-other-keys)
+   (av &rest args &key (move-arm :larm) (use-torso)
+                       (start-offset-time 0.01) &allow-other-keys)
    (let* ((r (send self :parse-end-coords move-arm use-torso))
           (confkey (car r))
           (ed-lst (cdr r))
-          ret)
-     (setq ret
-           (send* self :planning-environment
-                  :planning-make-trajectory confkey
-                  :set-angle-vector av :end-coords ed-lst args))
+          failed time-from-start
+          scene joint-state points
+          tmp-ret ret)
+     (if (listp av)
+         (progn
+           (dolist (tmp-av av)
+             (setq joint-state
+                   (joint-list->joint_state (send robot :joint-list)))
+             (setq scene (send self :planning-environment
+                               :get-planning-scene))
+             (send scene :robot_state :joint_state joint-state)
+             (setq tmp-ret
+                   (send* self :planning-environment
+                          :planning-make-trajectory confkey
+                          :set-angle-vector tmp-av :scene scene
+                          :end-coords ed-lst args))
+             (if tmp-ret
+               (progn
+                 (setq points (send tmp-ret :trajectory
+                                    :joint_trajectory :points))
+                 (when time-from-start
+                   (setq points
+                         (let (tmp-points)
+                           (dolist (pt points)
+                             (send pt :time_from_start
+                                   (ros::time
+                                     (+ time-from-start
+                                        start-offset-time
+                                        (send (send pt :time_from_start)
+                                              :to-sec))))
+                             (setq tmp-points
+                                   (append tmp-points (list pt))))
+                           tmp-points)))
+                 (setq ret
+                       (if ret
+                         (progn
+                           (send ret :planning_time
+                                 (+ (send ret :planning_time)
+                                    (send tmp-ret :planning_time)))
+                           (send ret :trajectory :joint_trajectory :points
+                                 (append (send ret :trajectory
+                                               :joint_trajectory :points)
+                                         points))
+                           ret) tmp-ret))
+                 (setq time-from-start
+                       (send (send (car (last points)) :time_from_start)
+                             :to-sec)))
+               (setq failed t))
+             (send robot :angle-vector tmp-av))
+           (when failed (setq ret nil)))
+         (progn
+           (setq ret
+                 (send* self :planning-environment
+                        :planning-make-trajectory confkey
+                        :set-angle-vector av :end-coords ed-lst args))))
      ret))
   (:end-coords-make-trajectory
    (cds &rest args &key (move-arm :larm) (use-torso) &allow-other-keys)
