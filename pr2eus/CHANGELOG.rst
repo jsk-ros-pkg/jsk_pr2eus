@@ -2,6 +2,18 @@
 Changelog for package pr2eus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* cleanup CMakeLists.txt, use PR2_CONTROLLERS_MSGS_PACKAGE variable and add geneus for hydro (`#285 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/285>`_ )
+* Support Kinetic (`#284 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/284>`_ )
+  * need to add geneus for hydro? https://s3.amazonaws.com/archive.travis-ci.org/jobs/203074134/log.txt
+  * robot-init-test.l: disable test for jade/kinetic, which did not load pr2-interface.l, beacuse of missing pr2_controller_msgs
+  * CMakeLists.txt: using PR2_CONTROLLERS_MSGS_PACKAGE variable to control find_package does not work on hydro
+  * pr2-interface.l exits without error on kinetic
+  * pr2_controllers_msgs is not released on J/K
+  * pr2eus/CMakeLists.txt: pr2_controllers_msgs is not released on J/K
+* Contributors: Kei Okada
+
 0.3.8 (2017-02-07)
 ------------------
 * add end-coords-interpolation (`#237 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/237>`_ )

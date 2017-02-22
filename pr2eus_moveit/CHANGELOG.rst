@@ -2,6 +2,19 @@
 Changelog for package pr2eus_moveit
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Support Kinetic (`#284 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/284>`_ )
+  * pr2_controllers_msgs is not released on J/K
+
+* [pr2eus_moveit/collision-object-publisher.l] fix bug in :wipe-all (`#283 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/283>`_ )
+  * separate wipe-all and fix bug
+  * set new hash-table in :clear-all
+* [pr2eus_moveit/robot-moveit.l] support angle-vector-sequence with MoveIt! (`#282 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/282>`_ )
+  * support angle-vector-sequence for motion plan
+  * remove trajectory-constraints for motion plan
+* Contributors: Kei Okada, Shingo Kitagawa
+
 0.3.8 (2017-02-07)
 ------------------
 
