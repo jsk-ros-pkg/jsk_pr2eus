@@ -1163,9 +1163,9 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
 (defclass robot-move-base-interface
   :super robot-interface
   :slots (move-base-action move-base-trajectory-action
-                           move-base-goal-msg move-base-goal-coords  move-base-goal-map-to-frame
-			   base-frame-id
-			   odom-topic
+          move-base-goal-msg move-base-goal-coords  move-base-goal-map-to-frame
+          base-frame-id
+          odom-topic
                            go-pos-unsafe-goal-msg
                            current-goal-coords)) ;; for simulation-callback
 (defmethod robot-move-base-interface
