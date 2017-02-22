@@ -1310,7 +1310,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
      (if (null move-base-goal-msg) (return-from :move-to-wait nil))
      (while (and (null ret) (<= count retry))
        (when (> count 0) ;; retry
-         (clear-costmap)
+         (clear-costmap :node-name (send move-base-action :name))
          (send move-base-goal-msg :header :seq count)
          (send move-base-goal-msg :goal :target_pose :header :seq count)
          (ros::ros-info "move-to : send-goal to ~A at ~A (~d)" (ros::tf-point->pos (send move-base-goal-msg :goal :target_pose :pose :position)) (send move-base-goal-msg :goal :target_pose :header :frame_id) count)
