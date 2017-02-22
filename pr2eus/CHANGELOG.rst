@@ -2,8 +2,8 @@
 Changelog for package pr2eus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.3.9 (2017-02-22)
+------------------
 * cleanup CMakeLists.txt, use PR2_CONTROLLERS_MSGS_PACKAGE variable and add geneus for hydro (`#285 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/285>`_ )
 * Support Kinetic (`#284 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/284>`_ )
   * need to add geneus for hydro? https://s3.amazonaws.com/archive.travis-ci.org/jobs/203074134/log.txt
