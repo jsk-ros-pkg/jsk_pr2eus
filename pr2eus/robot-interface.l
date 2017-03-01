@@ -253,10 +253,6 @@
    (let* ((joint-list (send robot :joint-list))
           (all-joint-names (send-all joint-list :name)))
      (send self :publish-joint-state)
-     ;(print (list 'actions controller-actions))
-     ;(print controller-type)
-     ;(print controller-table)
-     ;(maphash #'(lambda (x y)(print (list x y))) controller-table)
      (dolist (param (send self controller-type)) ;; assuming all action is stored in controller-type (:default-controller)
        ;(print (list 'p param))
        (let* ((joint-names (cdr (assoc :joint-names param)))
@@ -269,7 +265,8 @@
              (if (find j all-joint-names :test #'string=)
                  (let ((i (position j all-joint-names :test #'string=)))
                    (send (elt joint-list i) :joint-angle (elt av i))))))
-         )) ;;
+         ))
+     ;;
      (if viewer (send self :draw-objects))
      ))
   (:publish-joint-state ;; for simulation mode (joint-action-enable is nil)
@@ -1643,8 +1640,24 @@ send-action [ send message to action server, it means robot will move ]"
 	(unless joint-action-enable
 	  (return-from :state (send self :worldcoords)))
 	(return-from :state (send *tfl* :lookup-transform (or (cadr args) "map") base-frame-id (ros::time)))))))
-
-  )
+  ;;
+  (:robot-interface-simulation-callback
+   ()
+   (when current-goal-coords
+     (let* ((orig-coords (send robot :copy-worldcoords))
+            (diff-pos (send orig-coords :difference-position current-goal-coords))
+            (diff-rot (send orig-coords :difference-rotation current-goal-coords :rotation-axis :xy)))
+       (cond
+         ((and (eps= (norm diff-pos) 0) (eps= (norm diff-rot) 0))
+          (setq current-goal-coords nil))
+         (t
+          (send robot :newcoords (midcoords (min (/ 10 (max (norm diff-pos) 10))
+                                                 (/ 0.02 (max (norm diff-rot) 0.02)))
+                                            orig-coords current-goal-coords))))
+   )) ;; when
+   (send-super :robot-interface-simulation-callback)
+   )
+)
 
 ;;;;
 (defclass ros-interface

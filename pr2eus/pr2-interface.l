@@ -334,30 +334,13 @@ Example: (send self :gripper :rarm :position) => 0.00"
 	   (mapcar #'v- current origin))
        current)))
   ;;
-  ;;
-  ;;
   (:wait-torso (&optional (timeout 0))
    (let ((act (find-if #'(lambda (x) (string= (send x :name) "torso_controller/follow_joint_trajectory"))
                        controller-actions)))
      (when act
        (send act :wait-for-result :timeout timeout))))
-  ;;;
-  (:robot-interface-simulation-callback ()
-   (let ((orig-coords (send robot :copy-worldcoords))
-         diff-pos diff-rot diff)
-     (when current-goal-coords
-       (setq diff-pos (send orig-coords :difference-position current-goal-coords)
-             diff-rot (send orig-coords :difference-rotation current-goal-coords :rotation-axis :xy))
-       (cond ((and (eps= (norm diff-pos) 0) (eps= (norm diff-rot) 0))
-              (setq current-goal-coords nil))
-             (t
-              (send robot :newcoords (midcoords (min (/ 10 (max (norm diff-pos) 10))
-                                                     (/ 0.02 (max (norm diff-rot) 0.02)))
-                                                orig-coords current-goal-coords))))
-       );; when
-     (send-super :robot-interface-simulation-callback)
-     ))
   )
+
 
 ;;
 ;;
