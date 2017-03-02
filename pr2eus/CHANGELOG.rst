@@ -2,8 +2,8 @@
 Changelog for package pr2eus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.3.10 (2017-03-02)
+-------------------
 * [pr2eus][pr2-interface.l] move move-to / go-pos callback for simulation to robot-interface.l (`#288 <https://github.com/jsk-ros-pkg/jsk_pr2eus/pull/288>`_)
 + [pr2eus] fix: remove the first '/' from frame (`#287 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/287>`_)
 * fix: use movebaseaction name for clear-costmap (`#286 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/286>`_)
