@@ -2,6 +2,15 @@
 Changelog for package pr2eus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* [pr2eus][pr2-interface.l] move move-to / go-pos callback for simulation to robot-interface.l (`#288 <https://github.com/jsk-ros-pkg/jsk_pr2eus/pull/288>`_)
++ [pr2eus] fix: remove the first '/' from frame (`#287 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/287>`_)
+* fix: use movebaseaction name for clear-costmap (`#286 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/286>`_)
+  * [pr2eus/robot-interface.l] fix: use move-base-action name for clear-costmap
+  * [pr2eus][robot-interface.l] soft tab
+* Contributors: Kei Okada, Yuki Furuta
+
 0.3.9 (2017-02-22)
 ------------------
 * cleanup CMakeLists.txt, use PR2_CONTROLLERS_MSGS_PACKAGE variable and add geneus for hydro (`#285 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/285>`_ )
