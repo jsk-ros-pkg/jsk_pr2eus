@@ -1398,7 +1398,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
    ()
    (send self :spin-once) ;; update
    (when (send self :simulation-modep)
-     (return-from :go-waitp nil)) ;; temporary
+     (return-from :go-waitp (not (null current-goal-coords))))
    (cond
     ((or
       (equal (send move-base-action :get-state) ros::*simple-goal-state-active*)
