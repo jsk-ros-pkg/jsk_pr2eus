@@ -1261,7 +1261,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
    (coords &rest args &key (no-wait nil) &allow-other-keys)
    (send* self :move-to-send coords args)
    (if (not no-wait)
-       (send* self :move-to-wait args)))
+       (send* self :move-to-wait args) t))
   (:move-to-send
    (coords &key (frame-id "world") (wait-for-server-timeout 5) (count 0) &allow-other-keys)
    (setq move-base-goal-msg (instance move_base_msgs::MoveBaseActionGoal :init))
