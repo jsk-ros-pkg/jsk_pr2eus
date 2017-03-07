@@ -560,8 +560,8 @@
 - timeout : max time of for waiting
 - return values is a list of interpolatingp for all controllers, so (null (some #'identity (send *ri* :wait-interpolation))) -> t if all interpolation has stopped"
    (if (send self :simulation-modep)
-       (while (some #'(lambda (a) (send a :interpolatingp)) controller-actions)
-              (send self :robot-interface-simulation-callback))
+       (while (send self :interpolatingp)
+         (send self :robot-interface-simulation-callback))
        (cond ;; real robot
          (ctype
           (let ((cacts (gethash ctype controller-table)))
@@ -571,6 +571,9 @@
   (:interpolatingp (&optional (ctype)) ;; controller-type ;; check someone is moving
 "Check if the last sent motion is executing
 return t if interpolating"
+    (when (send self :simulation-modep)
+      (return-from :interpolatingp
+        (some #'(lambda (a) (send a :interpolatingp)) controller-actions)))
     (send self :spin-once)
     (cond
      (ctype
@@ -1258,7 +1261,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
    (coords &rest args &key (no-wait nil) &allow-other-keys)
    (send* self :move-to-send coords args)
    (if (not no-wait)
-       (send* self :move-to-wait args)))
+       (send* self :move-to-wait args) t))
   (:move-to-send
    (coords &key (frame-id "world") (wait-for-server-timeout 5) (count 0) &allow-other-keys)
    (setq move-base-goal-msg (instance move_base_msgs::MoveBaseActionGoal :init))
@@ -1395,7 +1398,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
    ()
    (send self :spin-once) ;; update
    (when (send self :simulation-modep)
-     (return-from :go-waitp nil)) ;; temporary
+     (return-from :go-waitp (not (null current-goal-coords))))
    (cond
     ((or
       (equal (send move-base-action :get-state) ros::*simple-goal-state-active*)
