@@ -13,8 +13,8 @@
    (setq topicname topic-name
          attached-topicname attached-topic-name
          scene-srv scene-service)
-   (ros::advertise topicname moveit_msgs::CollisionObject 100)
-   (ros::advertise attached-topicname moveit_msgs::AttachedCollisionObject 100)
+   (ros::advertise topicname moveit_msgs::CollisionObject 1 t) ;; latch = t
+   (ros::advertise attached-topicname moveit_msgs::AttachedCollisionObject 1 t) ;; latch = t
    (setq object-list (make-hash-table))
    (setq attached-object-list (make-hash-table))
    self)
