@@ -6,6 +6,15 @@
 (require :robot-interface "package://pr2eus/robot-interface.l")
 (require :speak "package://pr2eus/speak.l")
 
+(unless (ros::rospack-find "pr2_controllers_msgs")
+  (cond ((or (string= (unix::getenv "ROS_DISTRO") "indigo")
+	     (string< (unix::getenv "ROS_DISTRO") "indigo"))
+	 (ros::ros-error "pr2eus/pr2-interface.l: pr2_contrllers_msgs is not found"))
+	(t
+	 (ros::ros-warn "pr2eus/pr2-interface.l: pr2_contrllers_msgs is not releaed on ~A" (unix::getenv "ROS_DISTRO"))
+	 (warning-message 1 "exitting without error....")
+	 (exit 0))))
+
 (ros::load-ros-manifest "control_msgs")
 (ros::load-ros-manifest "pr2eus")
 (ros::load-ros-manifest "pr2_msgs")
@@ -82,7 +91,7 @@
      (:worldcoords
       (unless joint-action-enable
 	(return-from :state (send self :worldcoords)))
-      (send-super :state :worldcoords (or (cadr args) "/world")))
+      (send-super :state :worldcoords (or (cadr args) "world")))
      (t
       (send-super* :state args))
      ))
@@ -325,30 +334,13 @@ Example: (send self :gripper :rarm :position) => 0.00"
 	   (mapcar #'v- current origin))
        current)))
   ;;
-  ;;
-  ;;
   (:wait-torso (&optional (timeout 0))
    (let ((act (find-if #'(lambda (x) (string= (send x :name) "torso_controller/follow_joint_trajectory"))
                        controller-actions)))
      (when act
        (send act :wait-for-result :timeout timeout))))
-  ;;;
-  (:robot-interface-simulation-callback ()
-   (let ((orig-coords (send robot :copy-worldcoords))
-         diff-pos diff-rot diff)
-     (when current-goal-coords
-       (setq diff-pos (send orig-coords :difference-position current-goal-coords)
-             diff-rot (send orig-coords :difference-rotation current-goal-coords :rotation-axis :xy))
-       (cond ((and (eps= (norm diff-pos) 0) (eps= (norm diff-rot) 0))
-              (setq current-goal-coords nil))
-             (t
-              (send robot :newcoords (midcoords (min (/ 10 (max (norm diff-pos) 10))
-                                                     (/ 0.02 (max (norm diff-rot) 0.02)))
-                                                orig-coords current-goal-coords))))
-       );; when
-     (send-super :robot-interface-simulation-callback)
-     ))
   )
+
 
 ;;
 ;;

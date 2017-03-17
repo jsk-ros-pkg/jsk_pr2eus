@@ -2,6 +2,43 @@
 Changelog for package pr2eus_moveit
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.3.10 (2017-03-02)
+-------------------
+
+0.3.9 (2017-02-22)
+------------------
+* Support Kinetic (`#284 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/284>`_ )
+  * pr2_controllers_msgs is not released on J/K
+
+* [pr2eus_moveit/collision-object-publisher.l] fix bug in :wipe-all (`#283 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/283>`_ )
+  * separate wipe-all and fix bug
+  * set new hash-table in :clear-all
+* [pr2eus_moveit/robot-moveit.l] support angle-vector-sequence with MoveIt! (`#282 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/282>`_ )
+  * support angle-vector-sequence for motion plan
+  * remove trajectory-constraints for motion plan
+* Contributors: Kei Okada, Shingo Kitagawa
+
+0.3.8 (2017-02-07)
+------------------
+
+* robot-moveit.l
+  * enable set default planner in moveit-env initialization (`#280 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/280>`_ )
+  * [pr2eus_moveit] pass start-offset-time as starttime to :send-trajectory (`#276 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/276>`_)
+  * pass start-offset-time to :send-trajectory
+  * angle-vector-motion-plan return angle-vector (`#268 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/268>`_)
+  * angle-vector-motion-plan accepts angle-vector seq
+    modify :angle-vector-motion-plan to accept angle-vector-sequence
+    set (butlast avs) as TrajectoryConstraints (`#259 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/259>`_)
+  * add :ctype args in angle-vector-motion-plan to set controller-type for :angle-vector-motion-plan(`#261 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/261>`_)
+  * total-time is msec ,and orig-total-time is sec, :total-time in :trajectory-fiter is msec (`#257 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/257>`_) FIx bugs in `#252 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/252>`_
+
+* collision-object-publisher.l
+  * [pr2eus_moveit/collision-object-publisher] support body class object (`#269 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/269>`_)
+  * fix bug in collision-object-publisher :wipe-all (`#267 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/267>`_)
+  * remove unused key in collision-object-publisher (`#266 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/266>`_)
+
+* Contributors: Naoya Yamaguchi, Kei Okada, Shingo Kitagawa
+
 0.3.7 (2016-11-08)
 ------------------
 * :trajectory-filter add clear-velocities

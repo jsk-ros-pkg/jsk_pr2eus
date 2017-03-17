@@ -253,10 +253,6 @@
    (let* ((joint-list (send robot :joint-list))
           (all-joint-names (send-all joint-list :name)))
      (send self :publish-joint-state)
-     ;(print (list 'actions controller-actions))
-     ;(print controller-type)
-     ;(print controller-table)
-     ;(maphash #'(lambda (x y)(print (list x y))) controller-table)
      (dolist (param (send self controller-type)) ;; assuming all action is stored in controller-type (:default-controller)
        ;(print (list 'p param))
        (let* ((joint-names (cdr (assoc :joint-names param)))
@@ -269,7 +265,8 @@
              (if (find j all-joint-names :test #'string=)
                  (let ((i (position j all-joint-names :test #'string=)))
                    (send (elt joint-list i) :joint-angle (elt av i))))))
-         )) ;;
+         ))
+     ;;
      (if viewer (send self :draw-objects))
      ))
   (:publish-joint-state ;; for simulation mode (joint-action-enable is nil)
@@ -345,7 +342,7 @@
    (let* ((prev-av (send robot :angle-vector)))
      (send-all (gethash ctype controller-table) :push-angle-vector-simulation av tm prev-av)))
   (:angle-vector
-   (av &optional (tm nil) (ctype controller-type) (start-time 0) &key (scale 1) (min-time 1.0))
+   (av &optional (tm nil) (ctype controller-type) (start-time 0) &key (scale 1) (min-time 1.0) (end-coords-interpolation nil))
    "Send joind angle to robot, this method retuns immediately, so use :wait-interpolation to block until the motion stops.
 - av : joint angle vector [rad]
 - tm : (time to goal in [msec])
@@ -356,7 +353,10 @@
 - start-time : time to start moving
 - scale : if tm is not specified, it will use 1/scale of the fastest speed
 - min-time : minimum time to for time to goal
+- end-coords-interpolation : set t if you want to move robot in cartesian space interpolation
 "
+   (if end-coords-interpolation
+     (return-from :angle-vector (send self :angle-vector-sequence (list av) (list tm) ctype start-time :scale scale :min-time min-time :end-coords-interpolation t)))
    (setq ctype (or ctype controller-type))  ;; use default controller-type if ctype is nil
    (unless (gethash ctype controller-table)
      (warn ";; controller-type: ~A not found" ctype)
@@ -397,7 +397,7 @@
       cacts (send self ctype)))
    av)
   (:angle-vector-sequence
-   (avs &optional (tms (list 3000)) (ctype controller-type) (start-time 0.1) &key (scale 1) (min-time 0.0))
+   (avs &optional (tms (list 3000)) (ctype controller-type) (start-time 0.1) &key (scale 1) (min-time 0.0) (end-coords-interpolation nil))
    "Send joind angle to robot, this method retuns immediately, so use :wait-interpolation to block until the motion stops."
    (setq ctype (or ctype controller-type))  ;; use default controller-type if ctype is nil
    (unless (gethash ctype controller-table)
@@ -415,6 +415,66 @@
       ((> (length tms) (length avs))
        (ros::ros-warn "length of tms should be the same or smaller than avs")
        (setq tms (subseq tms 0 (length avs)))))
+     (when end-coords-interpolation ;; set end-coords interpolation
+       (let ((av-orig (send robot :angle-vector)) ;; initial av, restore at end
+             (c-orig  (send robot :copy-worldcoords)) ;; inital coords, restore at end
+             (av-prev-orig av-prev) ;; prev-av
+             (limbs '(:larm :rarm :lleg :rleg :torso :head)) ;; defined in https://github.com/euslisp/jskeus/blob/master/irteus/irtrobot.l#L79
+             target-limbs
+             (minjerk (instance minjerk-interpolator :init))
+             end-coords-prev end-coords-current ec-prev ec-current
+             interpolated-avs interpolated-tms
+             tm i p (ret t)) ;; if nil failed to interpolate
+           ;; set prev-av
+         (send robot :angle-vector av-prev)
+         (setq end-coords-prev (mapcar #'(lambda (limb) (send robot limb :end-coords :copy-worldcoords)) limbs))
+         ;; choose moved end-coords
+         (setq i 0)
+         (dolist (av avs)
+           (send robot :angle-vector av)
+           (setq end-coords-current (mapcar #'(lambda (limb) (send robot limb :end-coords :copy-worldcoords)) limbs))
+           (setq target-limbs nil)
+           (dotimes (l (length limbs))
+             (setq ec-prev (elt end-coords-prev l) ec-current (elt end-coords-current l))
+             (when (and ec-prev ec-current
+                        (or (> (norm (send ec-prev :difference-position ec-current)) 1)
+                            (> (norm (send ec-prev :difference-rotation ec-current)) (deg2rad 1))))
+               (push (elt limbs l) target-limbs)))
+           (send minjerk :reset :position-list (list #f(0) #f(1)) :time-list (list (elt tms i)))
+           (send robot :angle-vector av-prev)
+           (if target-limbs
+               (progn
+                 (send minjerk :start-interpolation)
+                 (while (send minjerk :interpolatingp)
+                   (send minjerk :pass-time 100)
+                   (setq p (elt (send minjerk :position) 0))
+                   ;; set midpoint of av as initial pose of IK
+                   (send robot :angle-vector (midpoint p av-prev av))
+                   (dolist (limb target-limbs)
+                     ;; don't move arm by IK when interpolation is already ended
+                     (if (>= p 1) (return))
+                     (setq ec-prev (elt end-coords-prev (position limb limbs))
+                           ec-current (elt end-coords-current (position limb limbs)))
+                     (setq ret (and ret
+                                    (send robot limb :inverse-kinematics (midcoords p ec-prev ec-current)))))
+                   (push (send robot :angle-vector) interpolated-avs)
+                   (push 100 interpolated-tms)
+                   ))
+             (progn
+               (push av interpolated-avs)
+               (push 50 interpolated-tms)))
+           (setq end-coords-prev end-coords-current)
+           (setq av-prev av)
+           (incf i)) ;; dolist (av avs)
+         ;; restore states
+         (setq avs (nreverse interpolated-avs) tms (nreverse interpolated-tms))
+         (send robot :move-to c-orig :world)
+         (send robot :angle-vector av-orig)
+         (setq av-prev av-prev-orig)
+         (unless ret
+           (warning-message 1 ":anlge-vector-sequnce fail to generate end-coords-interpolation motion~%")
+           (return-from :angle-vector-sequence nil))
+         ))
      (prog1 ;; angle-vector-sequence returns avs
          avs
        (while avs
@@ -500,8 +560,8 @@
 - timeout : max time of for waiting
 - return values is a list of interpolatingp for all controllers, so (null (some #'identity (send *ri* :wait-interpolation))) -> t if all interpolation has stopped"
    (if (send self :simulation-modep)
-       (while (some #'(lambda (a) (send a :interpolatingp)) controller-actions)
-              (send self :robot-interface-simulation-callback))
+       (while (send self :interpolatingp)
+         (send self :robot-interface-simulation-callback))
        (cond ;; real robot
          (ctype
           (let ((cacts (gethash ctype controller-table)))
@@ -511,6 +571,9 @@
   (:interpolatingp (&optional (ctype)) ;; controller-type ;; check someone is moving
 "Check if the last sent motion is executing
 return t if interpolating"
+    (when (send self :simulation-modep)
+      (return-from :interpolatingp
+        (some #'(lambda (a) (send a :interpolatingp)) controller-actions)))
     (send self :spin-once)
     (cond
      (ctype
@@ -1100,15 +1163,15 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
 (defclass robot-move-base-interface
   :super robot-interface
   :slots (move-base-action move-base-trajectory-action
-                           move-base-goal-msg move-base-goal-coords  move-base-goal-map-to-frame
-			   base-frame-id
-			   odom-topic
+          move-base-goal-msg move-base-goal-coords  move-base-goal-map-to-frame
+          base-frame-id
+          odom-topic
                            go-pos-unsafe-goal-msg
                            current-goal-coords)) ;; for simulation-callback
 (defmethod robot-move-base-interface
   (:init
    (&rest args &key
-          (move-base-action-name "move_base") ((:base-frame-id base-frame-id-name) "/base_footprint")
+          (move-base-action-name "move_base") ((:base-frame-id base-frame-id-name) "base_footprint")
           (base-controller-action-name "/base_controller/follow_joint_trajectory")
 	  ((:odom-topic odom-topic-name) "/base_odometry/odom") &allow-other-keys)
    (prog1 (send-super* :init args)
@@ -1151,29 +1214,29 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
      ))
 
   (:make-plan
-   (st-cds goal-cds &key (start-frame-id "/world") (goal-frame-id "/world"))
+   (st-cds goal-cds &key (start-frame-id "world") (goal-frame-id "world"))
    (let ((req (instance nav_msgs::GetPlanRequest :init))
 	 (tm (ros::time-now))
 	 map-to-frame
 	 map-to-base
 	 res
 	 plan-cds-seq)
-     (setq map-to-base (send *tfl* :lookup-transform "/map" base-frame-id (ros::time 0)))
-     (setq map-to-frame (send *tfl* :lookup-transform "/map" start-frame-id (ros::time 0)))
+     (setq map-to-base (send *tfl* :lookup-transform "map" base-frame-id (ros::time 0)))
+     (setq map-to-frame (send *tfl* :lookup-transform "map" start-frame-id (ros::time 0)))
      (send req :start :header :stamp)
      (send req :start :header :stamp tm)
      (if map-to-frame
 	 (progn
-	   (send req :start :header :frame_id "/map")
+	   (send req :start :header :frame_id "map")
 	   (send req :start :pose (ros::coords->tf-pose (send (send st-cds :copy-worldcoords) :transform map-to-frame :world))))
        (progn
 	   (send req :start :header :frame_id frame-id)
 	   (send req :start :pose (ros::coords->tf-pose st-cds))))
-     (setq map-to-frame (send *tfl* :lookup-transform "/map" goal-frame-id (ros::time 0)))
+     (setq map-to-frame (send *tfl* :lookup-transform "map" goal-frame-id (ros::time 0)))
      (send req :goal :header :stamp tm)
      (if map-to-frame
 	 (progn
-	   (send req :goal :header :frame_id "/map")
+	   (send req :goal :header :frame_id "map")
 	   (send req :goal :pose (ros::coords->tf-pose (send (send goal-cds :copy-worldcoords) :transform map-to-frame :world))))
        (progn
 	 (send req :start :header :frame_id frame-id)
@@ -1198,9 +1261,9 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
    (coords &rest args &key (no-wait nil) &allow-other-keys)
    (send* self :move-to-send coords args)
    (if (not no-wait)
-       (send* self :move-to-wait args)))
+       (send* self :move-to-wait args) t))
   (:move-to-send
-   (coords &key (frame-id "/world") (wait-for-server-timeout 5) (count 0) &allow-other-keys)
+   (coords &key (frame-id "world") (wait-for-server-timeout 5) (count 0) &allow-other-keys)
    (setq move-base-goal-msg (instance move_base_msgs::MoveBaseActionGoal :init))
    (setq move-base-goal-coords coords)
    (if (send self :simulation-modep)
@@ -1211,7 +1274,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
                 (setq current-goal-coords (send coords :copy-worldcoords)))) ;; for simulation-callback
          (return-from :move-to-send)))
    (let (ret (count 0) (tm (ros::time-now))
-	     (map-to-frame (send *tfl* :lookup-transform "/map" frame-id (ros::time 0))))
+	     (map-to-frame (send *tfl* :lookup-transform "map" frame-id (ros::time 0))))
      ;; store in slot variable for :move-to-wait
      (setq move-base-goal-map-to-frame map-to-frame)
      ;;
@@ -1222,7 +1285,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
      (send move-base-goal-msg :goal :target_pose :header :stamp tm)
      (if map-to-frame
 	 (progn
-	   (send move-base-goal-msg :goal :target_pose :header :frame_id "/map")
+	   (send move-base-goal-msg :goal :target_pose :header :frame_id "map")
 	   (send move-base-goal-msg :goal :target_pose :pose
 		 (ros::coords->tf-pose (send (send coords :copy-worldcoords) :transform map-to-frame :world))))
        (progn ;; fail to find "/map" to frame_id
@@ -1235,7 +1298,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
      (send move-base-action :send-goal move-base-goal-msg)
      move-base-goal-msg))
   (:move-to-wait
-   (&rest args &key (retry 10) (frame-id "/world") &allow-other-keys)
+   (&rest args &key (retry 10) (frame-id "world") &allow-other-keys)
    (let (ret (count 0) (tm (ros::time-now))
 	     (map-to-frame move-base-goal-map-to-frame)
              (coords move-base-goal-coords))
@@ -1247,7 +1310,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
      (if (null move-base-goal-msg) (return-from :move-to-wait nil))
      (while (and (null ret) (<= count retry))
        (when (> count 0) ;; retry
-         (clear-costmap)
+         (clear-costmap :node-name (send move-base-action :name))
          (send move-base-goal-msg :header :seq count)
          (send move-base-goal-msg :goal :target_pose :header :seq count)
          (ros::ros-info "move-to : send-goal to ~A at ~A (~d)" (ros::tf-point->pos (send move-base-goal-msg :goal :target_pose :pose :position)) (send move-base-goal-msg :goal :target_pose :header :frame_id) count)
@@ -1268,15 +1331,15 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
          (setq map-goal-coords
                (if (string= frame-id base-frame-id)
                    (send (send map-to-frame :copy-worldcoords) :transform (send coords :worldcoords))
-                 (send (send *tfl* :lookup-transform "/map" frame-id (ros::time 0))
+                 (send (send *tfl* :lookup-transform "map" frame-id (ros::time 0))
                        :transform (send coords :copy-worldcoords)))) ;; goal-coords in /map coordinates
-         (setq lret (send *tfl* :wait-for-transform "/map" base-frame-id (ros::time-now) 5))
-         (ros::ros-warn ":move-to wait-for transform /map to ~A -> ~A" base-frame-id lret)
+         (setq lret (send *tfl* :wait-for-transform "map" base-frame-id (ros::time-now) 5))
+         (ros::ros-warn ":move-to wait-for transform map to ~A -> ~A" base-frame-id lret)
          (when (null lret)
-           (ros::ros-error ":move-to wait-for transform /map to ~A failed" base-frame-id)
+           (ros::ros-error ":move-to wait-for transform map to ~A failed" base-frame-id)
            (setq move-base-goal-msg nil)
            (return-from :move-to-no-wait nil))
-         (setq current-coords (send *tfl* :lookup-transform "/map" base-frame-id (ros::time 0)))
+         (setq current-coords (send *tfl* :lookup-transform "map" base-frame-id (ros::time 0)))
          (setq diff (send current-coords :transformation map-goal-coords))
          (ros::ros-warn ":move-to current-coords  ~A" current-coords)
          (ros::ros-warn "         mapgoal-coords  ~A" map-goal-coords)
@@ -1312,15 +1375,15 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
            (setq map-goal-coords
                  (if (string= frame-id base-frame-id)
                      (send (send map-to-frame :copy-worldcoords) :transform (send coords :worldcoords))
-                   (send (send *tfl* :lookup-transform "/map" frame-id (ros::time 0))
+                   (send (send *tfl* :lookup-transform "map" frame-id (ros::time 0))
                          :transform (send coords :copy-worldcoords)))) ;; goal-coords in /map coordinates
-           (setq lret (send *tfl* :wait-for-transform "/map" base-frame-id (ros::time-now) 5))
-           (ros::ros-warn ":move-to wait-for transform /map to ~A -> ~A" base-frame-id lret)
+           (setq lret (send *tfl* :wait-for-transform "map" base-frame-id (ros::time-now) 5))
+           (ros::ros-warn ":move-to wait-for transform map to ~A -> ~A" base-frame-id lret)
            (when (null lret)
-             (ros::ros-error ":move-to wait-for transform /map to ~A failed" base-frame-id)
+             (ros::ros-error ":move-to wait-for transform map to ~A failed" base-frame-id)
              (setq move-base-goal-msg nil)
              (return-from :move-to-wait nil))
-           (setq current-coords (send *tfl* :lookup-transform "/map" base-frame-id (ros::time 0)))
+           (setq current-coords (send *tfl* :lookup-transform "map" base-frame-id (ros::time 0)))
            (setq diff (send current-coords :transformation map-goal-coords))
            (ros::ros-warn ":move-to current-coords  ~A" current-coords)
            (ros::ros-warn "         mapgoal-coords  ~A" map-goal-coords)
@@ -1335,7 +1398,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
    ()
    (send self :spin-once) ;; update
    (when (send self :simulation-modep)
-     (return-from :go-waitp nil)) ;; temporary
+     (return-from :go-waitp (not (null current-goal-coords))))
    (cond
     ((or
       (equal (send move-base-action :get-state) ros::*simple-goal-state-active*)
@@ -1579,9 +1642,25 @@ send-action [ send message to action server, it means robot will move ]"
        (:worldcoords
 	(unless joint-action-enable
 	  (return-from :state (send self :worldcoords)))
-	(return-from :state (send *tfl* :lookup-transform (or (cadr args) "/map") base-frame-id (ros::time)))))))
-
-  )
+	(return-from :state (send *tfl* :lookup-transform (or (cadr args) "map") base-frame-id (ros::time)))))))
+  ;;
+  (:robot-interface-simulation-callback
+   ()
+   (when current-goal-coords
+     (let* ((orig-coords (send robot :copy-worldcoords))
+            (diff-pos (send orig-coords :difference-position current-goal-coords))
+            (diff-rot (send orig-coords :difference-rotation current-goal-coords :rotation-axis :xy)))
+       (cond
+         ((and (eps= (norm diff-pos) 0) (eps= (norm diff-rot) 0))
+          (setq current-goal-coords nil))
+         (t
+          (send robot :newcoords (midcoords (min (/ 10 (max (norm diff-pos) 10))
+                                                 (/ 0.02 (max (norm diff-rot) 0.02)))
+                                            orig-coords current-goal-coords))))
+   )) ;; when
+   (send-super :robot-interface-simulation-callback)
+   )
+)
 
 ;;;;
 (defclass ros-interface

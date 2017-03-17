@@ -1,6 +1,6 @@
 (require :unittest "lib/llib/unittest.l")
 (load "package://pr2eus/robot-interface.l")
-(load "package://euslisp/jskeus/irteus/demo/sample-robot-model.l")
+(load "irteus/demo/sample-robot-model.l")
 
 (init-unit-test)
 

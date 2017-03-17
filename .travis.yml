@@ -1,10 +1,9 @@
 language:
-  - cpp
-  - python
-python:
-  - "2.7"
-compiler:
-  - gcc
+  - generic
+sudo: required
+dist: trusty
+services:
+  - docker
 notifications:
   email:
     on_success: always
@@ -13,25 +12,27 @@ notifications:
 env:
   global:
     - secure: "REUwDilheEXGFShSdFNgQ1rRAFBw2QG2eT8XDAQsDFyhPfCnjGDA1Ak25TbVIz4a02M9/hDP4QtsXFj6VRHVs4tV55zrGeLea06+Fw8vjHEICYVtfzYYvZB3pHnWoxxPUcQTU+CgTMGV3lLSupMgvyNNY8J6UdaiW8+Oj7icHc4="
+    - ROSWS=wstool
+    - BUILDER=catkin
+    - USE_DOCKER=true
     - CATKIN_PARALLEL_TEST_JOBS="-j1 -p1"
     - ROS_PARALLEL_TEST_JOBS="-j1"
   matrix:
-    #- ROS_DISTRO=groovy ROSWS=rosws  BUILDER=rosbuild  USE_DEB=true
-    #- ROS_DISTRO=groovy ROSWS=rosws  BUILDER=rosbuild  USE_DEB=false
-    # - ROS_DISTRO=groovy ROSWS=wstool BUILDER=catkin    USE_DEB=true
-    # - ROS_DISTRO=groovy ROSWS=wstool BUILDER=catkin    USE_DEB=false
-    - ROS_DISTRO=hydro  ROSWS=wstool BUILDER=catkin    USE_DEB=true CATKIN_TOOLS_BUILD_OPTIONS="-iv --summarize --no-status"
-    - ROS_DISTRO=hydro  ROSWS=wstool BUILDER=catkin    USE_DEB=false CATKIN_TOOLS_BUILD_OPTIONS="-iv --summarize --no-status"
-    - ROS_DISTRO=indigo  ROSWS=wstool BUILDER=catkin   USE_DEB=true
-    - ROS_DISTRO=indigo  ROSWS=wstool BUILDER=catkin   USE_DEB=false
+    - ROS_DISTRO=hydro   USE_DEB=true
+    - ROS_DISTRO=hydro   USE_DEB=false
+    - ROS_DISTRO=indigo  USE_DEB=true
+    - ROS_DISTRO=indigo  USE_DEB=false
+    - ROS_DISTRO=jade    USE_DEB=true
+    - ROS_DISTRO=jade    USE_DEB=false
+    - ROS_DISTRO=kinetic USE_DEB=true
+    - ROS_DISTRO=kinetic USE_DEB=false
 matrix:
+  fast_finish: true
   allow_failures:
-    # - env: ROS_DISTRO=groovy ROSWS=wstool BUILDER=catkin    USE_DEB=true
-    # - env: ROS_DISTRO=groovy ROSWS=wstool BUILDER=catkin    USE_DEB=false
-    - env: ROS_DISTRO=indigo  ROSWS=wstool BUILDER=catkin   USE_DEB=false
-    - env: ROS_DISTRO=hydro  ROSWS=wstool BUILDER=catkin    USE_DEB=false CATKIN_TOOLS_BUILD_OPTIONS="-iv --summarize --no-status"
-install:
-  - if [ $ROS_DISTRO = groovy ]; then sudo apt-get install -qq -y ros-$ROS_DISTRO-audio-common ros-$ROS_DISTRO-navigation ros-$ROS_DISTRO-pr2-common ros-$ROS_DISTRO-pr2-controllers; fi
+    - env: ROS_DISTRO=hydro   USE_DEB=false
+    - env: ROS_DISTRO=indigo  USE_DEB=false
+    - env: ROS_DISTRO=jade    USE_DEB=false
+    - env: ROS_DISTRO=kinetic USE_DEB=false
 script: source .travis/travis.sh
 after_success:
   - TRAVIS_JOB_SUBNUMBER="${TRAVIS_JOB_NUMBER##*.}"
