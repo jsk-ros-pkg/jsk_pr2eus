@@ -1158,6 +1158,25 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
     )
    (warn ";; Stop Euslisp mannequin mode.~%")
    )
+  ;; Method for define limb controller method using defmethod
+  ;; If debugp t, we can see defmethod s-expressions.
+  (:def-limb-controller-method
+   (limb &key (debugp nil))
+   (let ((sexp `(defmethod ,(send (class self):name)
+                  (,(read-from-string (format nil "~A-controller" limb))
+                   ()
+                   (list
+                    (list
+                     (cons :group-name ,(string-downcase limb))
+                     (cons :controller-action ,(format nil "~A_controller/joint_trajectory_action" (string-downcase limb)))
+                     (cons :controller-state ,(format nil "~A_controller/state" (string-downcase limb)))
+                     (cons :action-type pr2_controllers_msgs::JointTrajectoryAction)
+                     (cons :joint-names (list ,@(send-all (send robot limb :links) :name))))
+                    )))))
+     (if debugp
+         (pprint (macroexpand sexp)))
+     (eval sexp)
+     ))
   )
 ;;
 (defclass robot-move-base-interface
