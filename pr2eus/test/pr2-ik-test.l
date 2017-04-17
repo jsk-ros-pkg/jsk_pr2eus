@@ -50,8 +50,46 @@
             (format nil "height changed ~A from ~A" torso-height (send *pr2* :torso :waist-z :joint-angle)))
     ))
 
+(defun inter-div (min max index max-index)
+  (+ min (* (- max min) (/ (* 1.0 index) max-index))))
+
+(deftest pr2-test-ik-with-base ()
+  (let ((x-min 0)
+	(x-max 1000)
+	(y-min -1000)
+	(y-max 1000)
+	(z-min 5)
+	(z-max 200)
+	(x-bin-num 4)
+	(y-bin-num 4)
+	(z-bin-num 2)
+	results)
+
+    (send *pr2* :reset-pose)
+
+    (dotimes (y-i (+ y-bin-num 1))
+      (dotimes (x-i (+ x-bin-num 1))
+        (dotimes (z-i (+ z-bin-num))
+          (let* ((now-y (inter-div y-min y-max y-i y-bin-num))
+                 (now-x (inter-div x-min x-max x-i x-bin-num))
+                 (now-z (inter-div z-min z-max z-i z-bin-num))
+                 (now-pos (float-vector now-x now-y now-z))
+                 (now-coords (make-coords :pos now-pos))
+                 (use-arm (if (< 0 now-y) :larm :rarm))
+                 )
+            (assert (send *pr2* :inverse-kinematics now-coords
+			 :rotation-axis nil
+			 :move-target (send *pr2* use-arm :end-coords)
+			 :link-list (send *pr2* :link-list
+					  (send *pr2* use-arm :end-coords :parent)
+					  (send *pr2* :torso_lift_link_lk))
+			 :use-base 0.001
+			 :look-at-target t
+			 )
+		   (format nil "Fail IK with use-base x: ~A y: ~A z: ~A " now-x now-y now-z))
+            ))))))
+
 (deftest pr2-test-ik-both1 () (pr2-test-ik-both :use-torso nil))
 (deftest pr2-test-ik-both2 () (pr2-test-ik-both :use-torso t))
-
 (run-all-tests)
 (exit)
