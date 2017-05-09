@@ -407,7 +407,7 @@ Example: (send self :gripper :rarm :position) => 0.00"
 
 (defmethod pr2-interface
   (:angle-vector-with-constraint
-   (av1 &optional (tm 3000) (arm :arms) &key (rotation-axis t) (translation-axis t) &rest args)
+   (av1 &optional (tm 3000) (arm :arms) &key (rotation-axis t) (translation-axis t) &allow-other-keys)
    (let (av0 c0 c1 avs tms ret arm-av pav)
      (setq pav (send robot :angle-vector))
      (unless (memq arm '(:larm :rarm :arms))
@@ -515,7 +515,7 @@ Example: (send self :gripper :rarm :position) => 0.00"
     )
   )
 
-(defun check-tuckarm-pose (&key (thre 20) &rest args)
+(defun check-tuckarm-pose (&key (thre 20) &allow-other-keys)
   (send *pr2* :angle-vector (send *ri* :state :potentio-vector))
   (let ((l-angle (map float-vector #'(lambda(d)(- d (* 360 (round (/ d 360.0)))))
                       (send *pr2* :larm :angle-vector)))
@@ -527,8 +527,7 @@ Example: (send self :gripper :rarm :position) => 0.00"
                        (< (norm (map float-vector #'* (v- r-angle (cadr *pr2-tuckarm-pose-larm-free*)) weight)) thre)))
     (setq is-rarm (and (< (norm (map float-vector #'* (v- l-angle (car *pr2-tuckarm-pose-rarm-free*)) weight)) thre)
                        (< (norm (map float-vector #'* (v- r-angle (cadr *pr2-tuckarm-pose-rarm-free*)) weight)) thre)))
-    (cond ((and (memq :rarm args) is-rarm) :rarm)
-          ((and (memq :larm args) is-larm) :larm)
+    (cond 
           (is-rarm :rarm)
           (is-larm :larm))
     ))
