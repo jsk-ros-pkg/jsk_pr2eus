@@ -905,15 +905,17 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
   (:warningp (&optional (w :dummy)) "When warning mode, it wait for user's key input before sending angle-vector to the robot" (if (not (eq w :dummy)) (setq warningp w)) warningp)
   (:spin-once () (ros::spin-once groupname))
   (:send-trajectory (joint-trajectory-msg
-                     &key ((:controller-actions ca) controller-actions) ((:controller-type ct) controller-type)
-                     (starttime 1) &allow-other-keys)
+                     &key ((:controller-type ct) controller-type) (starttime 1) &allow-other-keys)
+   (unless (gethash ct controller-table)
+     (warn ";; controller-type: ~A not found" ct)
+     (return-from :send-trajectory))
    (mapcar
     #'(lambda (action param)
         (send self :send-trajectory-each
               action (cdr (assoc :joint-names param)) ;; action server and joint-names
               joint-trajectory-msg
               starttime))
-    ca (send self ct)))
+    (gethash ct controller-table) (send self ct)))
   (:send-trajectory-each
    (action joint-names traj &optional (starttime 0.2))
    (let* ((jnames (send traj :joint_names))
