@@ -32,6 +32,19 @@
     (assert (eps= av-diff 0 5) (format nil "send reset-pose ~A" av-diff))
     ))
 
+;; send angle-vector-sequence with collision avoidance
+(deftest test-angle-vector-sequence-motion-plan ()
+  (let (av-diff)
+    (send *ri* :angle-vector-motion-plan (list (send *pr2* :reset-manip-pose) (send *pr2* :reset-pose)) :move-arm :rarm :use-torso t)
+    (send *ri* :angle-vector-motion-plan (list (send *pr2* :reset-manip-pose) (send *pr2* :reset-pose)) :move-arm :larm :use-torso t)
+    (send *ri* :wait-interpolation)
+    (setq av-diff
+          (norm (apply #'float-vector (mapcar #'(lambda (x y) (let ((d (- x y))) (- d (* 360 (round (/ d 360))))))
+                                              (coerce (send *ri* :state :potentio-vector) cons) (coerce (send *pr2* :reset-pose) cons)))))
+    (ros::ros-info "av diff ~A" av-diff)
+    (assert (eps= av-diff 0 5) (format nil "send reset-pose ~A" av-diff))
+    ))
+
 ;; send target coords
 (deftest test-move-end-coords-plan ()
   (let (tm-0 tm-1 tm-diff)
