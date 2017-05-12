@@ -8,5 +8,5 @@
 
   <!-- test : it takes ~60 sec to launch gazebo -->
   <test pkg="pr2eus_moveit" type="test-pr2eus-moveit.l"
-        test-name="test_pr2eus_moveit" time-limit="180" retry="2" />
+        test-name="test_pr2eus_moveit" time-limit="360" retry="2" />
 </launch>
