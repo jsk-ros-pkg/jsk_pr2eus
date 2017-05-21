@@ -9,11 +9,19 @@ else()
   message(STATUS "pr2_controllers_msgs IS DEPRECATED")
   set(PR2_CONTROLLERS_MSGS_PACKAGE )
 endif()
+find_package(pr2_mechanism_msgs QUIET)
+if(pr2_mechanism_msgs_FOUND)
+  message(STATUS "pr2_mechanism_msgs FOUND")
+  set(PR2_MECHANISM_MSGS_PACKAGE pr2_mechanism_msgs)
+else()
+  message(STATUS "pr2_mechanism_msgs NOT FOUND")
+  set(PR2_MECHANISM_MSGS_PACKAGE )
+endif()
 if($ENV{ROS_DISTRO} STREQUAL "hydro")
   set(GENEUS_PACKAGE geneus)
 endif()
 
-find_package(catkin REQUIRED COMPONENTS euscollada control_msgs nav_msgs dynamic_reconfigure rosgraph_msgs move_base_msgs pr2_msgs ${GENEUS_PACKAGE} ${PR2_CONTROLLERS_MSGS_PACKAGE} sound_play
+find_package(catkin REQUIRED COMPONENTS euscollada control_msgs nav_msgs dynamic_reconfigure rosgraph_msgs move_base_msgs pr2_msgs ${GENEUS_PACKAGE} ${PR2_CONTROLLERS_MSGS_PACKAGE} ${PR2_MECHANISM_MSGS_PACKAGE} sound_play
   roseus # this load roseus.cmake, so it needs to be located in the end
   )
 
