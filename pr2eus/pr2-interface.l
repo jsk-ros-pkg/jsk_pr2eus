@@ -19,6 +19,7 @@
 (ros::load-ros-manifest "pr2eus")
 (ros::load-ros-manifest "pr2_msgs")
 (ros::load-ros-manifest "pr2_controllers_msgs")
+(ros::load-ros-manifest "pr2_mechanism_msgs")
 (ros::load-ros-manifest "topic_tools")
 
 ;;;
@@ -460,7 +461,98 @@ Example: (send self :gripper :rarm :position) => 0.00"
      )) ; :angle-vector-with-constraint
   ) ;; defmethod pr2-interface
 
-   
+;; pr2 switch controllers
+(defmethod pr2-interface
+  (:list-controllers
+   ()
+   "Returns list of available controllers with cons where cdr is t if the controller is running state, nil otherwise.
+   "
+   (let ((srv-name "/pr2_controller_manager/list_controllers")
+         res)
+     (unless (ros::wait-for-service srv-name 10)
+       (ros::ros-error "service ~A is not advertised" srv-name)
+       (return-from :list-controllers nil))
+     (setq res (ros::service-call srv-name
+                                  (instance pr2_mechanism_msgs::ListControllersRequest :init)))
+     (mapcar #'cons (send res :controllers)
+             (mapcar #'(lambda (s) (string= s "running")) (send res :state)))))
+  (:switch-controller
+   (stop start &key (force))
+   "Switch controller
+    Args:
+        stop: controller name or list of controllers to stop
+        start: controller name or list of controllers to start
+        force: switch with strict policy if set to t, switch with best effort otherwise.
+    Returns: t if successfully switched controllers, nil otherwise.
+   "
+   (when (send self :simulation-modep)
+     (ros::ros-warn "switching controller is disabled on simulation mode.")
+     (return-from :switch-controller t))
+   (let ((srv-name "/pr2_controller_manager/switch_controller")
+         (req (instance pr2_mechanism_msgs::SwitchControllerRequest :init))
+         available res)
+     (unless (ros::wait-for-service srv-name 10)
+       (ros::ros-error "service ~A is not advertised" srv-name)
+       (return-from :switch-controller nil))
+     (setq available (mapcar #'car (send self :list-controllers)))
+     (when (set-difference (flatten stop) available :test #'string=)
+       (error "Unknown controller: ~A" (set-difference (flatten stop) available :test #'string=)))
+     (when (set-difference (flatten start) available :test #'string=)
+       (error "Unknown controller: ~A" (set-difference (flatten start) available :test #'string=)))
+     (send req :stop_controllers (or (flatten stop) "dummy_controller"))
+     (send req :start_controllers (or (flatten start) "dummy_controller"))
+     (send req :strictness
+           (if force
+               pr2_mechanism_msgs::SwitchControllerRequest::*STRICT*
+               pr2_mechanism_msgs::SwitchControllerRequest::*BEST_EFFORT*))
+     (setq res (ros::service-call srv-name req))
+     (if (send res :ok)
+         (ros::ros-info "switched controller ~A -> ~A" stop start)
+         (ros::ros-error "failed to switch controller ~A -> ~A" stop start))
+     (send res :ok)))
+  (:start-mannequin-mode
+   (&optional (controller t))
+   "Switch controller to loose_controller.
+    Args:
+        controller: :head :arms :rarm :larm, list of controllerse or t for all controllers
+    Returns: t if success, nil otherwise.
+    "
+   (when (eq controller t)
+     (setq controller (list :head :arms)))
+   (setq controller (flatten controller))
+   (let (stop start)
+     (when (memq :head controller)
+       (push "head_traj_controller" stop)
+       (push "head_traj_controller_loose" start))
+     (when (or (memq :larm controller) (memq :arms controller))
+       (push "l_arm_controller" stop)
+       (push "l_arm_controller_loose" start))
+     (when (or (memq :rarm controller) (memq :arms controller))
+       (push "r_arm_controller" stop)
+       (push "r_arm_controller_loose" start))
+     (send self :switch-controller stop start)))
+  (:stop-mannequin-mode
+   (&optional (controller t))
+   "Switch controller from loose_controller to normal controller.
+    Args:
+        controller: :head :arms :rarm :larm, list of controllerse or t for all controllers
+    Returns: t if success, nil otherwise.
+    "
+   (when (eq controller t)
+     (setq controller (list :head :arms)))
+   (setq controller (flatten controller))
+   (let (stop start)
+     (when (memq :head controller)
+       (push "head_traj_controller_loose" stop)
+       (push "head_traj_controller" start))
+     (when (or (memq :larm controller) (memq :arms controller))
+       (push "l_arm_controller_loose" stop)
+       (push "l_arm_controller" start))
+     (when (or (memq :rarm controller) (memq :arms controller))
+       (push "r_arm_controller_loose" stop)
+       (push "r_arm_controller" start))
+     (send self :switch-controller stop start))))
+
 
 ;;;;;
 ;;;;; utility functions pr2 robot
