@@ -20,7 +20,7 @@ env:
   matrix:
     - ROS_DISTRO=hydro   USE_DEB=true
     - ROS_DISTRO=hydro   USE_DEB=false
-    - ROS_DISTRO=indigo  USE_DEB=true
+    - ROS_DISTRO=indigo  USE_DEB=true  EXTRA_DEB="ros-indigo-pr2-gazebo"
     - ROS_DISTRO=indigo  USE_DEB=false
     - ROS_DISTRO=jade    USE_DEB=true
     - ROS_DISTRO=jade    USE_DEB=false
