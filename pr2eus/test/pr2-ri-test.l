@@ -16,11 +16,15 @@
 
 (deftest test-start-grasp
   (dotimes (i 3)
-    (send *ri* :move-gripper :arms 100.0 :effort 20 :wait t)
+    (send *ri* :move-gripper :arms 100.0 :effort 5000 :wait t)
     (unix:sleep 1)
-    (assert (< (setq r (send *ri* :start-grasp :rarm)) 10)
+    (assert (< (setq r (send *ri* :start-grasp :rarm :gain 5)) 20)
             (format nil "~A check :start-grasp :rarm -> ~A" i r))
-    (assert (< (setq r (send *ri* :start-grasp :larm)) 10)
+    (assert (< (setq r (send *ri* :start-grasp :rarm :gain 5)) 10)
+            (format nil "~A check :start-grasp :rarm -> ~A" i r))
+    (assert (< (setq r (send *ri* :start-grasp :larm :gain 5)) 20)
+            (format nil "~A check :start-grasp :larm -> ~A" i r))
+    (assert (< (setq r (send *ri* :start-grasp :larm :gain 5)) 10)
             (format nil "~A check :start-grasp :larm -> ~A" i r))
     (unix:sleep 1))
   )
