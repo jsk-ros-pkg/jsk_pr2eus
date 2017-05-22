@@ -9,9 +9,42 @@
   (setq *ri* (instance pr2-interface :init)))
 
 (deftest test-wait-interpolation
+  (ros::ros-info "send reset-pose and wait-interpolation")
   (assert (send *pr2* :reset-pose))
   (assert (send *ri* :angle-vector (send *pr2* :angle-vector) 2000))
   (assert (send *ri* :wait-interpolation))
+  (assert (null (send *ri* :interpolatingp)))
+
+  (ros::ros-info "send reset-pose, cancel goal and wait-interpolation")
+  (send *pr2* :arms :shoulder-p :joint-angle 0)
+  (send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
+  (unix:sleep 2)
+  ;; emulate someone stops controller from outside of *ri**
+  (let* ((ca (car (*ri* . controller-actions)))
+         (jn (cdr (assoc :joint-names (car (send *ri* :default-controller)))))
+         (goal (send ca :make-goal-instance)))
+    (send goal :goal :trajectory :joint_names jn)
+    (ros::publish (format nil "~A/goal" (send ca :name)) goal))
+  (assert (send *ri* :wait-interpolation))
+  (assert (null (send *ri* :interpolatingp)))
+  ;;
+  (ros::ros-info "send reset-pose, cancel goal and wait-interpolation-smooth")
+  (send *pr2* :reset-pose)
+  (send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
+  (unix:sleep 2)
+  ;; emulate someone stops controller from outside of *ri**
+  (let* ((ca (car (*ri* . controller-actions)))
+         (jn (cdr (assoc :joint-names (car (send *ri* :default-controller)))))
+         (goal (send ca :make-goal-instance)))
+    (send goal :goal :trajectory :joint_names jn)
+    (send goal :goal :trajectory :points
+          (list (instance trajectory_msgs::JointTrajectoryPoint
+                          :init
+                          :positions (instantiate float-vector (length jn))
+                          :time_from_start (ros::time 0.1))))
+    (ros::publish (format nil "~A/goal" (send ca :name)) goal))
+  (assert (null (send *ri* :wait-interpolation-smooth 500))) ;; see https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/187#issuecomment-303074351
+  (assert (send *ri* :interpolating-smoothp 500)) ;; see https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/187#issuecomment-303074351
   )
 
 (deftest test-start-grasp
