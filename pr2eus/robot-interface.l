@@ -52,9 +52,12 @@
             ;; e.g. Type: pr2_controllers_msgs/JointTrajectoryActionFeedback does not have :error
             (setq current-time (ros::time- (ros::time-now) (send msg :status :goal_id :stamp)))))
      (setq finish-time (send (car (last (send (send ros::comm-state :action-goal) :goal :trajectory :points))) :time_from_start))
-     (when (string= (send (send ros::comm-state :action-goal) :goal_id :id)
-                    (send msg :status :goal_id :id))
-       (setq time-to-finish (send (ros::time- finish-time current-time) :to-sec)))
+     (if (string= (send (send ros::comm-state :action-goal) :goal_id :id)
+                  (send msg :status :goal_id :id))
+         (setq time-to-finish (send (ros::time- finish-time current-time) :to-sec))
+       (progn
+         (ros::ros-warn "[~A] feedback-cb ~A received wrong goal" ros::name-space msg)
+         (setq time-to-finish 0.0)))
      ))
   ;; method for simulatio-modep
   (:push-angle-vector-simulation (av tm &optional prev-av)

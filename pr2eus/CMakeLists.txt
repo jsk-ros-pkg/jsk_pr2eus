@@ -47,7 +47,10 @@ if(CATKIN_ENABLE_TESTING)
   if(pr2_controllers_msgs_FOUND)
     add_rostest(test/pr2eus-test.launch)
     add_rostest(test/make-pr2-model-file-test.launch)
-    #add_rostest(test/pr2-ri-test.launch)
+    find_package(pr2_gazebo QUIET)
+    if(pr2_gazebo_FOUND AND (NOT pr2_gazebo_VERSION VERSION_LESS 2.0.7)) # test only supports indigo
+      add_rostest(test/pr2-ri-test.launch)
+    endif()
     add_rostest(test/pr2-ri-test-simple.launch)
     add_rostest(test/robot-init-test.test) # this uses pr2
   endif()
