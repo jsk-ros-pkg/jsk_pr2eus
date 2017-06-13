@@ -269,6 +269,8 @@
            (setq extra-goal-constraints (list extra-goal-constraints)))
        (nconc (send mpr :goal_constraints) extra-goal-constraints))
      (if path-constraints (send mpr :path_constraints path-constraints))
+     ;; TrajectoryConstraints is not used in plannning
+     ;; Detailed info: https://github.com/ros-planning/moveit_msgs/issues/2
      (if trajectory-constraints (send mpr :trajectory_constraints trajectory-constraints))
      (send mpr :planner_id planner-id) ;; select from :query-planner-interface
      (send mpr :group_name group-name)
