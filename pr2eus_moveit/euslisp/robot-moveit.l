@@ -525,7 +525,7 @@
      ret))
   (:angle-vector-motion-plan ;;
    (av &rest args &key (ctype controller-type) (start-offset-time) (total-time)
-       (move-arm :larm) (reset-total-time 5000.0) (use-send-angle-vector)
+       (move-arm :larm) (reset-total-time 5000.0) (use-send-angle-vector) (scale 1.0)
        &allow-other-keys)
    (let (traj ret orig-total-time)
      (setq ctype (or ctype controller-type))
@@ -545,7 +545,7 @@
        (ros::ros-info ";; Planned Trajectory Total Time ~7,3f [sec]" orig-total-time)
        (setq total-time
              (cond
-               ((eq total-time :fast) (* orig-total-time 1000))
+               ((eq total-time :fast) (* scale (* orig-total-time 1000)))
                ((or (null total-time) (> orig-total-time (/ total-time 1000))) (* orig-total-time 1000))
                (t total-time)))
        (setq traj (send* self :trajectory-filter traj :start-offset-time start-offset-time :total-time total-time args))
