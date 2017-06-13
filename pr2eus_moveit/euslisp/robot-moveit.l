@@ -240,6 +240,7 @@
             (workspace-x 1.0) (workspace-y 1.0) (workspace-z 1.6)
             (goal-constraints) (extra-goal-constraints)
             (path-constraints) (trajectory-constraints)
+            (max-velocity-scale) (max-acceleration-scale)
             &allow-other-keys)
    (let ((group-name (cdr (assoc :group-name (cdr (assoc confkey config-list)))))
          (mpr (instance moveit_msgs::motionplanrequest :init))
@@ -273,6 +274,8 @@
      (send mpr :group_name group-name)
      (send mpr :num_planning_attempts planning-attempts)
      (send mpr :allowed_planning_time planning-time)
+     (when max-velocity-scale (send mpr :max_velocity_scaling_factor max-velocity-scale))
+     (when max-acceleration-scale (send mpr :max_acceleration_scaling_factor max-acceleration-scale))
      ;;(print-ros-msg mpr)
      (when use-action
        (send self :init-action-client)
