@@ -671,6 +671,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
                            ((derivedp j rotational-joint) (rad2deg jangle))))))
            )))
      av))
+  (:stamp () "Returns the stamp which was read at latest callback" (send self :get-robot-state :stamp))
   ;;
   (:send-ros-controller
    (action joint-names starttime trajpoints)
@@ -743,6 +744,9 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
      (if (assoc key robot-state)
 	 (setf (cdr (assoc key robot-state)) msg)
        (push (cons key msg) robot-state)))
+  (:get-robot-state
+   (key)
+   (cdr (assoc key robot-state)))
   (:ros-state-callback
    (msg)
    (let ((robot-state-names (cdr (assoc :name robot-state))))
