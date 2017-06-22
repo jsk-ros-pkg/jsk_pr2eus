@@ -32,6 +32,7 @@
      (format f ";;   based on ~A~%" (lisp-implementation-version))
      (format f ";;        and irteus ~A~%" (car ros::roseus-repo-version))
      (format f ";;~%")
+     (format f ";; make-camera-from-ros-camera-info-aux is defined in roseus since 1.0.1, but to use this code in jskeus, we re-define here~%")
      (format f "~A~%" (nconc (list 'defun 'make-camera-from-ros-camera-info-aux) (cddddr #'make-camera-from-ros-camera-info-aux)))
      (format f ";;~%")
      (format f "(defun pr2 () (setq *pr2* (instance pr2-sensor-robot :init)))~%")
