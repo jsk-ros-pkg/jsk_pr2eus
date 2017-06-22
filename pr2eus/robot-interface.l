@@ -345,7 +345,7 @@
    (let* ((prev-av (send robot :angle-vector)))
      (send-all (gethash ctype controller-table) :push-angle-vector-simulation av tm prev-av)))
   (:angle-vector
-   (av &optional (tm nil) (ctype controller-type) (start-time 0) &key (scale 1) (min-time 1.0) (end-coords-interpolation nil))
+   (av &optional (tm nil) (ctype controller-type) &key (start-time 0) (scale 1) (min-time 1.0) (end-coords-interpolation nil))
    "Send joind angle to robot, this method retuns immediately, so use :wait-interpolation to block until the motion stops.
 - av : joint angle vector [rad]
 - tm : (time to goal in [msec])
@@ -359,7 +359,7 @@
 - end-coords-interpolation : set t if you want to move robot in cartesian space interpolation
 "
    (if end-coords-interpolation
-     (return-from :angle-vector (send self :angle-vector-sequence (list av) (list tm) ctype start-time :scale scale :min-time min-time :end-coords-interpolation t)))
+     (return-from :angle-vector (send self :angle-vector-sequence (list av) (list tm) ctype :start-time start-time :scale scale :min-time min-time :end-coords-interpolation t)))
    (setq ctype (or ctype controller-type))  ;; use default controller-type if ctype is nil
    (unless (gethash ctype controller-table)
      (warn ";; controller-type: ~A not found" ctype)
@@ -400,7 +400,7 @@
       cacts (send self ctype)))
    av)
   (:angle-vector-sequence
-   (avs &optional (tms (list 3000)) (ctype controller-type) (start-time 0.1) &key (scale 1) (min-time 0.0) (end-coords-interpolation nil))
+   (avs &optional (tms (list 3000)) (ctype controller-type) &key (start-time 0.1) (scale 1) (min-time 0.0) (end-coords-interpolation nil))
    "Send joind angle to robot, this method retuns immediately, so use :wait-interpolation to block until the motion stops."
    (setq ctype (or ctype controller-type))  ;; use default controller-type if ctype is nil
    (unless (gethash ctype controller-table)
