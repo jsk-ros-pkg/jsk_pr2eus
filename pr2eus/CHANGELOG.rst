@@ -2,6 +2,37 @@
 Changelog for package pr2eus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* use make-caemra-from-ros-camera-info-aux inroseus, in order to generate pr2 model corresponding to `jsk-ros-pkg/jsk_roseus/pulls/#526 <https://github.com/jsk-ros-pkg/jsk-ros-pkg/jsk_roseus/pulls/526>`_ (`#301 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/301>`_)
+  * [pr2eus/pr2.l] update make-camera-from-ros-camera-info-aux
+  * add comment to why we redefine make-camera-from-ros-camera-info-aux in robot model
+  * skip position test in test-cameras on hydro
+
+* [robot_interface.l] add tms comment to :angle-vector-sequence c.f. https://github.com/jsk-ros-pkg/jsk_robot/pull/791#pullrequestreview-45324124 (`#299 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/299>`_)
+* [robot_interface.l] add :stamp method for reading latest stamp (`#298 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/298>`_)
+* .travis.yml: re-enable pr2-ri-test (using gazebo) for indigo (`#296 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/296>`_
+  * pr2-ri-test.l: add test to check :wait-for-interpolation, see (`https://github.com/start-jsk/jsk_apc/issues/2106 <https://github.com/start-jsk/jsk_apc/issues/2106>`_)
+  * when unknown goal is received, we assume the original goal is canceled and set time-to-finish to 0.0
+  * test-start-grasp: send move-gripper with more gain
+  * .travis.yml: re-enable pr2-ri-test (using gazebo) for indigo
+
+* [pr2eus][pr2-interface.l] add switch-controller methods  (`#295 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/295>`_
+  * [pr2eus] add pr2_mechanism_msgs to depend
+
+* [pr2eus][pr2eus_moveit] use ctype in :send-trajectory and pass ctype in angle-vector-motion-plan (`#295 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/295>`_)
+  * use only controller-type in send-trajectory
+
+* [pr2eus] fix some funcs that break behaviors written at docs (`#289 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/289>`_)
+  * [pr2eus][default-ri-test.l] fix: load path for passing test on local machine
+  * [pr2eus][pr2-ri-test-simple.l] assert return values of robot-interface methods
+  * [pr2eus][robot-interface.l] implement :go-waitp when simulation-modep is t
+  * [pr2eus][robot-interface.l] :move-to-wait returns t when simulation-modep
+  * [pr2eus][robot-interface.l] implement :interpolatingp when :simulation-modep is t
+
+* use link-list instead of (car link-list) in use-base condition(`#272 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/272>`_)
+* Contributors: Yuki Furuta, Kei Okada, Shingo Kitagawa, Yohei Kakiuchi, Chi Wun Au
+
 0.3.10 (2017-03-02)
 -------------------
 * [pr2eus][pr2-interface.l] move move-to / go-pos callback for simulation to robot-interface.l (`#288 <https://github.com/jsk-ros-pkg/jsk_pr2eus/pull/288>`_)

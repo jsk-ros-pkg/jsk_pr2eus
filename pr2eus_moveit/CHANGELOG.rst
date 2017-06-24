@@ -2,6 +2,22 @@
 Changelog for package pr2eus_moveit
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* pr2eus_moveit/euslisp/robot-moveit.l: support tm :fast in :angle-vector-motion-plan (`#297 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/297>`_ )
+  * add :scale for :fast in :angle-vector-motion-plan
+  * add trajectory_constraints commentout
+    trajectory_constraints is not used in motion planning.
+    see https://github.com/ros-planning/moveit_msgs/issues/2
+  * add max_velocity/acceleration_scaling_factor
+  * support tm :fast in :angle-vector-motion-plan
+
+* pr2eus_moveit/euslisp/robot-moveit.l: add angle-vector-sequence-motion-plan test (`#293 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/293>`_ )
+  * set longer time-limit for moveit test
+* pass ctype in angle-vector-motion-plan (`#292 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/292>`_ )
+* advertise CollisionObject with latch=t (`#290 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/290>`_ )
+* Contributors: Kei Okada, Shingo Kitagawa
+
 0.3.10 (2017-03-02)
 -------------------
 
