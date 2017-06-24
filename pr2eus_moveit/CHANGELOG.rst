@@ -2,8 +2,8 @@
 Changelog for package pr2eus_moveit
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.3.11 (2017-06-25)
+-------------------
 * pr2eus_moveit/euslisp/robot-moveit.l: support tm :fast in :angle-vector-motion-plan (`#297 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/297>`_ )
   * add :scale for :fast in :angle-vector-motion-plan
   * add trajectory_constraints commentout
