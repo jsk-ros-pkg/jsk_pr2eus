@@ -559,13 +559,13 @@
                     (find param (send self ctype) :test #'equal)
                     (not (intersection (send traj :joint_names) (cdr (assoc :joint-names param)) :test #'string=)))
               ;; send via :angle-vector
-              (maphash #'(lambda (ac ct)
-                           (if (equal (list action) ct)
-                             (if (listp av)
-                               (send-message self robot-interface :angle-vector-sequence av total-time ac)
-                               (send-message self robot-interface :angle-vector av total-time ac))))
-                       controller-table)
-              ))
+              (dolist (ct (send controller-table :list))
+                (when (and (> (length ct) 1)
+                         (equal (list action) (cdr ct)))
+                  (if (listp av)
+                      (send-message self robot-interface :angle-vector-sequence av total-time (car ct))
+                      (send-message self robot-interface :angle-vector av total-time (car ct)))
+                  (return)))))
         controller-actions (send self controller-type))
 
        (if use-send-angle-vector
