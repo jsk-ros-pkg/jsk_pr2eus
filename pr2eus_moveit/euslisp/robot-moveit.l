@@ -566,7 +566,7 @@
                       (send-message self robot-interface :angle-vector-sequence av total-time (car ct))
                       (send-message self robot-interface :angle-vector av total-time (car ct)))
                   (return)))))
-        controller-actions (send self controller-type))
+        controller-actions (send self ctype))
 
        (if use-send-angle-vector
            (send* self :joint-trajectory-to-angle-vector-list move-arm traj args)
