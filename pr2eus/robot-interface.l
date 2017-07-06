@@ -334,10 +334,13 @@
                                     ;; check if j is included in unordered-joint-names
                                     (if (find (send j :name) unordered-joint-names
                                               :test #'string=)
+                                        ;; calculate time to reach the goal for each joint
+                                        ;; using (scale * (j[m/rad] / max-joint-velocity))
                                         (* scale (/ (if (derivedp j linear-joint) (* 0.001 (abs d)) (deg2rad (abs d)))
                                                     (send j :max-joint-velocity)))
                                       0))
                                 diff joint-list)))
+         ;; find maximum time to reach goal for all joint
          (let ((max-time (apply #'max time-list)))
            (max max-time min-time))))))
   (:angle-vector-simulation
