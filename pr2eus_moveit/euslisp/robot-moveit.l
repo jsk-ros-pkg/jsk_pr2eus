@@ -552,22 +552,28 @@
        (ros::ros-info ";; Scaled Trajectory Total Time ~7,3f [sec]" (/ total-time 1000))
        (ros::ros-info ";; generated ~A points for ~A sec using [~A] group" (length (send traj :points)) (/ total-time 1000) (send ret :group_name))
        ;;
-       (mapcar
-        #'(lambda (action param)
-            ;; find controller that does not included in move-arm
-            (when (and
-                    (find param (send self ctype) :test #'equal)
-                    (not (intersection (send traj :joint_names) (cdr (assoc :joint-names param)) :test #'string=)))
-              ;; send via :angle-vector
-              (maphash #'(lambda (ac ct)
-                           (if (equal (list action) ct)
-                             (if (listp av)
-                               (send-message self robot-interface :angle-vector-sequence av total-time ac)
-                               (send-message self robot-interface :angle-vector av total-time ac))))
-                       controller-table)
-              ))
-        controller-actions (send self ctype))
-
+       ;; send to controller which is not included in move-arm but within ctype
+       (mapcar #'(lambda (ac) ;; for all installed controllers
+                   (let (controller-methods controller-definition)
+                     (ros::ros-debug "for installed controller ~A..." ac)
+                     ;;  controller within target ctype
+                     (ros::ros-debug "        a part of ~A : ~A" ctype (not (null (member ac (gethash ctype controller-table)))))
+                     ;; retrive controller method from action name
+                     (setq controller-methods (remove nil (mapcar #'(lambda (m) (if (find (send ac :name) (send self m) :test #'(lambda (a b) (string= a (cdr (assoc :controller-action b))))) m)) (send controller-table :list-keys))))
+                     (setq controller-definition (find (send ac :name) (send self (car controller-methods)) :test #'(lambda (a b) (string= a (cdr (assoc :controller-action b))))))
+                     ;; contains joint which is not included in move-arm
+                     (ros::ros-debug "        overap joint name for current move-arm : ~A" (not (intersection (send traj :joint-names) (cdr (assoc :joint-names controller-definition)) :test #'string=)))
+                     (when (and (member ac (gethash ctype controller-table))
+                                (not (intersection (send traj :joint-names) (cdr (assoc :joint-names controller-definition)) :test #'string=)))
+                       (ros::ros-debug "      send to ~A" ac)
+                       (if (listp av)
+                           (send-message self robot-interface :angle-vector-sequence av total-time ac)
+                         (send-message self robot-interface :angle-vector av total-time ac))
+                       )))
+               ;; robot-interface  : method(:larm-controller) -> definition((controller-action, controller-state, action-type, joint-names))
+               ;; controller-table : key(:larm-controller) -> value(#<controller-action-client #X... larm_controller/follow...)
+               (remove-duplicates (flatten (send controller-table :list-values))));; for all installer controller table
+       ;;
        (if use-send-angle-vector
            (send* self :joint-trajectory-to-angle-vector-list move-arm traj args)
            (if start-offset-time
