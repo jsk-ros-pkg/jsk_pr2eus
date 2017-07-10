@@ -546,7 +546,7 @@
        (setq total-time
              (cond
                ((eq total-time :fast) (* scale (* orig-total-time 1000)))
-               ((or (null total-time) (> orig-total-time (/ total-time 1000))) (* orig-total-time 1000))
+               ((or (null total-time) (< orig-total-time (/ total-time 1000))) (* orig-total-time 1000))
                (t total-time)))
        (setq traj (send* self :trajectory-filter traj :start-offset-time start-offset-time :total-time total-time args))
        (ros::ros-info ";; Scaled Trajectory Total Time ~7,3f [sec]" (/ total-time 1000))
