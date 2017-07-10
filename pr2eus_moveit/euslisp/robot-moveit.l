@@ -566,7 +566,7 @@
                                (send-message self robot-interface :angle-vector av total-time ac))))
                        controller-table)
               ))
-        controller-actions (send self ctype))
+        (gethash ctype controller-table) (send self ctype))
 
        (if use-send-angle-vector
            (send* self :joint-trajectory-to-angle-vector-list move-arm traj args)
