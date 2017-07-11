@@ -2,8 +2,8 @@
 Changelog for package pr2eus_moveit
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.3.12 (2017-07-11)
+-------------------
 * robot-interface.l: send angle-vector only once, some controller-table had multiple definition for one method, we ignore them (`#308 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/308>`_)
   * test/test-pr2eus-moveit.test only runs on indigo
   * fix when two controller has same action instance

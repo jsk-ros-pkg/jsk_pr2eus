@@ -2,8 +2,8 @@
 Changelog for package pr2eus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.3.12 (2017-07-11)
+-------------------
 * [robot-interface.l] :angle-vector-duration add document to how we use :max-joint-velocity (`#305 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/305>`_ )
 * Contributors: Kei Okada
 
