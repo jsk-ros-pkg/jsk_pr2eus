@@ -2,6 +2,24 @@
 Changelog for package pr2eus_moveit
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* robot-interface.l: send angle-vector only once, some controller-table had multiple definition for one method, we ignore them (`#308 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/308>`_)
+  * test/test-pr2eus-moveit.test only runs on indigo
+  * fix when two controller has same action instance
+  * add dummy controller for `#308 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/308>`_
+  * send angle-vector only once, some controller-table had multiple definition for one method, we ignore them
+
+* [pr2eus_moveit] fix bug in angle-vector-motion-plan (`#309 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/309>`_)
+  * fix bug in angle-vector-motion-plan error occur when (length controller-actions) != (length (send self ctype))
+    this case happens when you init robot-interface with :default-controller, but send av with :rarm-controller.
+
+* [pr2eus_moveit] fix typo in total-time condition (`#310 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/310>`_)
+* [pr2eus_moveit] fix typo in robot-moveit.l (`#306 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/306>`_ )
+  * [(:angle-vector-motion-plan] controller-type -> ctype
+
+* Contributors: Kei Okada, Shingo Kitagawa
+
 0.3.11 (2017-06-25)
 -------------------
 * pr2eus_moveit/euslisp/robot-moveit.l: support tm :fast in :angle-vector-motion-plan (`#297 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/297>`_ )

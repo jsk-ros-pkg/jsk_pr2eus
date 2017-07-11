@@ -2,6 +2,11 @@
 Changelog for package pr2eus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* [robot-interface.l] :angle-vector-duration add document to how we use :max-joint-velocity (`#305 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/305>`_ )
+* Contributors: Kei Okada
+
 0.3.11 (2017-06-25)
 -------------------
 * use make-caemra-from-ros-camera-info-aux inroseus, in order to generate pr2 model corresponding to `jsk-ros-pkg/jsk_roseus/pulls/#526 <https://github.com/jsk-ros-pkg/jsk-ros-pkg/jsk_roseus/pulls/526>`_ (`#301 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/301>`_)
