@@ -527,7 +527,7 @@
    (av &rest args &key (ctype controller-type) (start-offset-time) (total-time)
        (move-arm :larm) (reset-total-time 5000.0) (use-send-angle-vector) (scale 1.0)
        &allow-other-keys)
-   (let (traj ret orig-total-time)
+   (let (traj ret orig-total-time sent-controller)
      (setq ctype (or ctype controller-type))
      (unless (gethash ctype controller-table)
        (warn ";; controller-type: ~A not found" ctype)
@@ -551,16 +551,23 @@
        (setq traj (send* self :trajectory-filter traj :start-offset-time start-offset-time :total-time total-time args))
        (ros::ros-info ";; Scaled Trajectory Total Time ~7,3f [sec]" (/ total-time 1000))
        (ros::ros-info ";; generated ~A points for ~A sec using [~A] group" (length (send traj :points)) (/ total-time 1000) (send ret :group_name))
+       (ros::ros-info ";; will send to ~A" (send traj :joint_names))
        ;;
        (mapcar
         #'(lambda (action param)
             ;; find controller that does not included in move-arm
+            ;; action : method (:larm-controller)
+            ;; param  : definitions ((controller-action, controller-state, action-type, joint-names))
             (when (and
                     (find param (send self ctype) :test #'equal)
                     (not (intersection (send traj :joint_names) (cdr (assoc :joint-names param)) :test #'string=)))
+              (ros::ros-info ";; action:~A, param:~A (~A)" action param (length param))
               ;; send via :angle-vector
               (maphash #'(lambda (ac ct)
-                           (if (equal (list action) ct)
+                           (when (and (= (length ct) 1) (equal (send-all (list action) :name) (send-all ct :name))
+                                      (not (member (send-all ct :name) sent-controller :test #'equal)))
+                             (ros::ros-info ";; send self :angle-vector ~A ~A" ac ct)
+                             (push (send-all ct :name) sent-controller)
                              (if (listp av)
                                (send-message self robot-interface :angle-vector-sequence av total-time ac)
                                (send-message self robot-interface :angle-vector av total-time ac))))
@@ -570,9 +577,11 @@
 
        (if use-send-angle-vector
            (send* self :joint-trajectory-to-angle-vector-list move-arm traj args)
+         (progn
+           (ros::ros-info ";; send self :send-trajectory ~A" ctype)
            (if start-offset-time
              (send* self :send-trajectory traj :controller-type ctype :starttime start-offset-time args)
-             (send* self :send-trajectory traj :controller-type ctype args)))
+             (send* self :send-trajectory traj :controller-type ctype args))))
        (if (listp av) av (list av)))))
   (:move-end-coords-plan ;;
    (cds &rest args &key (move-arm :larm) (reset-total-time 5000.0) (use-send-angle-vector) &allow-other-keys)
