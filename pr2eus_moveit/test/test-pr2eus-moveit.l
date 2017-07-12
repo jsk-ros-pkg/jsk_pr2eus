@@ -108,6 +108,21 @@
     (assert (> tm-diff 3) (format nil "collsion avoidance motion is too fast ~A" tm-diff))
     ))
 
+;; do not send faster command than moveit output
+(deftest test-moveit-fastest-trajectory ()
+  (let (tm-0 tm-1 tm-diff)
+    (send *ri* :angle-vector (send *pr2* :reset-pose))
+    (send *ri* :wait-interpolation)
+    (send *pr2* :rarm :angle-vector #f(0 0 0 0 0 0 0))
+    (send *ri* :angle-vector-motion-plan (send *pr2* :angle-vector) :total-time 1000 :move-arm :rarm :use-torso nil)
+    (setq tm-0 (ros::time-now))
+    (send *ri* :wait-interpolation)
+    (setq tm-1 (ros::time-now))
+    (setq tm-diff (send (ros::time- tm-1 tm-0) :to-sec))
+    (ros::ros-info "time for duration ~A" tm-diff)
+    (assert (> tm-diff 3) (format nil "collsion avoidance motion is too fast ~A" tm-diff))
+    ))
+
 (run-all-tests)
 (exit)
 
