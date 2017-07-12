@@ -524,7 +524,7 @@
                     cds confkey :end-coords ed-lst args))
      ret))
   (:angle-vector-motion-plan ;;
-   (av &rest args &key (ctype controller-type) (start-offset-time) (total-time)
+   (av &rest args &key (ctype controller-type) (start-offset-time 0) (total-time)
        (move-arm :larm) (reset-total-time 5000.0) (use-send-angle-vector) (scale 1.0)
        &allow-other-keys)
    (let (traj ret orig-total-time sent-controller)
@@ -600,7 +600,7 @@
          (send* self :send-trajectory traj args))
        )))
   (:trajectory-filter ;; simple trajectory for zero duration
-   (traj &key (copy) (total-time 5000.0) (minimum-time 0.001) (start-offset-time) (clear-velocities) &rest args &allow-other-keys)
+   (traj &key (copy) (total-time 5000.0) (minimum-time 0.001) (start-offset-time 0) (clear-velocities) &rest args &allow-other-keys)
    (let ((orig-total-time (send (send (car (last (send traj :points))) :time_from_start) :to-sec)))
    (when (and minimum-time (not start-offset-time)
               (> orig-total-time
