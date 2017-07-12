@@ -546,11 +546,11 @@
        (setq total-time
              (cond
                ((eq total-time :fast) (* scale (* orig-total-time 1000)))
-               ((or (null total-time) (< orig-total-time (/ total-time 1000))) (* orig-total-time 1000))
+               ((or (null total-time) (< orig-total-time (/ total-time 1000.0))) (* orig-total-time 1000))
                (t total-time)))
        (setq traj (send* self :trajectory-filter traj :start-offset-time start-offset-time :total-time total-time args))
-       (ros::ros-info ";; Scaled Trajectory Total Time ~7,3f [sec]" (/ total-time 1000))
-       (ros::ros-info ";; generated ~A points for ~A sec using [~A] group" (length (send traj :points)) (/ total-time 1000) (send ret :group_name))
+       (ros::ros-info ";; Scaled Trajectory Total Time ~7,3f [sec]" (/ total-time 1000.0))
+       (ros::ros-info ";; generated ~A points for ~A sec using [~A] group" (length (send traj :points)) (/ total-time 1000.0) (send ret :group_name))
        (ros::ros-info ";; will send to ~A" (send traj :joint_names))
        ;;
        (mapcar
