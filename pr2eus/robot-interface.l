@@ -644,11 +644,13 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
      (send self :angle-vector av stop-time)
      (send self :wait-interpolation)))
   (:cancel-angle-vector
-   (&key ((:controller-actions ca) controller-actions)
-         ((:controller-type ct) controller-type)
+   (&key ((:controller-actions ca))
+         ((:controller-type ct))
          (wait))
-   "Cancerl current joint trajetory action"
-   (send-all ca :cancel-all-goals)
+   "Cancel current joint trajetory action"
+   (when (null (or ca ct)) (setq ca controller-actions))
+   (when ca (send-all ca :cancel-all-goals))
+   (when ct (send-all (gethash ct controller-table) :cancel-all-goals))
    (when wait
      (send self :wait-interpolation)
      (send self :spin-once))
