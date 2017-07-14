@@ -2,8 +2,8 @@
 Changelog for package pr2eus_moveit
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.3.13 (2017-07-14)
+-------------------
 * [pr2eus_moveit] add 0.5 seconds sleep after collision object pub (`#315 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/315>`_)
   * add comment why we need unix:sleep
   * add 0.5 seconds sleep after collision object pub

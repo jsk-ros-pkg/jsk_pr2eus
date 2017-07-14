@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
   <name>jsk_pr2eus</name>
-  <version>0.3.12</version>
+  <version>0.3.13</version>
   <description>
    <p>Metapackage that contains robot eus client package for jsk-ros-pkg</p>
   </description>

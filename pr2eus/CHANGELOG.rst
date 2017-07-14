@@ -2,8 +2,8 @@
 Changelog for package pr2eus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.3.13 (2017-07-14)
+-------------------
 * [pr2eus] enable controller-type in :cancel-angle-vector (`#313 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/313>`_)
   * fix typo in robot-interface ( doc string of :cancel-angle-vector method)
   * cancel angle-vector by controller-type
