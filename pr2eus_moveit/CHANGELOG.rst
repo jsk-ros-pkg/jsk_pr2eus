@@ -2,6 +2,21 @@
 Changelog for package pr2eus_moveit
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* [pr2eus_moveit] add 0.5 seconds sleep after collision object pub (`#315 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/315>`_)
+  * add comment why we need unix:sleep
+  * add 0.5 seconds sleep after collision object pub
+
+* add test for https://github.com/jsk-ros-pkg/jsk_pr2eus/pull/310#issuecomment-314694668 (`#312 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/312>`_ )
+  * test/test-pr2eus-moveit.l, add test-moveit-fastest-trajectory, ensure that :angle-vector-motion-plan will not send faster motion then moveit planned motion
+  * display both scaled trajectory time and actual time_to_start time
+  * robot-moveit.l : set default start-offset-time to 0, not to skip :trajectory-filter
+  * robot-moveit.l, fix debug info (/ total-time 1000) -> (/ total-time 1000.0)
+
+* Revert `#310 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/310>`_ "[pr2eus_moveit] fix typo in total-time condition" (`#314 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/314>`_ )
+* Contributors: Kei Okada, Shingo Kitagawa
+
 0.3.12 (2017-07-11)
 -------------------
 * robot-interface.l: send angle-vector only once, some controller-table had multiple definition for one method, we ignore them (`#308 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/308>`_)
