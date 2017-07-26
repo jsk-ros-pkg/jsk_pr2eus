@@ -3,17 +3,17 @@
 (defclass collision-object-publisher
   :super propertied-object
   :slots (object-list attached-object-list
-          topicname attached-topicname scene-srv))
+          servicename attached-topicname scene-srv))
 
 (defmethod collision-object-publisher
-  (:init (&key (topic-name "collision_object")
+  (:init (&key (service-name "apply_planning_scene")
                (attached-topic-name "attached_collision_object")
                (scene-service "get_planning_scene"))
    (unless (ros::ok) (ros::roseus "publish_collision_eusobj"))
-   (setq topicname topic-name
+   (setq servicename service-name
          attached-topicname attached-topic-name
          scene-srv scene-service)
-   (ros::advertise topicname moveit_msgs::CollisionObject 1 t) ;; latch = t
+   (ros::wait-for-service servicename)
    (ros::advertise attached-topicname moveit_msgs::AttachedCollisionObject 1 t) ;; latch = t
    (setq object-list (make-hash-table))
    (setq attached-object-list (make-hash-table))
@@ -21,7 +21,13 @@
   (:add-object (obj &rest args)
    (let ((objmsg (send* self :make-object obj args)))
      (setf (gethash obj object-list) objmsg)
-     (ros::publish topicname objmsg)
+     (let ((req (instance moveit_msgs::ApplyPlanningSceneRequest :init))
+           (psw (instance moveit_msgs::PlanningSceneWorld :init)))
+       (send psw :collision_objects (list objmsg))
+       (send psw :octomap (instance octomap_msgs::OctomapWithPose :init)) ; why we need this?
+       (send (send req :scene) :world psw)
+       (send (send req :scene) :is_diff t)
+       (ros::service-call servicename req))
      obj))
   (:add-attached-object (obj link-name &rest args
                              &key (touch-links) (weight 0) (detach-posture)
@@ -176,15 +182,19 @@
                                                    moveit_msgs::PlanningSceneComponents::*WORLD_OBJECT_GEOMETRY*
                                                    moveit_msgs::PlanningSceneComponents::*OCTOMAP*))))
      (when scene
-       (dolist (msg (send scene :world :collision_objects))
-         (send msg :header :stamp (ros::time-now))
-         (send msg :operation moveit_msgs::CollisionObject::*REMOVE*)
-         (ros::publish topicname msg)
-         ;; According to moveit tutorials, we need to put sleep after topic publishing.
-         ;; http://docs.ros.org/indigo/api/pr2_moveit_tutorials/html/planning/src/doc/planning_scene_ros_api_tutorial.html
-         ;; adding unix::usleep is not smart solution, but I couldn't find out better solution.
-         ;; https://github.com/jsk-ros-pkg/jsk_pr2eus/pull/315#issuecomment-315015718
-         (unix::usleep (* 500 1000)))
+       (let ((req (instance moveit_msgs::ApplyPlanningSceneRequest :init))
+             (psw (instance moveit_msgs::PlanningSceneWorld)))
+         (send psw :collision_objects
+               (mapcar #'(lambda (msg)
+                           (progn
+                             (send msg :header :stamp (ros::time-now))
+                             (send msg :operation moveit_msgs::CollisionObject::*REMOVE*)
+                             msg))
+                       (send scene :world :collision_objects)))
+         (send psw :octomap (instance octomap_msgs::OctomapWithPose :init)) ; why we need this?
+         (send (send req :scene) :world psw)
+         (send (send req :scene) :is_diff t)
+         (ros::service-call servicename req))
        (setq object-list (make-hash-table))
        t)))
   (:wipe-all-attached-object ()
@@ -211,7 +221,13 @@
      (send msg :header :stamp (ros::time-now))
      (send msg :operation moveit_msgs::CollisionObject::*REMOVE*)
      (remhash obj object-list)
-     (ros::publish topicname msg)
+     (let ((req (instance moveit_msgs::ApplyPlanningSceneRequest :init))
+           (psw (instance moveit_msgs::PlanningSceneWorld :init)))
+       (send psw :collision_objects (list msg))
+       (send psw :octomap (instance octomap_msgs::OctomapWithPose :init)) ; why we need this?
+       (send (send req :scene) :world psw)
+       (send (send req :scene) :is_diff t)
+       (ros::service-call servicename req))
      obj))
   (:delete-attached-object (obj)
    (let ((msg (gethash obj attached-object-list)))
