@@ -1039,6 +1039,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
    "get information about gripper"
    (error "This method is responsible to sub class~%"))
   ) ;; robot-interface
+
 ;; ros visualization methods
 (defmethod robot-interface
   (:joint-trajectory-to-angle-vector-list
@@ -1187,6 +1188,26 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
    (warn ";; Stop Euslisp mannequin mode.~%")
    )
   )
+;;
+;; for text-to-speech services
+(defmethod robot-interface
+  (:speak (text &rest args &key (lang :en) &allow-other-keys)
+    "Speak sentence using text-to-speech services.
+     Args:
+        text: sentence to speak
+        lang: language to speak, currently :en or :ja are supported.
+        args: other key arguments are passed to speech functions"
+    (case lang
+     (:en (send* self :speak-en text (remprop :lang args)))
+     (:ja (send* self :speak-jp text (remprop :lang args)))
+     (t (error "Unsupported language ~A" lang))))
+  (:speak-en (text &rest args)
+    "Speak english sentence"
+    (apply #'speak-en text args))
+  (:speak-jp (text &rest args)
+    "Speak japanese sentence"
+    (apply #'speak-jp text args))
+) ;; defmethod robot-interface (text-to-speech)
 ;;
 (defclass robot-move-base-interface
   :super robot-interface
