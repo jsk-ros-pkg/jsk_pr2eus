@@ -8,7 +8,8 @@
 (defparameter *speak-timeout* 20)
 
 (defun send-speak-msg (msg
-                       &key (topic-name "robotsound") (timeout *speak-timeout*)
+                       &key (topic-name "robotsound")
+                            (timeout *speak-timeout*)
                             (wait *speak-wait*))
   (cond
     ((boundp 'sound_play::soundrequestaction)
@@ -33,46 +34,43 @@
       (ros::publish topic-name msg)
       t)))
 
-(defun speak-google (str &key (lang :ja) (wait *speak-wait*) (topic-name "robotsound") (timeout *speak-timeout*))
-  (let* ((qstr (escaped-url-string-from-namestring
-                (concatenate string
-                             "http://translate.google.com/translate_tts?tl="
-                             (string-downcase (string lang))
-                             "&client=t&ie=UTF-8&q=" str)))
-         (msg (instance sound_play::SoundRequest :init
-                        :sound sound_play::SoundRequest::*play_file*
-                        :command sound_play::SoundRequest::*play_once*
-                        :arg qstr)))
-    (send-speak-msg msg
-                    :topic-name topic-name
-                    :wait wait
-                    :timeout timeout)))
+(defun speak (text &key (lang "") (topic-name "robotsound") wait timeout)
+  "Speak sentence using text-to-speech service.
 
-(defun speak-jp (str &key google (wait *speak-wait*) (topic-name "robotsound_jp") (timeout *speak-timeout*))
-  (when google
-      (return-from speak-jp
-        (speak-google str :lang :ja :wait wait :timeout timeout)))
+   Args:
+    - text: sentence to speak
+    - lang: language of sentence
+    - topic-name: topic name space for sound_play server
+    - wait: wait the end of speech if enabled
+    - timeout: timeout for waiting, this is valid only if wait is enabled"
   (send-speak-msg
    (instance sound_play::SoundRequest :init
              :sound sound_play::SoundRequest::*say*
              :command sound_play::SoundRequest::*play_once*
-             :arg str
-             :arg2 "aq_rm.phont")
+             :arg text
+             :arg2 (string-downcase lang))
    :topic-name topic-name
-   :wait wait
-   :timeout timeout))
+   :wait (or wait *speak-wait*)
+   :timeout (or timeout *speak-timeout*)))
 
-(defun speak-en (str &key google (wait *speak-wait*) (topic-name "robotsound") (timeout *speak-timeout*))
-  (when google
-    (return-from speak-en
-            (speak-google str :lang :en :wait wait :timeout timeout)))
-  (send-speak-msg
-   (instance sound_play::SoundRequest :init
-             :sound sound_play::SoundRequest::*say*
-             :command sound_play::SoundRequest::*play_once*
-             :arg str)
-   :topic-name topic-name
-   :wait wait
-   :timeout timeout))
+(defun speak-jp (text &key wait timeout (topic-name "robotsound_jp"))
+  "Speak japanese sentence using text-to-speech service.
+
+   Args:
+    - text: sentence to speak
+    - topic-name: topic name space for sound_play server
+    - wait: wait the end of speech if enabled
+    - timeout: timeout for waiting, this is valid only if wait is enabled"
+  (speak text :lang :ja :wait wait :timeout timeout :topic-name topic-name))
+
+(defun speak-en (text &key wait timeout (topic-name "robotsound"))
+  "Speak english sentence using text-to-speech service.
+
+   Args:
+    - text: sentence to speak
+    - topic-name: topic name space for sound_play server
+    - wait: wait the end of speech if enabled
+    - timeout: timeout for waiting, this is valid only if wait is enabled"
+  (speak text :lang "" :wait wait :timeout timeout :topic-name topic-name))
 
 (provide :speak) ;; end of speak.l
