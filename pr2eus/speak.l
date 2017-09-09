@@ -61,7 +61,7 @@
     - topic-name: topic name space for sound_play server
     - wait: wait the end of speech if enabled
     - timeout: timeout for waiting, this is valid only if wait is enabled"
-  (speak text :lang :ja :wait wait :timeout timeout :topic-name topic-name))
+  (speak text :lang "ja" :wait wait :timeout timeout :topic-name topic-name))
 
 (defun speak-en (text &key wait timeout (topic-name "robotsound"))
   "Speak english sentence using text-to-speech service.
