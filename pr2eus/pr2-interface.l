@@ -395,31 +395,10 @@ Example: (send self :gripper :rarm :position) => 0.00"
 
 ;;
 ;;
-;; workaround for unintentional 360 joint rotation problem [#91]
 (defmethod pr2-interface
-  (:check-continuous-joint-move-over-180
-   (diff-av)
-   (let ((i 0) add-new-trajectory-point)
-     (dolist (j (send robot :joint-list))
-       ;; for continuous rotational joint
-       (when (and (> (- (send j :max-angle) (send j :min-angle)) 360)
-                  (> (abs (elt diff-av i)) 180))
-         (ros::ros-warn "continuous joint (~A) moves ~A degree, commanded joint differs from original trajectory to avoid unintentional 360 rotation" (send j :name) (elt diff-av i))
-         (setq add-new-trajectory-point t))
-       (incf i (send j :joint-dof)))
-     add-new-trajectory-point))
   (:angle-vector
    (av &optional (tm 3000) &rest args)
-   (let (diff-av)
-     ;; use reference-vector to get last commanded joint and use :angle-vector to toruncate the joint limit to eus lisp style
-     (setq diff-av (v- av (send robot :angle-vector (send self :state :reference-vector))))
-     ;; use shortest path for contiuous joint
-     ;;
-     (when (send self :check-continuous-joint-move-over-180 diff-av)
-       (return-from :angle-vector
-         (send* self :angle-vector-sequence (list av) (list tm) args))) ;; when
-     (send-super* :angle-vector av tm args)
-     ))
+   (send-super* :angle-vector av tm args))
   (:angle-vector-sequence
    (avs &optional (tms (list 3000)) &rest args)
    (unless (or (send self :simulation-modep) (cadr (memq :end-coords-interpolation args)))
