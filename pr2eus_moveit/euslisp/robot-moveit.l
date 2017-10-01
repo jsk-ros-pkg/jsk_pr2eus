@@ -1,4 +1,4 @@
-(ros::load-ros-manifest "pr2eus_moveit")
+(ros::load-ros-manifest "moveit_msgs")
 
 (require :robot-interface "package://pr2eus/robot-interface.l")
 (require :collision-object-publisher "package://pr2eus_moveit/euslisp/collision-object-publisher.l")
