@@ -370,6 +370,17 @@
    (av tm ctype)
    (let* ((prev-av (send robot :angle-vector)))
      (send-all (gethash ctype controller-table) :push-angle-vector-simulation av tm prev-av)))
+  (:check-continuous-joint-move-over-180
+   (diff-av)
+   (let ((i 0) add-new-trajectory-point)
+     (dolist (j (send robot :joint-list))
+       ;; for continuous rotational joint
+       (when (and (> (- (send j :max-angle) (send j :min-angle)) 360)
+                  (> (abs (elt diff-av i)) 180))
+         (ros::ros-warn "continuous joint (~A) moves ~A degree, commanded joint differs from original trajectory to avoid unintentional 360 rotation" (send j :name) (elt diff-av i))
+         (setq add-new-trajectory-point t))
+       (incf i (send j :joint-dof)))
+     add-new-trajectory-point))
   (:angle-vector
    (av &optional (tm nil) (ctype controller-type) (start-time 0) &key (scale 1) (min-time 1.0) (end-coords-interpolation nil) (end-coords-interpolation-steps 10))
    "Send joint angle to robot, this method returns immediately, so use :wait-interpolation to block until the motion stops.
@@ -410,6 +421,21 @@
        (ros::ros-error ":angle-vector tm is invalid.  args: ~A" tm)
        (error ":angle-vector tm is invalid. args: ~A" tm)))
      )
+   ;; when ther robot have continuous joint
+   ;; workaround for unintentional 360 joint rotation problem [https://github.com/jsk-ros-pkg/jsk_pr2eus/commit/ed5c6dffe19f3cdf7a7f9b253c9172e120065ef8]
+   (when (some #'identity (mapcan #'(lambda (param)
+                                      (mapcar #'(lambda (name) (let ((j (send robot :joint name)))
+                                                                 (and (eq (send j :max-angle) *inf*)
+                                                                      (eq (send j :min-angle) *-inf*))))
+                                              (cdr (assoc :joint-names param)))) ctype))
+     (let (diff-av)
+       ;; use reference-vector to get last commanded joint and use :angle-vector to toruncate the joint limit to eus lisp style
+       (setq diff-av (v- av (send robot :angle-vector (send self :state :reference-vector))))
+       ;; use shortest path for contiuous joint
+       ;;
+       (when (send self :check-continuous-joint-move-over-180 diff-av)
+         (return-from :angle-vector
+           (send* self :angle-vector-sequence (list av) (list tm) args)))))
    ;; for simulation mode
    (when (send self :simulation-modep)
      (if av (send self :angle-vector-simulation av tm ctype)))
