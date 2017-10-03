@@ -192,8 +192,19 @@
                        sensor_msgs::JointState)
        (setq *top-selector-interval* 0.01)
        (setq simulation-default-look-all-p sim-look-all)
-       (pushnew `(lambda () (send ,self :robot-interface-simulation-callback)) *timer-job*) ;; FIXME need to remove old one
-       (print *timer-job*)
+       ;; remove old timer job
+       (setq *timer-job*
+             (remove-if #'(lambda (x)
+                      (if (listp x)
+                          (let ((f (caddr x)))
+                            (when (and (>= (length f) 3)
+                                       (eq (class (elt f 1)) (class self))
+                                       (eq (elt f 2) :robot-interface-simulation-callback))
+                              (warning-message 3 "remove ~A from *timer-job*~%" f)
+                              t))))
+                  *timer-job*))
+       (pushnew `(lambda () (send ,self :robot-interface-simulation-callback)) *timer-job*)
+       (warning-message 3 "current *timer-job* is ~A~%" *timer-job*)
        ))
    self)
   ;;
