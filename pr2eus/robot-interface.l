@@ -286,6 +286,20 @@
                      msg))
      msg))
 
+  ;;
+  (:check-continuous-joint-move-over-180
+   (diff-av)
+   "check if the robot has continuous joints and the maxmum values in diff-av is larger then 180 deg"
+   (let ((i 0) add-new-trajectory-point)
+     (dolist (j (send robot :joint-list))
+       ;; for continuous rotational joint
+       (when (and (> (- (send j :max-angle) (send j :min-angle)) 360)
+                  (> (abs (elt diff-av i)) 180))
+         (ros::ros-warn "continuous joint (~A) moves ~A degree, commanded joint differs from original trajectory to avoid unintentional 360 rotation" (send j :name) (elt diff-av i))
+         (setq add-new-trajectory-point t))
+       (incf i (send j :joint-dof)))
+     add-new-trajectory-point))
+  ;;
   (:angle-vector-safe
    (av tm &key (simulation) (yes) (wait t) (norm-threshold 120) (angle-threshold 80) (velocity-threshold 240))
    "send joint angle to robot with user-level confirmation. This method requires key input"
