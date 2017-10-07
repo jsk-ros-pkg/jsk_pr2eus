@@ -75,6 +75,7 @@
         (when (> current-time tm)
           (pop timer-sequence)
           (pop angle-vector-sequence)
+          (setq av (v+ previous-angle-vector scale-av))
           (setq previous-angle-vector av)
           (setq current-time 0)
           )
@@ -255,7 +256,6 @@
   (:robot-interface-simulation-callback ()
    (let* ((joint-list (send robot :joint-list))
           (all-joint-names (send-all joint-list :name)))
-     (send self :publish-joint-state)
      (dolist (param (send self controller-type)) ;; assuming all action is stored in controller-type (:default-controller)
        ;(print (list 'p param))
        (let* ((joint-names (cdr (assoc :joint-names param)))
@@ -269,6 +269,7 @@
                  (let ((i (position j all-joint-names :test #'string=)))
                    (send (elt joint-list i) :joint-angle (elt av i))))))
          ))
+     (send self :publish-joint-state)
      ;;
      (if viewer (send self :draw-objects))
      ))
