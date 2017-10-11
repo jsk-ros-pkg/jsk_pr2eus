@@ -26,11 +26,13 @@
 
 (deftest test-speak-en ()
   (assert (speak-en "hello, world" :timeout 10))
-  (assert (send *ri* :speak-en "hello, world" :timeout 10)))
+  (assert (send *ri* :speak-en "hello, world"))
+  (assert (send *ri* :speak-en "good bye!" :wait t)))
 
 (deftest test-speak-jp ()
   (assert (speak-jp "こんにちは" :timeout 10))
-  (assert (send *ri* :speak-jp "こんにちは" :timeout 10)))
+  (assert (send *ri* :speak-jp "こんにちは"))
+  (assert (send *ri* :speak-jp "またね" :wait t)))
 
 (run-all-tests)
 (exit)
