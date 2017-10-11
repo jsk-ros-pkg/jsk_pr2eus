@@ -3,18 +3,15 @@
 (defclass collision-object-publisher
   :super propertied-object
   :slots (object-list attached-object-list
-          servicename attached-topicname scene-srv))
+          servicename scene-srv))
 
 (defmethod collision-object-publisher
   (:init (&key (service-name "apply_planning_scene")
-               (attached-topic-name "attached_collision_object")
                (scene-service "get_planning_scene"))
    (unless (ros::ok) (ros::roseus "publish_collision_eusobj"))
    (setq servicename service-name
-         attached-topicname attached-topic-name
          scene-srv scene-service)
    (ros::wait-for-service servicename)
-   (ros::advertise attached-topicname moveit_msgs::AttachedCollisionObject 1 t) ;; latch = t
    (setq object-list (make-hash-table))
    (setq attached-object-list (make-hash-table))
    self)
@@ -33,16 +30,21 @@
                              &key (touch-links) (weight 0) (detach-posture)
                              &allow-other-keys)
    (let ((objmsg (send* self :make-object obj args))
-         (msg (instance moveit_msgs::AttachedCollisionObject :init)))
-     (send msg :link_name link-name)
-     (send msg :object objmsg)
-     (send msg :touch_links touch-links)
-     (if detach-posture (send msg :detach_posture detach-posture))
-     (send msg :weight weight)
+         (attached-objmsg (instance moveit_msgs::AttachedCollisionObject :init))
+         req)
+     (send attached-objmsg :link_name link-name)
+     (send attached-objmsg :object objmsg)
+     (send attached-objmsg :touch_links touch-links)
+     (if detach-posture
+       (send attached-objmsg :detach_posture detach-posture))
+     (send attached-objmsg :weight weight)
      (setf (gethash obj object-list) objmsg)
-     (setf (gethash obj attached-object-list) msg)
-     ;;
-     (ros::publish attached-topicname msg)
+     (setf (gethash obj attached-object-list) attached-objmsg)
+     (setq req (instance moveit_msgs::ApplyPlanningSceneRequest :init))
+     (send req :scene :robot_state :attached_collision_objects (list attached-objmsg))
+     (send req :scene :is_diff t)
+     (send req :scene :robot_state :is_diff t)
+     (ros::service-call servicename req)
      obj))
   (:make-object
    (obj &key (frame-id "base_footprint") (relative-pose)
@@ -202,17 +204,20 @@
                                     :components (+ moveit_msgs::PlanningSceneComponents::*ROBOT_STATE_ATTACHED_OBJECTS*
                                                    moveit_msgs::PlanningSceneComponents::*WORLD_OBJECT_NAMES*
                                                    moveit_msgs::PlanningSceneComponents::*WORLD_OBJECT_GEOMETRY*
-                                                   moveit_msgs::PlanningSceneComponents::*OCTOMAP*))))
+                                                   moveit_msgs::PlanningSceneComponents::*OCTOMAP*)))
+         req)
      (when scene
-       (dolist (msg (send scene :robot_state :attached_collision_objects))
-         (send msg :object :header :stamp (ros::time-now))
-         (send msg :object :operation moveit_msgs::CollisionObject::*REMOVE*)
-         (ros::publish attached-topicname msg)
-         ;; According to moveit tutorials, we need to put sleep after topic publishing.
-         ;; http://docs.ros.org/indigo/api/pr2_moveit_tutorials/html/planning/src/doc/planning_scene_ros_api_tutorial.html
-         ;; adding unix::usleep is not smart solution, but I couldn't find out better solution.
-         ;; https://github.com/jsk-ros-pkg/jsk_pr2eus/pull/315#issuecomment-315015718
-         (unix::usleep (* 500 1000)))
+       (setq req (instance moveit_msgs::ApplyPlanningSceneRequest :init))
+       (send req :scene :robot_state :attached_collision_objects
+             (mapcar #'(lambda (msg)
+                         (progn
+                           (send msg :object :header :stamp (ros::time-now))
+                           (send msg :object :operation moveit_msgs::CollisionObject::*REMOVE*)
+                           msg))
+                     (send scene :robot_state :attached_collision_objects)))
+       (send req :scene :is_diff t)
+       (send req :scene :robot_state :is_diff t)
+       (ros::service-call servicename req)
        (setq attached-object-list (make-hash-table))
        t)))
   (:delete-object (obj)
@@ -230,12 +235,17 @@
        (ros::service-call servicename req))
      obj))
   (:delete-attached-object (obj)
-   (let ((msg (gethash obj attached-object-list)))
+   (let ((msg (gethash obj attached-object-list))
+         req)
      (unless msg (return-from :delete-attached-object))
      (send msg :object :header :stamp (ros::time-now))
      (send msg :object :operation moveit_msgs::CollisionObject::*REMOVE*)
      (remhash obj attached-object-list)
-     (ros::publish attached-topicname msg)
+     (setq req (instance moveit_msgs::ApplyPlanningSceneRequest :init))
+     (send req :scene :robot_state :attached_collision_objects (list msg))
+     (send req :scene :is_diff t)
+     (send req :scene :robot_state :is_diff t)
+     (ros::service-call servicename req)
      obj))
   )
 
