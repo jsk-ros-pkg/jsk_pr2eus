@@ -21,10 +21,10 @@
   (:add-object (obj &rest args)
    (let ((objmsg (send* self :make-object obj args)))
      (setf (gethash obj object-list) objmsg)
-     (let ((req (instance moveit_msgs::ApplyPlanningSceneRequest :init))
-           (psw (instance moveit_msgs::PlanningSceneWorld :init)))
+     (let (psw req)
+       (setq psw (instance moveit_msgs::PlanningSceneWorld :init))
        (send psw :collision_objects (list objmsg))
-       (send psw :octomap (instance octomap_msgs::OctomapWithPose :init)) ; why we need this?
+       (setq req (instance moveit_msgs::ApplyPlanningSceneRequest :init))
        (send (send req :scene) :world psw)
        (send (send req :scene) :is_diff t)
        (ros::service-call servicename req))
@@ -182,8 +182,8 @@
                                                    moveit_msgs::PlanningSceneComponents::*WORLD_OBJECT_GEOMETRY*
                                                    moveit_msgs::PlanningSceneComponents::*OCTOMAP*))))
      (when scene
-       (let ((req (instance moveit_msgs::ApplyPlanningSceneRequest :init))
-             (psw (instance moveit_msgs::PlanningSceneWorld)))
+       (let (psw req)
+         (setq psw (instance moveit_msgs::PlanningSceneWorld :init))
          (send psw :collision_objects
                (mapcar #'(lambda (msg)
                            (progn
@@ -191,7 +191,7 @@
                              (send msg :operation moveit_msgs::CollisionObject::*REMOVE*)
                              msg))
                        (send scene :world :collision_objects)))
-         (send psw :octomap (instance octomap_msgs::OctomapWithPose :init)) ; why we need this?
+         (setq req (instance moveit_msgs::ApplyPlanningSceneRequest :init))
          (send (send req :scene) :world psw)
          (send (send req :scene) :is_diff t)
          (ros::service-call servicename req))
@@ -221,10 +221,10 @@
      (send msg :header :stamp (ros::time-now))
      (send msg :operation moveit_msgs::CollisionObject::*REMOVE*)
      (remhash obj object-list)
-     (let ((req (instance moveit_msgs::ApplyPlanningSceneRequest :init))
-           (psw (instance moveit_msgs::PlanningSceneWorld :init)))
+     (let (psw req)
+       (setq psw (instance moveit_msgs::PlanningSceneWorld :init))
        (send psw :collision_objects (list msg))
-       (send psw :octomap (instance octomap_msgs::OctomapWithPose :init)) ; why we need this?
+       (setq req (instance moveit_msgs::ApplyPlanningSceneRequest :init))
        (send (send req :scene) :world psw)
        (send (send req :scene) :is_diff t)
        (ros::service-call servicename req))
