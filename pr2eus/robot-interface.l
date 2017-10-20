@@ -438,7 +438,7 @@
        (let ((av-orig (send robot :angle-vector)) ;; initial av, restore at end
              (c-orig  (send robot :copy-worldcoords)) ;; inital coords, restore at end
              (av-prev-orig av-prev) ;; prev-av
-             (limbs '(:larm :rarm :lleg :rleg :torso :head)) ;; defined in https://github.com/euslisp/jskeus/blob/master/irteus/irtrobot.l#L79
+             (limbs '(:larm :rarm :lleg :rleg)) ;; defined in https://github.com/euslisp/jskeus/blob/master/irteus/irtrobot.l#L79, head and torso is ignored becuase ik usually fails when the head moves.
              target-limbs
              (minjerk (instance minjerk-interpolator :init))
              end-coords-prev end-coords-current ec-prev ec-current
