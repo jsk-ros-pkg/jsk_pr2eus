@@ -349,7 +349,7 @@
    (let* ((prev-av (send robot :angle-vector)))
      (send-all (gethash ctype controller-table) :push-angle-vector-simulation av tm prev-av)))
   (:angle-vector
-   (av &optional (tm nil) (ctype controller-type) (start-time 0) &key (scale 1) (min-time 1.0) (end-coords-interpolation nil))
+   (av &optional (tm nil) (ctype controller-type) (start-time 0) &key (scale 1) (min-time 1.0) (end-coords-interpolation nil) (end-coords-interpolation-pass-time 100))
    "Send joind angle to robot, this method retuns immediately, so use :wait-interpolation to block until the motion stops.
 - av : joint angle vector [deg]
 - tm : (time to goal in [msec])
@@ -361,9 +361,10 @@
 - scale : if tm is not specified, it will use 1/scale of the fastest speed
 - min-time : minimum time for time to goal
 - end-coords-interpolation : set t if you want to move robot in cartesian space interpolation
+- end-coords-interpolation-pass-time : time interval for interpolating end-coords
 "
    (if end-coords-interpolation
-     (return-from :angle-vector (send self :angle-vector-sequence (list av) (list tm) ctype start-time :scale scale :min-time min-time :end-coords-interpolation t)))
+     (return-from :angle-vector (send self :angle-vector-sequence (list av) (list tm) ctype start-time :scale scale :min-time min-time :end-coords-interpolation t :end-coords-interpolation-pass-time end-coords-interpolation-pass-time)))
    (setq ctype (or ctype controller-type))  ;; use default controller-type if ctype is nil
    (unless (gethash ctype controller-table)
      (warn ";; controller-type: ~A not found" ctype)
@@ -404,7 +405,7 @@
       cacts (send self ctype)))
    av)
   (:angle-vector-sequence
-   (avs &optional (tms (list 3000)) (ctype controller-type) (start-time 0.1) &key (scale 1) (min-time 0.0) (end-coords-interpolation nil))
+   (avs &optional (tms (list 3000)) (ctype controller-type) (start-time 0.1) &key (scale 1) (min-time 0.0) (end-coords-interpolation nil) (end-coords-interpolation-pass-time 100))
    "Send sequence of joind angle to robot, this method retuns immediately, so use :wait-interpolation to block until the motion stops.
 - avs: sequence of joint angles(float-vector) [deg],  (list av0 av1 ... avn)
 - tms: sequence of duration(float) from previous angle-vector to next goal [msec],  (list tm0 tm1 ... tmn)
@@ -417,6 +418,7 @@
 - scale : if tms is not specified, it will use 1/scale of the fastest speed
 - min-time : minimum time for time to goal
 - end-coords-interpolation : set t if you want to move robot in cartesian space interpolation
+- end-coords-interpolation-pass-time : time interval for interpolating end-coords
    "
    (setq ctype (or ctype controller-type))  ;; use default controller-type if ctype is nil
    (unless (gethash ctype controller-table)
@@ -470,7 +472,7 @@
                  (progn
                    (send minjerk :start-interpolation)
                    (while (send minjerk :interpolatingp)
-                     (send minjerk :pass-time 100)
+                     (send minjerk :pass-time end-coords-interpolation-pass-time)
                      (setq p (elt (send minjerk :position) 0))
                      ;; set midpoint of av as initial pose of IK
                      (cond ((null ik-method))
@@ -490,11 +492,11 @@
                        (setq ret (and ret
                                       (send robot limb :inverse-kinematics (midcoords p ec-prev ec-current)))))
                      (push (send robot :angle-vector) interpolated-avs)
-                     (push 100 interpolated-tms)
+                     (push end-coords-interpolation-pass-time interpolated-tms)
                      ))
                (progn
                  (push av interpolated-avs)
-                 (push 50 interpolated-tms)))
+                 (push end-coords-interpolation-pass-time interpolated-tms)))
              (setq end-coords-prev end-coords-current)
              (setq av-prev av)
              (incf i)) ;; dolist (av avs)
