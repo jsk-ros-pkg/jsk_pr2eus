@@ -443,57 +443,84 @@
              (minjerk (instance minjerk-interpolator :init))
              end-coords-prev end-coords-current ec-prev ec-current
              interpolated-avs interpolated-tms
-             tm i p (ret t)) ;; if nil failed to interpolate
+             min-interpolated-avs min-interpolated-tms
+             tm i p (ret t) min-diff-ik) ;; if nil failed to interpolate
            ;; set prev-av
          (send robot :angle-vector av-prev)
          (setq end-coords-prev (mapcar #'(lambda (limb) (send robot limb :end-coords :copy-worldcoords)) limbs))
-         ;; choose moved end-coords
-         (setq i 0)
-         (dolist (av avs)
-           (send robot :angle-vector av)
-           (setq end-coords-current (mapcar #'(lambda (limb) (send robot limb :end-coords :copy-worldcoords)) limbs))
-           (setq target-limbs nil)
-           (dotimes (l (length limbs))
-             (setq ec-prev (elt end-coords-prev l) ec-current (elt end-coords-current l))
-             (when (and ec-prev ec-current
-                        (or (> (norm (send ec-prev :difference-position ec-current)) 1)
-                            (> (norm (send ec-prev :difference-rotation ec-current)) (deg2rad 1))))
-               (push (elt limbs l) target-limbs)))
-           (send minjerk :reset :position-list (list #f(0) #f(1)) :time-list (list (elt tms i)))
-           (send robot :angle-vector av-prev)
-           (if target-limbs
+         ;; choose best initial pose of IK
+         (dolist (ik-method '(nil :midpoint :av-prev :car-avs))
+           ;; choose moved end-coords
+           (send robot :angle-vector av-prev-orig)
+           (setq interpolated-avs nil interpolated-tms nil)
+           (setq i 0)
+           (dolist (av avs)
+             (send robot :angle-vector av)
+             (setq end-coords-current (mapcar #'(lambda (limb) (send robot limb :end-coords :copy-worldcoords)) limbs))
+             (setq target-limbs nil)
+             (dotimes (l (length limbs))
+               (setq ec-prev (elt end-coords-prev l) ec-current (elt end-coords-current l))
+               (when (and ec-prev ec-current
+                          (or (> (norm (send ec-prev :difference-position ec-current)) 1)
+                              (> (norm (send ec-prev :difference-rotation ec-current)) (deg2rad 1))))
+                 (push (elt limbs l) target-limbs)))
+             (send minjerk :reset :position-list (list #f(0) #f(1)) :time-list (list (elt tms i)))
+             (send robot :angle-vector av-prev)
+             (if target-limbs
+                 (progn
+                   (send minjerk :start-interpolation)
+                   (while (send minjerk :interpolatingp)
+                     (send minjerk :pass-time 100)
+                     (setq p (elt (send minjerk :position) 0))
+                     ;; set midpoint of av as initial pose of IK
+                     (cond ((null ik-method))
+                           ((eq ik-method :midpoint)
+                            (send robot :angle-vector (midpoint p av-prev av)))
+                           ((eq ik-method :av-prev)
+                            (send robot :angle-vector av-prev))
+                           ((eq ik-method :car-avs)
+                            (if (car interpolated-avs)
+                                (send robot :angle-vector (car interpolated-avs))))
+                           )
+                     (dolist (limb target-limbs)
+                       ;; don't move arm by IK when interpolation is already ended
+                       (if (>= p 1) (return))
+                       (setq ec-prev (elt end-coords-prev (position limb limbs))
+                             ec-current (elt end-coords-current (position limb limbs)))
+                       (setq ret (and ret
+                                      (send robot limb :inverse-kinematics (midcoords p ec-prev ec-current)))))
+                     (push (send robot :angle-vector) interpolated-avs)
+                     (push 100 interpolated-tms)
+                     ))
                (progn
-                 (send minjerk :start-interpolation)
-                 (while (send minjerk :interpolatingp)
-                   (send minjerk :pass-time 100)
-                   (setq p (elt (send minjerk :position) 0))
-                   ;; set midpoint of av as initial pose of IK
-                   (send robot :angle-vector (midpoint p av-prev av))
-                   (dolist (limb target-limbs)
-                     ;; don't move arm by IK when interpolation is already ended
-                     (if (>= p 1) (return))
-                     (setq ec-prev (elt end-coords-prev (position limb limbs))
-                           ec-current (elt end-coords-current (position limb limbs)))
-                     (setq ret (and ret
-                                    (send robot limb :inverse-kinematics (midcoords p ec-prev ec-current)))))
-                   (push (send robot :angle-vector) interpolated-avs)
-                   (push 100 interpolated-tms)
-                   ))
-             (progn
-               (push av interpolated-avs)
-               (push 50 interpolated-tms)))
-           (setq end-coords-prev end-coords-current)
-           (setq av-prev av)
-           (incf i)) ;; dolist (av avs)
+                 (push av interpolated-avs)
+                 (push 50 interpolated-tms)))
+             (setq end-coords-prev end-coords-current)
+             (setq av-prev av)
+             (incf i)) ;; dolist (av avs)
+           ;; evaluate avs
+           (let* ((prev-av (car interpolated-avs))
+                  (diff-av (instantiate float-vector (length prev-av)))
+                  diff-ik)
+             (dolist (av (cdr interpolated-avs))
+               (setq diff-av (v+ diff-av (v-abs av prev-av))))
+             (setq diff-ik (geo::find-extream (coerce diff-av cons) #'identity #'>=))
+             (when (or (null min-diff-ik)
+                       (<  diff-ik min-diff-ik))
+               (setq min-diff-ik diff-ik)
+               (setq min-interpolated-avs interpolated-avs)
+               (setq min-interpolated-tms interpolated-tms))
+             )) ;; choose bet initial pose of IK
+         (ros::ros-warn "choose ~A diff interpolation sequence" min-diff-ik)
          ;; restore states
-         (setq avs (nreverse interpolated-avs) tms (nreverse interpolated-tms))
+         (setq avs (nreverse min-interpolated-avs) tms (nreverse min-interpolated-tms))
          (send robot :move-to c-orig :world)
          (send robot :angle-vector av-orig)
          (setq av-prev av-prev-orig)
          (unless ret
            (warning-message 1 ":anlge-vector-sequnce fail to generate end-coords-interpolation motion~%")
            (return-from :angle-vector-sequence nil))
-         ))
+         )) ;; when end-coords-interpolation
      (prog1 ;; angle-vector-sequence returns avs
          avs
        (while avs
