@@ -448,20 +448,21 @@
              min-interpolated-avs min-interpolated-tms
              tm i p (ret t) min-diff-ik) ;; if nil failed to interpolate
            ;; set prev-av
-         (send robot :angle-vector av-prev)
-         (setq end-coords-prev (mapcar #'(lambda (limb) (send robot limb :end-coords :copy-worldcoords)) limbs))
          ;; choose best initial pose of IK
          (dolist (ik-method '(nil :midpoint :av-prev :car-avs))
            ;; choose moved end-coords
            (send robot :angle-vector av-prev-orig)
            (setq interpolated-avs nil interpolated-tms nil)
+           (setq end-coords-prev (mapcar #'(lambda (limb) (send robot limb :end-coords :copy-worldcoords)) limbs))
            (setq i 0)
            (dolist (av avs)
              (send robot :angle-vector av)
              (setq end-coords-current (mapcar #'(lambda (limb) (send robot limb :end-coords :copy-worldcoords)) limbs))
              (setq target-limbs nil)
+             (print (list 'method ik-method 'limbs limbs))
              (dotimes (l (length limbs))
                (setq ec-prev (elt end-coords-prev l) ec-current (elt end-coords-current l))
+               (print ec-prev)
                (when (and ec-prev ec-current
                           (or (> (norm (send ec-prev :difference-position ec-current)) 1)
                               (> (norm (send ec-prev :difference-rotation ec-current)) (deg2rad 1))))
