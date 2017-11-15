@@ -177,6 +177,7 @@
   (let ((v1 #f(50.0 -16.4077 18.0876 93.6936 -54.8829 77.4245 -30.5008 123.25 -50.4711 19.1116 -59.6967 -13.4894 275.94 -109.525 -35.7734 -47.3098 49.3376))
         (v2 #f(191.303 50.0682 17.9701 102.195 -10.7369 43.6391 -103.396 221.198 32.3493 45.9097 -15.2106 -55.9981 227.517 -63.9359 38.9722 0.0 0.0))
         avs)
+    (send *ri* :angle-vector (send *pr2* :reset-pose))
     (send *ri* :angle-vector v1)
     (send *ri* :wait-interpolation)
     (setq avs (send *ri* :angle-vector v2 2000 :default-controller 0 :end-coords-interpolation t))
