@@ -450,9 +450,12 @@
            ;; set prev-av
          ;; choose best initial pose of IK
          (dolist (ik-method '(nil :midpoint :av-prev :car-avs))
-           ;; choose moved end-coords
-           (send robot :angle-vector av-prev-orig)
+           ;; reset status
+           (send robot :move-to c-orig :world)
+           (send robot :angle-vector av-orig)
+           (setq av-prev av-prev-orig)
            (setq interpolated-avs nil interpolated-tms nil)
+           ;; choose moved end-coords
            (setq end-coords-prev (mapcar #'(lambda (limb) (send robot limb :end-coords :copy-worldcoords)) limbs))
            (setq i 0)
            (dolist (av avs)
