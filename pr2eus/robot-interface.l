@@ -438,7 +438,7 @@
        (let ((av-orig (send robot :angle-vector)) ;; initial av, restore at end
              (c-orig  (send robot :copy-worldcoords)) ;; inital coords, restore at end
              (av-prev-orig av-prev) ;; prev-av
-             (limbs '(:larm :rarm :lleg :rleg :torso :head)) ;; defined in https://github.com/euslisp/jskeus/blob/master/irteus/irtrobot.l#L79
+             (limbs '(:larm :rarm :lleg :rleg)) ;; do not move :head and :torso by IK
              target-limbs
              (minjerk (instance minjerk-interpolator :init))
              end-coords-prev end-coords-current ec-prev ec-current
@@ -464,24 +464,25 @@
            (if target-limbs
                (progn
                  (send minjerk :start-interpolation)
-                 (while (send minjerk :interpolatingp)
-                   (send minjerk :pass-time 100)
+		 (send minjerk :pass-time 100)
+                 (while (progn (send minjerk :pass-time 100) (send minjerk :interpolatingp))
                    (setq p (elt (send minjerk :position) 0))
                    ;; set midpoint of av as initial pose of IK
                    (send robot :angle-vector (midpoint p av-prev av))
                    (dolist (limb target-limbs)
-                     ;; don't move arm by IK when interpolation is already ended
-                     (if (>= p 1) (return))
                      (setq ec-prev (elt end-coords-prev (position limb limbs))
                            ec-current (elt end-coords-current (position limb limbs)))
                      (setq ret (and ret
                                     (send robot limb :inverse-kinematics (midcoords p ec-prev ec-current)))))
                    (push (send robot :angle-vector) interpolated-avs)
                    (push 100 interpolated-tms)
-                   ))
+                   )
+               (push av interpolated-avs)
+               (push 100 interpolated-tms)
+	       )
              (progn
                (push av interpolated-avs)
-               (push 50 interpolated-tms)))
+               (push (elt tms i) interpolated-tms)))
            (setq end-coords-prev end-coords-current)
            (setq av-prev av)
            (incf i)) ;; dolist (av avs)
