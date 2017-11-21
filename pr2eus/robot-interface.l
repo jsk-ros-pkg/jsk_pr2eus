@@ -440,6 +440,7 @@
        (let ((av-orig (send robot :angle-vector)) ;; initial av, restore at end
              (c-orig  (send robot :copy-worldcoords)) ;; inital coords, restore at end
              (av-prev-orig av-prev) ;; prev-av
+	     (diff-prev (instantiate float-vector (length av-prev))) diff ;; for over 360 deg turns
              (limbs '(:larm :rarm :lleg :rleg)) ;; do not move :head and :torso by IK
              target-limbs
              (minjerk (instance minjerk-interpolator :init))
@@ -454,6 +455,7 @@
          (dolist (av avs)
            (send robot :angle-vector av)
            (setq end-coords-current (mapcar #'(lambda (limb) (send robot limb :end-coords :copy-worldcoords)) limbs))
+	   (setq diff (v- (v- av (setq av (v+ av-prev (send self :sub-angle-vector av av-prev)))) diff-prev))
            (setq target-limbs nil)
 	   (setq tm (elt tms i))
 	   (setq pass-tm (/ tm (float end-coords-interpolation-steps)))
@@ -478,10 +480,10 @@
                            ec-current (elt end-coords-current (position limb limbs)))
                      (setq ret (and ret
                                     (send robot limb :inverse-kinematics (midcoords p ec-prev ec-current)))))
-                   (push (send robot :angle-vector) interpolated-avs)
+                   (push (v++ diff-prev (scale p diff) (send robot :angle-vector)) interpolated-avs)
                    (push pass-tm interpolated-tms)
                    )
-               (push av interpolated-avs)
+               (push (v++ diff-prev diff av) interpolated-avs)
                (push pass-tm interpolated-tms)
 	       )
              (progn
@@ -489,6 +491,7 @@
                (push tm interpolated-tms)))
            (setq end-coords-prev end-coords-current)
            (setq av-prev av)
+	   (setq diff-prev diff)
            (incf i)) ;; dolist (av avs)
          ;; restore states
          (setq avs (nreverse interpolated-avs) tms (nreverse interpolated-tms))
