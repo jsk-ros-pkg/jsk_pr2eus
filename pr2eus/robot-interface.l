@@ -4,7 +4,6 @@
 (ros::load-ros-manifest "roseus")
 (ros::load-ros-manifest "rosgraph_msgs")
 (ros::load-ros-manifest "control_msgs")
-(ros::load-ros-manifest "sound_play")
 ;;(ros::roseus-add-msgs "sensor_msgs") ;; roseus depends on sensor_msgs
 ;;(ros::roseus-add-msgs "visualization_msgs") ;; roseus depends on visualization_msgs
 (ros::roseus-add-msgs "move_base_msgs")
@@ -1040,7 +1039,6 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
    "get information about gripper"
    (error "This method is responsible to sub class~%"))
   ) ;; robot-interface
-
 ;; ros visualization methods
 (defmethod robot-interface
   (:joint-trajectory-to-angle-vector-list
@@ -1189,67 +1187,6 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
    (warn ";; Stop Euslisp mannequin mode.~%")
    )
   )
-;;
-;; for text-to-speech services
-(defmethod robot-interface
-  (:speak-timeout (&optional timeout)
-   (when timeout (send self :put :speak-timeout timeout))
-   (or (send self :get :speak-timeout) 10))
-  (:speak-action-client (&optional topic-name)
-   (unless (send self :get :speak-action-clients)
-     (return-from :speak-action-client nil))
-   (if topic-name
-       (gethash topic-name (send self :get :speak-action-clients))
-       (send (send self :get :speak-action-clients) :list-values)))
-  (:speak-raw (msg &key (topic-name "robotsound") wait)
-   (when (boundp 'sound_play::SoundRequestAction)
-     (unless (send self :speak-action-client)
-       (send self :put :speak-action-clients (make-hash-table :test #'equal)))
-     (let ((goal (instance sound_play::SoundRequestActionGoal :init))
-           (ac (or
-                (send self :speak-action-client topic-name)
-                (instance ros::simple-action-client :init
-                          topic-name
-                          sound_play::SoundRequestAction
-                          :groupname "speak"))))
-       (if (send ac :wait-for-server 1)
-           (progn
-             (send goal :goal :sound_request msg)
-             (setf (gethash topic-name
-                            (send self :get :speak-action-clients)) ac)
-             (if wait
-                 (send ac :send-goal-and-wait goal :timeout (send self :speak-timeout))
-                 (send ac :send-goal goal))
-             (return-from :speak-raw t))
-           (ros::ros-warn "action server /~A not found. continue without waiting for the end of speech.." topic-name))))
-   ;; use topic instead of actionlib
-   (unless (ros::get-topic-publisher topic-name)
-     (ros::advertise topic-name sound_play::SoundRequest 5)
-     (unix:sleep 1))
-   (ros::publish topic-name msg)
-   t)
-  (:speak (text &key (lang "") (topic-name "robotsound") wait)
-    "Speak sentence using text-to-speech services.
-     Args:
-        text: sentence to speak
-        lang: language to speak, currently :en or :ja are supported.
-        wait: wait the end of speech if enabled"
-    (send self :speak-raw
-          (instance sound_play::SoundRequest :init
-                    :sound sound_play::SoundRequest::*say*
-                    :command sound_play::SoundRequest::*play_once*
-                    :arg text
-                    :arg2 (string-downcase lang))
-          :topic-name topic-name
-          :wait wait))
-  (:speak-en (text &rest args)
-    "Speak english sentence"
-    (send* self :speak text :lang "" args))
-  (:speak-jp (text &rest args &key (topic-name "robotsound_jp") &allow-other-keys)
-    "Speak japanese sentence"
-    (setq args (append args (list :topic-name topic-name)))
-    (send* self :speak text :lang :ja args))
-) ;; defmethod robot-interface (text-to-speech)
 ;;
 (defclass robot-move-base-interface
   :super robot-interface
