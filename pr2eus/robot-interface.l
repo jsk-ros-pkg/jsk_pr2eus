@@ -8,6 +8,7 @@
 ;;(ros::roseus-add-msgs "visualization_msgs") ;; roseus depends on visualization_msgs
 (ros::roseus-add-msgs "move_base_msgs")
 (ros::roseus-add-msgs "nav_msgs")
+(require :speak "package://pr2eus/speak.l")
 
 ;; add ros-joint-angle method using meter/radian
 (defmethod rotational-joint
@@ -1187,6 +1188,20 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
    (warn ";; Stop Euslisp mannequin mode.~%")
    )
   )
+;;
+;; for text-to-speech services
+(defmethod robot-interface
+  (:play-sound (sound &key arg2 (topic-name "robotsound") wait)
+   (funcall #'play-sound sound :arg2 arg2 :topic-name topic-name :wait wait))
+  (:speak (text &key (lang "") (topic-name "robotsound") wait)
+   (send self :play-sound text
+         :topic-name topic-name
+         :wait wait
+         :arg2 (if (keywordp lang) (string-downcase lang) lang)))
+  (:speak-en (text &key (topic-name "robotsound") wait)
+   (send self :speak text :topic-name topic-name :wait wait))
+  (:speak-jp (text &key (topic-name "robotsound_jp") wait)
+   (send self :speak text :lang :ja :topic-name topic-name :wait wait)))
 ;;
 (defclass robot-move-base-interface
   :super robot-interface
