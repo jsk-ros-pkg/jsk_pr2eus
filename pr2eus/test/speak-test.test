@@ -3,11 +3,25 @@
 
   <test test-name="speak_test_node" pkg="roseus" type="roseus"
         args="$(find pr2eus)/test/speak-test.l" time-limit="1800" />
-  <node pkg="sound_play" type="soundplay_node.py" name="sound_play">
-    <remap from="sound_play" to="robotsound" />
+
+  <!-- sound_play could not run within travis -->
+  <!-- <node pkg="sound_play" type="soundplay_node.py" name="sound_play"> -->
+  <!--   <remap from="sound_play" to="robotsound" /> -->
+  <!-- </node> -->
+  <!-- <node pkg="sound_play" type="soundplay_node.py" name="sound_node_jp"> -->
+  <!--   <remap from="robotsound" to="robotsound_jp" /> -->
+  <!--   <remap from="sound_play" to="robotsound_jp" /> -->
+  <!-- </node> -->
+  <node pkg="rostest" type="hztest" name="sound_play" >
+    <param name="~topic" value="robotsound" />
+    <param name="hz" value="10" />
+    <param name="hzerror" value="10" />
+    <param name="test_duration" value="120" />
   </node>
-  <node pkg="sound_play" type="soundplay_node.py" name="sound_node_jp">
-    <remap from="robotsound" to="robotsound_jp" />
-    <remap from="sound_play" to="robotsound_jp" />
+  <node pkg="rostest" type="hztest" name="sound_play_jp" >
+    <param name="~topic" value="robotsound_jp" />
+    <param name="hz" value="10" />
+    <param name="hzerror" value="10" />
+    <param name="test_duration" value="120" />
   </node>
 </launch>
