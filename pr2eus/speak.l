@@ -3,48 +3,72 @@
 
 (ros::load-ros-manifest "sound_play")
 
-(defun speak-jp (text &key wait timeout (topic-name "robotsound_jp"))
-  "Speak japanese sentence using text-to-speech service.
+(defparameter *sound-play-clients* (make-hash-table :test #'equal))
 
+(defun play-sound (sound &key arg2 (topic-name "robotsound") wait)
+  "Plays sound using sound_play server
    Args:
-    - text: sentence to speak
-    - topic-name: topic name space for sound_play server
-    - wait: wait the end of speech if enabled
-    - timeout: timeout for waiting, this is valid only if wait is enabled"
+     sound: if sound is pathname, plays sound file located at given path
+            if it is number, server plays builtin sound
+            otherwise server plays sound as speech sentence
+     topic-name: namespace of sound_play server
+     wait: wait until sound is played"
+  (let ((msg (instance sound_play::SoundRequest :init
+                       :command sound_play::SoundRequest::*play_once*)))
+    (cond
+      ((numberp sound)
+       (send msg :sound sound))
+      ((pathnamep sound)
+       (send msg :sound sound_play::SoundRequest::*play_file*)
+       (send msg :arg sound))
+      (t
+       (send msg :sound sound_play::SoundRequest::*say*)
+       (send msg :arg (string sound))))
+    (if arg2 (send msg :arg2 arg2))
 
-  (unless (boundp '*ri*)
-    (ros::ros-error "Instantiate *ri* first to use text-to-speech.")
-    (return-from speak-jp nil))
-  (ros::ros-warn "The function `speak-jp` is deprecated, please use (send *ri* :speak-jp \"text\")")
+    (when (boundp 'sound_play::SoundRequestAction)
+      (let ((goal (instance sound_play::SoundRequestActionGoal :init))
+            (ac (or (gethash topic-name *sound-play-clients*)
+                    (instance ros::simple-action-client :init
+                              topic-name sound_play::SoundRequestAction
+                              :groupname "sound_play"))))
+        (when (send ac :wait-for-server 1)
+          (when (eq (send ac :get-state) actionlib_msgs::GoalStatus::*active*)
+            (send ac :cancel-goal)
+            (send ac :wait-for-result :timeout 10))
+          (send goal :goal :sound_request msg)
+          (setf (gethash topic-name *sound-play-clients*) ac)
+          (send ac :send-goal goal)
+          (if wait
+              (return-from play-sound (send ac :wait-for-result :timeout 10))
+              (return-from play-sound t)))))
+    ;; use publisher
+    (ros::ros-warn "action server /~A not found." topic-name)
+    (unless (ros::get-topic-publisher topic-name)
+      (ros::advertise topic-name sound_play::SoundRequest 5)
+      (unix:sleep 1))
+    (ros::publish topic-name msg)
+    t))
 
-  (let ((timeout-bak (send *ri* :speak-timeout)))
-    (when timeout
-      (send *ri* :speak-timeout timeout))
-    (prog1
-        (send *ri* :speak-jp text :wait wait :topic-name topic-name)
-      (when timeout
-        (send *ri* :speak-timeout timeout-bak)))))
-
-(defun speak-en (text &key wait timeout (topic-name "robotsound"))
-  "Speak english sentence using text-to-speech service.
-
+(defun speak (text &key (lang "") (topic-name "robotsound") wait)
+  "Speak sentence using text-to-speech services.
    Args:
-    - text: sentence to speak
-    - topic-name: topic name space for sound_play server
-    - wait: wait the end of speech if enabled
-    - timeout: timeout for waiting, this is valid only if wait is enabled"
+     text: sentence to speak
+     lang: language to speak, currently :en or :ja are supported.
+     topic-name: namespace of sound_play node
+     wait: wait the end of speech if enabled"
+  (play-sound text
+              :topic-name topic-name
+              :wait wait
+              :arg2 (if (keywordp lang)
+                        (string-downcase lang) lang)))
 
-  (unless (boundp '*ri*)
-    (ros::ros-error "Instantiate *ri* first to use text-to-speech.")
-    (return-from speak-en nil))
-  (ros::ros-warn "The function `speak-en` is deprecated, please use (send *ri* :speak-en \"text\")")
+(defun speak-en (text &key (topic-name "robotsound") wait)
+  "Speak english sentence"
+  (speak text :topic-name topic-name :wait wait))
 
-  (let ((timeout-bak (send *ri* :speak-timeout)))
-    (when timeout
-      (send *ri* :speak-timeout timeout))
-    (prog1
-        (send *ri* :speak-en text :wait wait :topic-name topic-name)
-      (when timeout
-        (send *ri* :speak-timeout timeout-bak)))))
+(defun speak-jp (text &key (topic-name "robotsound_jp") wait)
+  "Speak japanese sentence"
+  (speak text :lang :ja :topic-name topic-name :wait wait))
 
 (provide :speak) ;; end of speak.l
