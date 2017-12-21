@@ -871,6 +871,9 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
 - :wait-until-update nil wait until joint_state is updated"
    (send self :update-robot-state
          :wait-until-update (when (position :wait-until-update args) (elt args (+ (position :wait-until-update args) 1))))
+   (when (position :wait-until-update args)
+     (setq args (append (subseq args 0 (position :wait-until-update args))
+                        (cddr (memq :wait-until-update args)))))
    (unless args (return-from :state))
    (case (car args)
      ((:potentio-vector :angle-vector)
