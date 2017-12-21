@@ -155,6 +155,36 @@
       )
     ))
 
+;; test to check unintentional 180 rotation during end-coords interpolation
+;; c.f. https://github.com/jsk-ros-pkg/jsk_pr2eus/pull/325
+(deftest test-angle-vector-sequence-end-coords-interpolation
+  (let ((vec #f(50.0 47.7222 12.2897 117.176 -106.014 -77.3995 -76.8709 -105.904 -47.7222 12.2897 -117.176 -106.014 77.3995 -76.8709 105.904 0.0 0.0))
+        (v0 #f(50.0 53.1894 14.6871 123.249 -121.524 -74.0435 -76.2839 266.776 -53.1894 14.6871 -123.249 -121.524 74.0435 -76.2839 93.2238 0.0 0.0))
+        (i 0) avs av-pre)
+    (setq avs (send *ri* :angle-vector-sequence (list vec (send *pr2* :reset-pose)) (list 1000 1000) :default-controller 0 :end-coords-interpolation t))
+    (setq av-pre (car avs))
+    (dolist (av (cdr avs))
+      (format t "~A/~A diff ~A, max ~A~%" (incf i) (length avs) (v- av av-pre) (abs (geo::find-extream (coerce (v- av av-pre) cons) #'abs #'>=)))
+      (assert (< (abs (geo::find-extream (coerce (v- av av-pre) cons) #'abs #'>=)) 180)
+              (format nil "found unintentional +180 joint rotation ~A" (v- av av-pre)))
+      (setq av-pre av))
+    ;;
+    ))
+
+;; test to check unintentional 180 rotation during end-coords interpolation
+;; c.f. https://github.com/jsk-ros-pkg/jsk_pr2eus/pull/325
+(deftest test-angle-vector-sequence-end-coords-interpolation-head
+  (let ((v1 #f(50.0 -16.4077 18.0876 93.6936 -54.8829 77.4245 -30.5008 123.25 -50.4711 19.1116 -59.6967 -13.4894 275.94 -109.525 -35.7734 -47.3098 49.3376))
+        (v2 #f(191.303 50.0682 17.9701 102.195 -10.7369 43.6391 -103.396 221.198 32.3493 45.9097 -15.2106 -55.9981 227.517 -63.9359 38.9722 0.0 0.0))
+        avs)
+    (send *ri* :angle-vector (send *pr2* :reset-pose))
+    (send *ri* :angle-vector v1)
+    (send *ri* :wait-interpolation)
+    (setq avs (send *ri* :angle-vector v2 2000 :default-controller 0 :end-coords-interpolation t))
+    (format t "abs = ~A~%" avs)
+    (assert avs)
+    ))
+
 
 (run-all-tests)
 (exit)

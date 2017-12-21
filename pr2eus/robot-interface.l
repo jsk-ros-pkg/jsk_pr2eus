@@ -350,7 +350,7 @@
    (let* ((prev-av (send robot :angle-vector)))
      (send-all (gethash ctype controller-table) :push-angle-vector-simulation av tm prev-av)))
   (:angle-vector
-   (av &optional (tm nil) (ctype controller-type) (start-time 0) &key (scale 1) (min-time 1.0) (end-coords-interpolation nil))
+   (av &optional (tm nil) (ctype controller-type) (start-time 0) &key (scale 1) (min-time 1.0) (end-coords-interpolation nil) (end-coords-interpolation-pass-time 100))
    "Send joind angle to robot, this method retuns immediately, so use :wait-interpolation to block until the motion stops.
 - av : joint angle vector [deg]
 - tm : (time to goal in [msec])
@@ -362,9 +362,10 @@
 - scale : if tm is not specified, it will use 1/scale of the fastest speed
 - min-time : minimum time for time to goal
 - end-coords-interpolation : set t if you want to move robot in cartesian space interpolation
+- end-coords-interpolation-pass-time : time interval for interpolating end-coords
 "
    (if end-coords-interpolation
-     (return-from :angle-vector (send self :angle-vector-sequence (list av) (list tm) ctype start-time :scale scale :min-time min-time :end-coords-interpolation t)))
+     (return-from :angle-vector (send self :angle-vector-sequence (list av) (list tm) ctype start-time :scale scale :min-time min-time :end-coords-interpolation t :end-coords-interpolation-pass-time end-coords-interpolation-pass-time)))
    (setq ctype (or ctype controller-type))  ;; use default controller-type if ctype is nil
    (unless (gethash ctype controller-table)
      (warn ";; controller-type: ~A not found" ctype)
@@ -405,7 +406,7 @@
       cacts (send self ctype)))
    av)
   (:angle-vector-sequence
-   (avs &optional (tms (list 3000)) (ctype controller-type) (start-time 0.1) &key (scale 1) (min-time 0.0) (end-coords-interpolation nil))
+   (avs &optional (tms (list 3000)) (ctype controller-type) (start-time 0.1) &key (scale 1) (min-time 0.0) (end-coords-interpolation nil) (end-coords-interpolation-pass-time 100))
    "Send sequence of joind angle to robot, this method retuns immediately, so use :wait-interpolation to block until the motion stops.
 - avs: sequence of joint angles(float-vector) [deg],  (list av0 av1 ... avn)
 - tms: sequence of duration(float) from previous angle-vector to next goal [msec],  (list tm0 tm1 ... tmn)
@@ -418,6 +419,7 @@
 - scale : if tms is not specified, it will use 1/scale of the fastest speed
 - min-time : minimum time for time to goal
 - end-coords-interpolation : set t if you want to move robot in cartesian space interpolation
+- end-coords-interpolation-pass-time : time interval for interpolating end-coords
    "
    (setq ctype (or ctype controller-type))  ;; use default controller-type if ctype is nil
    (unless (gethash ctype controller-table)
@@ -439,62 +441,93 @@
        (let ((av-orig (send robot :angle-vector)) ;; initial av, restore at end
              (c-orig  (send robot :copy-worldcoords)) ;; inital coords, restore at end
              (av-prev-orig av-prev) ;; prev-av
-             (limbs '(:larm :rarm :lleg :rleg :torso :head)) ;; defined in https://github.com/euslisp/jskeus/blob/master/irteus/irtrobot.l#L79
+             (limbs '(:larm :rarm :lleg :rleg)) ;; defined in https://github.com/euslisp/jskeus/blob/master/irteus/irtrobot.l#L79, head and torso is ignored becuase ik usually fails when the head moves.
              target-limbs
              (minjerk (instance minjerk-interpolator :init))
              end-coords-prev end-coords-current ec-prev ec-current
              interpolated-avs interpolated-tms
-             tm i p (ret t)) ;; if nil failed to interpolate
+             min-interpolated-avs min-interpolated-tms
+             tm i p (ret t) min-diff-ik) ;; if nil failed to interpolate
            ;; set prev-av
-         (send robot :angle-vector av-prev)
-         (setq end-coords-prev (mapcar #'(lambda (limb) (send robot limb :end-coords :copy-worldcoords)) limbs))
-         ;; choose moved end-coords
-         (setq i 0)
-         (dolist (av avs)
-           (send robot :angle-vector av)
-           (setq end-coords-current (mapcar #'(lambda (limb) (send robot limb :end-coords :copy-worldcoords)) limbs))
-           (setq target-limbs nil)
-           (dotimes (l (length limbs))
-             (setq ec-prev (elt end-coords-prev l) ec-current (elt end-coords-current l))
-             (when (and ec-prev ec-current
-                        (or (> (norm (send ec-prev :difference-position ec-current)) 1)
-                            (> (norm (send ec-prev :difference-rotation ec-current)) (deg2rad 1))))
-               (push (elt limbs l) target-limbs)))
-           (send minjerk :reset :position-list (list #f(0) #f(1)) :time-list (list (elt tms i)))
-           (send robot :angle-vector av-prev)
-           (if target-limbs
+         ;; choose best initial pose of IK
+         (dolist (ik-method '(nil :midpoint :av-prev :car-avs))
+           ;; reset status
+           (send robot :move-to c-orig :world)
+           (send robot :angle-vector av-orig)
+           (setq av-prev av-prev-orig)
+           (setq interpolated-avs nil interpolated-tms nil)
+           ;; choose moved end-coords
+           (setq end-coords-prev (mapcar #'(lambda (limb) (send robot limb :end-coords :copy-worldcoords)) limbs))
+           (setq i 0)
+           (dolist (av avs)
+             (send robot :angle-vector av)
+             (setq end-coords-current (mapcar #'(lambda (limb) (send robot limb :end-coords :copy-worldcoords)) limbs))
+             (setq target-limbs nil)
+             (print (list 'method ik-method 'limbs limbs))
+             (dotimes (l (length limbs))
+               (setq ec-prev (elt end-coords-prev l) ec-current (elt end-coords-current l))
+               (print ec-prev)
+               (when (and ec-prev ec-current
+                          (or (> (norm (send ec-prev :difference-position ec-current)) 1)
+                              (> (norm (send ec-prev :difference-rotation ec-current)) (deg2rad 1))))
+                 (push (elt limbs l) target-limbs)))
+             (send minjerk :reset :position-list (list #f(0) #f(1)) :time-list (list (elt tms i)))
+             (send robot :angle-vector av-prev)
+             (if target-limbs
+                 (progn
+                   (send minjerk :start-interpolation)
+                   (while (send minjerk :interpolatingp)
+                     (send minjerk :pass-time end-coords-interpolation-pass-time)
+                     (setq p (elt (send minjerk :position) 0))
+                     ;; set midpoint of av as initial pose of IK
+                     (cond ((null ik-method))
+                           ((eq ik-method :midpoint)
+                            (send robot :angle-vector (midpoint p av-prev av)))
+                           ((eq ik-method :av-prev)
+                            (send robot :angle-vector av-prev))
+                           ((eq ik-method :car-avs)
+                            (if (car interpolated-avs)
+                                (send robot :angle-vector (car interpolated-avs))))
+                           )
+                     (dolist (limb target-limbs)
+                       ;; don't move arm by IK when interpolation is already ended
+                       (if (>= p 1) (return))
+                       (setq ec-prev (elt end-coords-prev (position limb limbs))
+                             ec-current (elt end-coords-current (position limb limbs)))
+                       (setq ret (and ret
+                                      (send robot limb :inverse-kinematics (midcoords p ec-prev ec-current)))))
+                     (push (send robot :angle-vector) interpolated-avs)
+                     (push end-coords-interpolation-pass-time interpolated-tms)
+                     ))
                (progn
-                 (send minjerk :start-interpolation)
-                 (while (send minjerk :interpolatingp)
-                   (send minjerk :pass-time 100)
-                   (setq p (elt (send minjerk :position) 0))
-                   ;; set midpoint of av as initial pose of IK
-                   (send robot :angle-vector (midpoint p av-prev av))
-                   (dolist (limb target-limbs)
-                     ;; don't move arm by IK when interpolation is already ended
-                     (if (>= p 1) (return))
-                     (setq ec-prev (elt end-coords-prev (position limb limbs))
-                           ec-current (elt end-coords-current (position limb limbs)))
-                     (setq ret (and ret
-                                    (send robot limb :inverse-kinematics (midcoords p ec-prev ec-current)))))
-                   (push (send robot :angle-vector) interpolated-avs)
-                   (push 100 interpolated-tms)
-                   ))
-             (progn
-               (push av interpolated-avs)
-               (push 50 interpolated-tms)))
-           (setq end-coords-prev end-coords-current)
-           (setq av-prev av)
-           (incf i)) ;; dolist (av avs)
+                 (push av interpolated-avs)
+                 (push end-coords-interpolation-pass-time interpolated-tms)))
+             (setq end-coords-prev end-coords-current)
+             (setq av-prev av)
+             (incf i)) ;; dolist (av avs)
+           ;; evaluate avs
+           (let* ((prev-av (car interpolated-avs))
+                  (diff-av (instantiate float-vector (length prev-av)))
+                  diff-ik)
+             (dolist (av (cdr interpolated-avs))
+               (setq diff-av (v+ diff-av (v-abs av prev-av))))
+             (setq diff-ik (geo::find-extream (coerce diff-av cons) #'identity #'>=))
+             (when (or (null min-diff-ik)
+                       (<  diff-ik min-diff-ik))
+               (setq min-diff-ik diff-ik)
+               (setq min-interpolated-avs interpolated-avs)
+               (setq min-interpolated-tms interpolated-tms))
+             )) ;; choose bet initial pose of IK
+         (ros::ros-warn "choose ~A diff interpolation sequence" min-diff-ik)
          ;; restore states
-         (setq avs (nreverse interpolated-avs) tms (nreverse interpolated-tms))
+         (setq avs (nreverse min-interpolated-avs) tms (nreverse min-interpolated-tms))
          (send robot :move-to c-orig :world)
          (send robot :angle-vector av-orig)
          (setq av-prev av-prev-orig)
          (unless ret
            (warning-message 1 ":anlge-vector-sequnce fail to generate end-coords-interpolation motion~%")
            (return-from :angle-vector-sequence nil))
-         ))
+         )) ;; when end-coords-interpolation
      (prog1 ;; angle-vector-sequence returns avs
          avs
        (while avs
