@@ -24,6 +24,13 @@
 	  "can not read :potentio-vector")
   (assert (send *ri* :state :torque-vector)
 	  "can not read torque-vector")
+  (assert (send *ri* :state :stamp :wait-until-update nil)
+	  "can not read :stamp :wait-until-update nil")
+  (assert (send *ri* :state :potentio-vector :wait-until-update nil)
+	  "can not read :potentio-vector :wait-until-update nil")
+  (assert (send *ri* :state :torque-vector :wait-until-update nil)
+	  "can not read torque-vector :wait-until-update nil")
+
   (let ((lend (send *tfl* :lookup-transform "/base_footprint" "/l_gripper_tool_frame"
 		    (ros::time 0)))
 	(rend (send *tfl* :lookup-transform "/base_footprint" "/r_gripper_tool_frame"
@@ -65,11 +72,18 @@
   (assert (send *ri* :state :odom :pose))
   (assert (derivedp (send *ri* :state :odom :pose) coordinates))
   (assert (send *ri* :state :odom :velocity))
+  (assert (send *ri* :state :odom :stamp :wait-until-update nil))
+  (assert (send *ri* :state :odom :pose :wait-until-update nil))
+  (assert (derivedp (send *ri* :state :odom :pose :wait-until-update nil)
+                    coordinates))
+  (assert (send *ri* :state :odom :velocity :wait-until-update nil))
   )
 
 (deftest pr2-calc-worldcoords-test ()
   (ros::spin-once)
   (assert (send *ri* :state :worldcoords)
+	  "failed to get robot position from /world frame")
+  (assert (send *ri* :state :worldcoords :wait-until-update nil)
 	  "failed to get robot position from /world frame")
   )
 

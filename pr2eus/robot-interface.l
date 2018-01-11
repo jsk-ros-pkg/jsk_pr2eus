@@ -871,6 +871,10 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
 - :wait-until-update nil wait until joint_state is updated"
    (send self :update-robot-state
          :wait-until-update (when (position :wait-until-update args) (elt args (+ (position :wait-until-update args) 1))))
+   ;; remove :wait-until-update and its argument
+   (when (position :wait-until-update args)
+     (setq args (append (subseq args 0 (position :wait-until-update args))
+                        (cddr (memq :wait-until-update args)))))
    (unless args (return-from :state))
    (case (car args)
      ((:potentio-vector :angle-vector)
@@ -883,6 +887,8 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
       (let ((mm (find (car args) (remove-if-not #'(lambda (x) (substringp "-VECTOR" (string x))) (send self :methods)))))
         (if mm ;; if xx-vector method exists
             (send* self mm (cdr args))
+          ;; digging arguments in robot-state and return nil if not found
+          ;; (send *ri* :state :odom :pose :x)
           (let ((cur robot-state))
             (dolist (key args cur)
               (setq cur (cdr (assoc key cur))))))
