@@ -1530,10 +1530,15 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
      ;; 80% of maxrad = 0.5[rad/sec]
      (setq msec (* 1000 (max (/ (norm (float-vector x y)) (* maxvel 0.8))
                              (/ (abs (deg2rad d)) (* maxrad 0.8)))))
-     (setq msec (max msec 1000))
-     (setq step (/ 1000.0 msec))
-     (setq go-pos-unsafe-goal-msg (send self :move-trajectory (* x step) (* y step)
-                                        (* (deg2rad d) step) msec :stop t))
+     (if (< msec 1000)
+         (setq step (/ 1000.0 msec)
+               msec 1000
+               x (* x step)
+               y (* y step)
+               d (* d step)))
+     (setq go-pos-unsafe-goal-msg (send self :move-trajectory
+                                        x y (deg2rad d) msec
+                                        :stop t))
      (send move-base-trajectory-action :send-goal go-pos-unsafe-goal-msg)
      ))
   (:go-pos-unsafe-wait ()
