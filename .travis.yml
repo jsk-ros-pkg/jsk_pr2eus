@@ -23,8 +23,8 @@ env:
     - ROS_DISTRO=indigo  USE_DEB=false
     - ROS_DISTRO=jade    USE_DEB=true
     - ROS_DISTRO=jade    USE_DEB=false
-    - ROS_DISTRO=kinetic USE_DEB=true
-    - ROS_DISTRO=kinetic USE_DEB=false
+    - ROS_DISTRO=kinetic USE_DEB=true  TEST_PKGS="pr2eus" # skip pr2eus_moveit pr2eus_tutorials
+    - ROS_DISTRO=kinetic USE_DEB=false TEST_PKGS="pr2eus"
 matrix:
   fast_finish: true
   allow_failures:
