@@ -16,7 +16,8 @@ env:
     - secure: "REUwDilheEXGFShSdFNgQ1rRAFBw2QG2eT8XDAQsDFyhPfCnjGDA1Ak25TbVIz4a02M9/hDP4QtsXFj6VRHVs4tV55zrGeLea06+Fw8vjHEICYVtfzYYvZB3pHnWoxxPUcQTU+CgTMGV3lLSupMgvyNNY8J6UdaiW8+Oj7icHc4="
     - ROSWS=wstool
     - BUILDER=catkin
-    - USE_DOCKER=true
+    - USE_DOCKER=false
+    - USE_JENKINS=true
     - CATKIN_PARALLEL_TEST_JOBS="-j1 -p1"
     - ROS_PARALLEL_TEST_JOBS="-j1"
   matrix:
