@@ -1,12 +1,16 @@
 (require :unittest "lib/llib/unittest.l")
 (load "package://pr2eus/pr2-interface.l")
 
-(init-unit-test)
-
 (setq *pr2* (pr2))
 
 (while (or (not (boundp '*ri*)) (send *ri* :simulation-modep))
   (setq *ri* (instance pr2-interface :init)))
+
+(when (send *ri* :simulation-modep)
+  (ros::ros-warn "*ri* is running with simulation mode, something goes wrong ....")
+  (sys::exit 1))
+
+(init-unit-test)
 
 (deftest test-wait-interpolation
   (ros::ros-info "send reset-pose and wait-interpolation")

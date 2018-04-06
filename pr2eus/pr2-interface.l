@@ -79,7 +79,6 @@
                                     pr2_controllers_msgs::Pr2GripperCommandAction
                                     :groupname groupname))
    ;; wait for pr2-action server (except move_base)
-   (setq joint-action-enable t)
    (dolist (action (list r-gripper-action l-gripper-action))
      (unless (and joint-action-enable (send action :wait-for-server 3))
        (setq joint-action-enable nil)
