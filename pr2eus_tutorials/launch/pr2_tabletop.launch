@@ -8,7 +8,7 @@
   <include file="$(find pr2_machine)/$(env ROBOT).machine" />
 
   <include file="$(find jsk_pcl_ros)/sample/tabletop_object_detector.launch">
-    <arg name="input" value="/kinect_head_c2/depth_registered/points_throttle" />
+    <arg name="input" value="/kinect_head/depth_registered/throttled/points" />
     <arg name="sensor_frame" value="/head_mount_kinect_rgb_optical_frame" />
     <arg name="manager" value="$(arg manager)" />
     <arg name="machine" value="$(arg machine)" />
