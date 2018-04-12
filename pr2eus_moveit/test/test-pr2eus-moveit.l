@@ -98,7 +98,8 @@
     (send *ri* :wait-interpolation)
     (setq av-diff (norm (apply #'float-vector (mapcar #'(lambda (x y) (let ((d (- x y))) (- d (* 360 (round (/ d 360)))))) (coerce (send *ri* :state :potentio-vector) cons) (coerce (send *pr2* :reset-pose) cons)))))
     (ros::ros-info "av diff ~A" av-diff)
-    (assert (eps= av-diff 0 5) (format nil "send reset-pose ~A" av-diff))
+    ;; not sure why, but sometimes utf-8 code is displayed and brakes catkin build
+    (assert (eps= av-diff 0 5) );(format nil "send reset-pose ~A" av-diff))
     ))
 
 ;; send angle-vector-sequence with collision avoidance
@@ -111,7 +112,7 @@
           (norm (apply #'float-vector (mapcar #'(lambda (x y) (let ((d (- x y))) (- d (* 360 (round (/ d 360))))))
                                               (coerce (send *ri* :state :potentio-vector) cons) (coerce (send *pr2* :reset-pose) cons)))))
     (ros::ros-info "av diff ~A" av-diff)
-    (assert (eps= av-diff 0 5) (format nil "send reset-pose ~A" av-diff))
+    (assert (eps= av-diff 0 5) );(format nil "send reset-pose ~A" av-diff))
     ))
 
 ;; send target coords
