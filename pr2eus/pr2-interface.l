@@ -673,3 +673,20 @@ Example: (send self :gripper :rarm :position) => 0.00"
                        :topic (if enable "ground_object_cloud" "empty_cloud"))))
     (ros::service-call "/tilt_laser_mux/select" req)))
 
+(defun clear-costmap (&key (node-name "/move_base"))
+  "reset local costmap and clear unknown grid around robot"
+  (call-empty-service (format nil "/~A/clear_costmaps" node-name)))
+
+(defun change-inflation-range (&optional (range 0.2)
+                                         &key (node-name "/move_base_node")
+                                              (costmap-name "local_costmap")
+                                              (inflation-name "inflation_layer")
+                                         )
+  "change inflation range of local costmap"
+  (let ((req (instance dynamic_reconfigure::ReconfigureRequest :init)))
+    (send req :config :doubles
+          (list (instance dynamic_reconfigure::DoubleParameter :init
+                          :name "inflation_radius" :value range)))
+    (ros::service-call
+     (format nil "~A/~A/~A/set_parameters" node-name costmap-name inflation-name)
+     req)))
