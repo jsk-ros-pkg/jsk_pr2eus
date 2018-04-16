@@ -1,4 +1,4 @@
-sudo: true
+sudo: false
 language: c++
 python:
   - "2.7"
@@ -18,11 +18,12 @@ env:
     - BUILDER=catkin
     - CATKIN_PARALLEL_TEST_JOBS="-j1 -p1"
     - ROS_PARALLEL_TEST_JOBS="-j1"
+    - USE_DOCKER=true
   matrix:
-    - ROS_DISTRO=hydro   USE_DEB=true USE_DOCKER=true
-    - ROS_DISTRO=indigo  USE_DEB=true USE_DOCKER=true EXTRA_DEB="ros-indigo-pr2-gazebo"
-    - ROS_DISTRO=jade    USE_DEB=true USE_JENKINS=true
-    - ROS_DISTRO=kinetic USE_DEB=true USE_JENKINS=true TEST_PKGS="pr2eus" # skip pr2eus_moveit pr2eus_tutorials
+    - ROS_DISTRO=hydro   USE_DEB=true
+    - ROS_DISTRO=indigo  USE_DEB=true EXTRA_DEB="ros-indigo-pr2-gazebo ros-indigo-pr2-arm-kinematics"
+    - ROS_DISTRO=jade    USE_DEB=true
+    - ROS_DISTRO=kinetic USE_DEB=true TEST_PKGS="pr2eus" # skip pr2eus_moveit pr2eus_tutorials
 matrix:
   fast_finish: true
   allow_failures:
