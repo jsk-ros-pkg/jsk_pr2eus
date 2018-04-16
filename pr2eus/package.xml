@@ -11,7 +11,6 @@
   <buildtool_depend>catkin</buildtool_depend>
 
   <build_depend>roseus</build_depend>
-  <build_depend>rostest</build_depend>
   <build_depend>euscollada</build_depend>
   <build_depend>pr2_msgs</build_depend>
   <build_depend>pr2_controllers_msgs</build_depend>
@@ -25,7 +24,6 @@
   <build_depend>rosgraph_msgs</build_depend>
 
   <run_depend>roseus</run_depend>
-  <run_depend>rostest</run_depend>
   <run_depend>euscollada</run_depend>
   <run_depend>pr2_msgs</run_depend>
   <run_depend>pr2_controllers_msgs</run_depend>
@@ -36,6 +34,11 @@
   <run_depend>nav_msgs</run_depend>
   <run_depend>dynamic_reconfigure</run_depend>
   <run_depend>sound_play</run_depend>
+
+  <!-- Dependencies needed only for running tests. -->
+  <test_depend>rostest</test_depend>
+  <test_depend>pr2_gazebo</test_depend>
+  <test_depend>robot_state_publisher</test_depend>
 
   <export>
     <pr2eus robot-name="pr2" interface-file="${prefix}/pr2-interface.l" />

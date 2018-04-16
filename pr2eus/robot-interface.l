@@ -8,6 +8,7 @@
 ;;(ros::roseus-add-msgs "visualization_msgs") ;; roseus depends on visualization_msgs
 (ros::roseus-add-msgs "move_base_msgs")
 (ros::roseus-add-msgs "nav_msgs")
+(require :speak "package://pr2eus/speak.l")
 
 ;; add ros-joint-angle method using meter/radian
 (defmethod rotational-joint
@@ -75,6 +76,7 @@
         (when (> current-time tm)
           (pop timer-sequence)
           (pop angle-vector-sequence)
+          (setq av (v+ previous-angle-vector scale-av))
           (setq previous-angle-vector av)
           (setq current-time 0)
           )
@@ -266,7 +268,6 @@
   (:robot-interface-simulation-callback ()
    (let* ((joint-list (send robot :joint-list))
           (all-joint-names (send-all joint-list :name)))
-     (send self :publish-joint-state)
      (dolist (param (send self controller-type)) ;; assuming all action is stored in controller-type (:default-controller)
        ;(print (list 'p param))
        (let* ((joint-names (cdr (assoc :joint-names param)))
@@ -280,6 +281,7 @@
                  (let ((i (position j all-joint-names :test #'string=)))
                    (send (elt joint-list i) :joint-angle (elt av i))))))
          ))
+     (send self :publish-joint-state)
      ;;
      (if viewer (send self :draw-objects))
      ))
@@ -359,7 +361,7 @@
    (let* ((prev-av (send robot :angle-vector)))
      (send-all (gethash ctype controller-table) :push-angle-vector-simulation av tm prev-av)))
   (:angle-vector
-   (av &optional (tm nil) (ctype controller-type) (start-time 0) &key (scale 1) (min-time 1.0) (end-coords-interpolation nil))
+   (av &optional (tm nil) (ctype controller-type) (start-time 0) &key (scale 1) (min-time 1.0) (end-coords-interpolation nil) (end-coords-interpolation-steps 10))
    "Send joind angle to robot, this method retuns immediately, so use :wait-interpolation to block until the motion stops.
 - av : joint angle vector [deg]
 - tm : (time to goal in [msec])
@@ -371,9 +373,10 @@
 - scale : if tm is not specified, it will use 1/scale of the fastest speed
 - min-time : minimum time for time to goal
 - end-coords-interpolation : set t if you want to move robot in cartesian space interpolation
+- end-coords-interpolation-steps : number of divisions when interpolating end-coords
 "
    (if end-coords-interpolation
-     (return-from :angle-vector (send self :angle-vector-sequence (list av) (list tm) ctype start-time :scale scale :min-time min-time :end-coords-interpolation t)))
+     (return-from :angle-vector (send self :angle-vector-sequence (list av) (list tm) ctype start-time :scale scale :min-time min-time :end-coords-interpolation t :end-coords-interpolation-steps end-coords-interpolation-steps)))
    (setq ctype (or ctype controller-type))  ;; use default controller-type if ctype is nil
    (unless (gethash ctype controller-table)
      (warn ";; controller-type: ~A not found" ctype)
@@ -414,7 +417,7 @@
       cacts (send self ctype)))
    av)
   (:angle-vector-sequence
-   (avs &optional (tms (list 3000)) (ctype controller-type) (start-time 0.1) &key (scale 1) (min-time 0.0) (end-coords-interpolation nil))
+   (avs &optional (tms (list 3000)) (ctype controller-type) (start-time 0.1) &key (scale 1) (min-time 0.0) (end-coords-interpolation nil) (end-coords-interpolation-steps 10))
    "Send sequence of joind angle to robot, this method retuns immediately, so use :wait-interpolation to block until the motion stops.
 - avs: sequence of joint angles(float-vector) [deg],  (list av0 av1 ... avn)
 - tms: sequence of duration(float) from previous angle-vector to next goal [msec],  (list tm0 tm1 ... tmn)
@@ -427,6 +430,7 @@
 - scale : if tms is not specified, it will use 1/scale of the fastest speed
 - min-time : minimum time for time to goal
 - end-coords-interpolation : set t if you want to move robot in cartesian space interpolation
+- end-coords-interpolation-steps : number of divisions when interpolating end-coords
    "
    (setq ctype (or ctype controller-type))  ;; use default controller-type if ctype is nil
    (unless (gethash ctype controller-table)
@@ -448,12 +452,13 @@
        (let ((av-orig (send robot :angle-vector)) ;; initial av, restore at end
              (c-orig  (send robot :copy-worldcoords)) ;; inital coords, restore at end
              (av-prev-orig av-prev) ;; prev-av
-             (limbs '(:larm :rarm :lleg :rleg :torso :head)) ;; defined in https://github.com/euslisp/jskeus/blob/master/irteus/irtrobot.l#L79
+	     (diff-prev (instantiate float-vector (length av-prev))) diff ;; for over 360 deg turns
+             (limbs '(:larm :rarm :lleg :rleg)) ;; do not move :head and :torso by IK
              target-limbs
              (minjerk (instance minjerk-interpolator :init))
              end-coords-prev end-coords-current ec-prev ec-current
              interpolated-avs interpolated-tms
-             tm i p (ret t)) ;; if nil failed to interpolate
+             tm pass-tm i p (ret t)) ;; if nil failed to interpolate
            ;; set prev-av
          (send robot :angle-vector av-prev)
          (setq end-coords-prev (mapcar #'(lambda (limb) (send robot limb :end-coords :copy-worldcoords)) limbs))
@@ -462,38 +467,43 @@
          (dolist (av avs)
            (send robot :angle-vector av)
            (setq end-coords-current (mapcar #'(lambda (limb) (send robot limb :end-coords :copy-worldcoords)) limbs))
+	   (setq diff (v- (v- av (setq av (v+ av-prev (send self :sub-angle-vector av av-prev)))) diff-prev))
            (setq target-limbs nil)
+	   (setq tm (elt tms i))
+	   (setq pass-tm (/ tm (float end-coords-interpolation-steps)))
            (dotimes (l (length limbs))
              (setq ec-prev (elt end-coords-prev l) ec-current (elt end-coords-current l))
              (when (and ec-prev ec-current
                         (or (> (norm (send ec-prev :difference-position ec-current)) 1)
                             (> (norm (send ec-prev :difference-rotation ec-current)) (deg2rad 1))))
                (push (elt limbs l) target-limbs)))
-           (send minjerk :reset :position-list (list #f(0) #f(1)) :time-list (list (elt tms i)))
+           (send minjerk :reset :position-list (list #f(0) #f(1)) :time-list (list tm))
            (send robot :angle-vector av-prev)
            (if target-limbs
                (progn
                  (send minjerk :start-interpolation)
-                 (while (send minjerk :interpolatingp)
-                   (send minjerk :pass-time 100)
+		 (send minjerk :pass-time pass-tm)
+                 (while (progn (send minjerk :pass-time pass-tm) (send minjerk :interpolatingp))
                    (setq p (elt (send minjerk :position) 0))
                    ;; set midpoint of av as initial pose of IK
                    (send robot :angle-vector (midpoint p av-prev av))
                    (dolist (limb target-limbs)
-                     ;; don't move arm by IK when interpolation is already ended
-                     (if (>= p 1) (return))
                      (setq ec-prev (elt end-coords-prev (position limb limbs))
                            ec-current (elt end-coords-current (position limb limbs)))
                      (setq ret (and ret
                                     (send robot limb :inverse-kinematics (midcoords p ec-prev ec-current)))))
-                   (push (send robot :angle-vector) interpolated-avs)
-                   (push 100 interpolated-tms)
-                   ))
+                   (push (v++ diff-prev (scale p diff) (send robot :angle-vector)) interpolated-avs)
+                   (push pass-tm interpolated-tms)
+                   )
+               (push (v++ diff-prev diff av) interpolated-avs)
+               (push pass-tm interpolated-tms)
+	       )
              (progn
                (push av interpolated-avs)
-               (push 50 interpolated-tms)))
+               (push tm interpolated-tms)))
            (setq end-coords-prev end-coords-current)
            (setq av-prev av)
+	   (setq diff-prev diff)
            (incf i)) ;; dolist (av avs)
          ;; restore states
          (setq avs (nreverse interpolated-avs) tms (nreverse interpolated-tms))
@@ -872,6 +882,10 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
 - :wait-until-update nil wait until joint_state is updated"
    (send self :update-robot-state
          :wait-until-update (when (position :wait-until-update args) (elt args (+ (position :wait-until-update args) 1))))
+   ;; remove :wait-until-update and its argument
+   (when (position :wait-until-update args)
+     (setq args (append (subseq args 0 (position :wait-until-update args))
+                        (cddr (memq :wait-until-update args)))))
    (unless args (return-from :state))
    (case (car args)
      ((:potentio-vector :angle-vector)
@@ -884,6 +898,8 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
       (let ((mm (find (car args) (remove-if-not #'(lambda (x) (substringp "-VECTOR" (string x))) (send self :methods)))))
         (if mm ;; if xx-vector method exists
             (send* self mm (cdr args))
+          ;; digging arguments in robot-state and return nil if not found
+          ;; (send *ri* :state :odom :pose :x)
           (let ((cur robot-state))
             (dolist (key args cur)
               (setq cur (cdr (assoc key cur))))))
@@ -903,7 +919,8 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
 	 (joint-list (send robot :joint-list))
 	 (i 0) j)
      (while (setq j (pop joint-list))
-       (if (and (= (send j :min-angle) *-inf*) (= (send j :max-angle) *inf*))
+       (when (and (= (send j :min-angle) *-inf*) (= (send j :max-angle) *inf*))
+	   (setf (elt ret i) (mod (elt ret i) 360.0))
 	   (cond ((> (elt ret i) 180.0)
 		  (setf (elt ret i) (- (elt ret i) 360.0)))
 		 ((< (elt ret i) -180.0)
@@ -1196,6 +1213,20 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
    (warn ";; Stop Euslisp mannequin mode.~%")
    )
   )
+;;
+;; for text-to-speech services
+(defmethod robot-interface
+  (:play-sound (sound &key arg2 (topic-name "robotsound") wait)
+   (funcall #'play-sound sound :arg2 arg2 :topic-name topic-name :wait wait))
+  (:speak (text &key (lang "") (topic-name "robotsound") wait)
+   (send self :play-sound text
+         :topic-name topic-name
+         :wait wait
+         :arg2 (if (keywordp lang) (string-downcase lang) lang)))
+  (:speak-en (text &key (topic-name "robotsound") wait)
+   (send self :speak text :topic-name topic-name :wait wait))
+  (:speak-jp (text &key (topic-name "robotsound_jp") wait)
+   (send self :speak text :lang :ja :topic-name topic-name :wait wait)))
 ;;
 (defclass robot-move-base-interface
   :super robot-interface
