@@ -1,4 +1,7 @@
 <launch>
+  <arg name="DISPLAY" default="" />
+  <env name="DISPLAY" value="$(arg DISPLAY)" />
+
   <!--
   $ rosparam dump /tmp/pr1012_urdf.yaml  robot_description
   $ rosbag record - -duration 16 -e '.*/camera_info' -O /tmp/pr1012_camera_info.bag
