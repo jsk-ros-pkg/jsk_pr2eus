@@ -79,7 +79,6 @@
                                     pr2_controllers_msgs::Pr2GripperCommandAction
                                     :groupname groupname))
    ;; wait for pr2-action server (except move_base)
-   (setq joint-action-enable t)
    (dolist (action (list r-gripper-action l-gripper-action))
      (unless (and joint-action-enable (send action :wait-for-server 3))
        (setq joint-action-enable nil)
@@ -372,7 +371,7 @@ Example: (send self :gripper :rarm :position) => 0.00"
      ))
   (:angle-vector-sequence
    (avs &optional (tms (list 3000)) &rest args)
-   (unless (send self :simulation-modep)
+   (unless (or (send self :simulation-modep) (cadr (memq :end-coords-interpolation args)))
      (let* ((prev-av (send robot :angle-vector (send self :state :reference-vector)))
             (len-av (length prev-av))
             (max-av (fill (instantiate float-vector len-av)  180))

@@ -93,6 +93,69 @@
     (send *pr2* :reset-pose)
     (assert (send *ri* :angle-vector-sequence (list (send *pr2* :angle-vector))))))
 
+;;
+;; https://github.com/jsk-ros-pkg/jsk_robot/pull/849#issuecomment-334906516
+;;
+;; add test to check sub-angle-vector over 620
+(deftest test-sub-angle-vector-1000
+  (let (angle diff msg)
+    ;;(setq *ri* (instance pr2-interface :init))
+    (send *pr2* :reset-manip-pose)
+    (send *ri* :robot :reset-manip-pose)
+    (dolist (inc (list 10 -10))
+      (send *ri* :robot :larm :elbow-r :joint-angle 0)
+      (setq angle 0.0)
+      (setq diff 0.0)
+      (do ((i 0 (incf i inc)))
+          ((if (> inc 0) (<= 1000 i) (>= -1000 i)))
+          (send *pr2* :larm :elbow-r :joint-angle i)
+          (setq diff (elt (send *ri* :sub-angle-vector (send *pr2* :angle-vector) (send *ri* :robot :angle-vector)) 5))
+          (setq msg (format nil ":sub-angle-vector : original angle-vector from ~A to ~A, expected ~A ~A~%" i diff angle (eps= angle diff)))
+          (warning-message 2 msg)
+          (assert (eps= angle diff) msg)
+          (incf angle inc)
+          (if (>= angle 185.0) (setq angle -170.0))
+          (if (<= angle -185.0) (setq angle 170.0))
+          ))
+    ))
+
+(deftest test-angle-vector-over-640
+  (let (msg)
+    (send *pr2* :reset-manip-pose)
+    (send *ri* :robot :reset-manip-pose)
+    (dolist (angle (list 60 420 780))
+      (send *pr2* :larm :elbow-r :joint-angle angle)
+      (send-message *ri* robot-interface :angle-vector (send *pr2* :angle-vector) 500)
+      (send *ri* :wait-interpolation)
+      (setq msg
+            (format nil "*ri* ~A, *pr2* ~A ~A~%"
+                    (elt (send *ri* :state :potentio-vector) 5)
+                    (elt (send *pr2* :angle-vector) 5)
+                    (eps= (elt (send *ri* :state :potentio-vector) 5) 60.0)))
+      (warning-message 2 msg)
+      (assert (eps= (elt (send *ri* :state :potentio-vector) 5) 60.0) msg)
+      )
+    ))
+
+(deftest test-angle-vector-under-640
+  (let (msg)
+    (send *pr2* :reset-manip-pose)
+    (send *ri* :robot :reset-manip-pose)
+    (dolist (angle (list -60 -420 -780))
+      (send *pr2* :larm :elbow-r :joint-angle angle)
+      (send-message *ri* robot-interface :angle-vector (send *pr2* :angle-vector) 500)
+      (send *ri* :wait-interpolation)
+      (setq msg
+            (format nil "*ri* ~A, *pr2* ~A ~A~%"
+                    (elt (send *ri* :state :potentio-vector) 5)
+                    (elt (send *pr2* :angle-vector) 5)
+                    (eps= (elt (send *ri* :state :potentio-vector) 5) -60.0)))
+      (warning-message 2 msg)
+      (assert (eps= (elt (send *ri* :state :potentio-vector) 5) -60.0) msg)
+      )
+    ))
+
+
 (run-all-tests)
 (exit)
 
