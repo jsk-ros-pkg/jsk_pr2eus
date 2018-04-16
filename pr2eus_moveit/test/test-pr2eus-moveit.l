@@ -7,6 +7,27 @@
 (load "package://pr2eus/pr2-interface.l")
 (load "package://pr2eus_moveit/euslisp/pr2eus-moveit.l")
 
+;; avoid print violate max/min-angle that exceeds 4M log limit
+(unless (assoc :joint-angle-org (send rotational-joint :methods))
+        (rplaca (assoc :joint-angle (send rotational-joint :methods)) :joint-angle-org))
+(defmethod rotational-joint
+  (:joint-angle
+   (&optional v &key relative &allow-other-keys)
+   (let ()
+     (when v
+       (when (and joint-min-max-table joint-min-max-target)
+         (setq min-angle (send self :joint-min-max-table-min-angle)
+               max-angle (send self :joint-min-max-table-max-angle)))
+       (if relative (setq v (+ v joint-angle)))
+       (cond ((> v max-angle)
+	      (setq v max-angle)))
+       (cond ((< v min-angle)
+	      (setq v min-angle)))
+       (setq joint-angle v)
+       (send child-link :replace-coords default-coords)
+       (send child-link :rotate (deg2rad joint-angle) axis))
+     joint-angle))
+  )
 
 ;; wait for gazebo
 (ros::roseus "test_pr2eus_mvoeit_client")
@@ -77,7 +98,8 @@
     (send *ri* :wait-interpolation)
     (setq av-diff (norm (apply #'float-vector (mapcar #'(lambda (x y) (let ((d (- x y))) (- d (* 360 (round (/ d 360)))))) (coerce (send *ri* :state :potentio-vector) cons) (coerce (send *pr2* :reset-pose) cons)))))
     (ros::ros-info "av diff ~A" av-diff)
-    (assert (eps= av-diff 0 5) (format nil "send reset-pose ~A" av-diff))
+    ;; not sure why, but sometimes utf-8 code is displayed and brakes catkin build
+    (assert (eps= av-diff 0 5) );(format nil "send reset-pose ~A" av-diff))
     ))
 
 ;; send angle-vector-sequence with collision avoidance
@@ -90,7 +112,7 @@
           (norm (apply #'float-vector (mapcar #'(lambda (x y) (let ((d (- x y))) (- d (* 360 (round (/ d 360))))))
                                               (coerce (send *ri* :state :potentio-vector) cons) (coerce (send *pr2* :reset-pose) cons)))))
     (ros::ros-info "av diff ~A" av-diff)
-    (assert (eps= av-diff 0 5) (format nil "send reset-pose ~A" av-diff))
+    (assert (eps= av-diff 0 5) );(format nil "send reset-pose ~A" av-diff))
     ))
 
 ;; send target coords
