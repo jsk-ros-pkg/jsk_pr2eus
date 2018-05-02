@@ -2,6 +2,40 @@
 
 This is a repository for tutorials of pr2eus
 
+## Installation
+
+### Using `apt-get`
+
+1. Follow the [instruction of ROS installation](http://wiki.ros.org/kinetic/Installation/Ubuntu)
+2. Install the package `sudo apt install ros-kinetic-pr2eus-tutorials`
+3. Load ROS Environment `source /opt/ros/kinetic/setup.bash`
+
+### Using source
+
+1. Follow the [instruction of ROS installation](http://wiki.ros.org/kinetic/Installation/Ubuntu)
+2. Setup catkin workspace
+
+   ```bash
+   source /opt/ros/kinetic/setup.bash
+   sudo apt install python-catkin-tools python-wstool python-rosdep git
+   sudo rosdep init
+   rosdep update
+   # Create catkin workspace and download source repository
+   mkdir -p ~/ros/kinetic/src && cd ~/ros/kinetic/src
+   wstool init
+   wstool set jsk-ros-pkg/jsk_pr2eus --git https://github.com/jsk-ros-pkg/jsk_pr2eus.git -v master
+   wstool update
+   # Install dependencies for building the package
+   rosdep install --from-paths . -i -r -n -y
+   # Build the package
+   cd ~/ros/kinetic
+   catkin init
+   catkin build pr2eus_tutorials
+   ```
+
+3. Load ROS Environment `source ~/ros/kinetic/devel/setup.bash`
+
+
 ## Demos
 
 ### PR2 Tabletop Object Detection
