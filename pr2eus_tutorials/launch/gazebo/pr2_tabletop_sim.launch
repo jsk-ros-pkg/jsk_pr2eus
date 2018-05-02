@@ -10,5 +10,5 @@
   </include>
 
   <node name="kinect_throttled_points" pkg="topic_tools" type="throttle"
-        args="messages /head_mount_kinect/depth_registered/points 5.0 /kinect_head_c2/depth_registered/points_throttle" />
+        args="messages /head_mount_kinect/depth_registered/points 5.0 /kinect_head/depth_registered/throttled/points" />
 </launch>
