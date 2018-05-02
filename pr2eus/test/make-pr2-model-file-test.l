@@ -131,7 +131,7 @@
 	   (camera-unstable (find camera-name *pr2-cameras-unstable* :key #'(lambda (x) (send x :name)) :test #'(lambda (a b) (string-equal (string a) (string b))))))
       (assert camera-unstable
 	      (format nil "check camera ~A" camera-name))
-      (when camera-unstable
+      (when (and camera-unstable (>= (elt (unix::getenv "ROS_DISTRO") 0) #\i)) ;; if distro is <= hydro could not pass the test
 	(unless (= (norm (send camera-unstable :difference-position
 			     camera-stable)) 0.0)
 		(warning-message 3 "check camera position for ~A ~A ~A ~16,13f~%" camera-name

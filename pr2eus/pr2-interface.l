@@ -6,10 +6,20 @@
 (require :robot-interface "package://pr2eus/robot-interface.l")
 (require :speak "package://pr2eus/speak.l")
 
+(unless (ros::rospack-find "pr2_controllers_msgs")
+  (cond ((or (string= (unix::getenv "ROS_DISTRO") "indigo")
+	     (string< (unix::getenv "ROS_DISTRO") "indigo"))
+	 (ros::ros-error "pr2eus/pr2-interface.l: pr2_contrllers_msgs is not found"))
+	(t
+	 (ros::ros-warn "pr2eus/pr2-interface.l: pr2_contrllers_msgs is not released on ~A" (unix::getenv "ROS_DISTRO"))
+	 (warning-message 1 "exiting without error....")
+	 (exit 0))))
+
 (ros::load-ros-manifest "control_msgs")
 (ros::load-ros-manifest "pr2eus")
 (ros::load-ros-manifest "pr2_msgs")
 (ros::load-ros-manifest "pr2_controllers_msgs")
+(ros::load-ros-manifest "pr2_mechanism_msgs")
 (ros::load-ros-manifest "topic_tools")
 
 ;;;
@@ -69,7 +79,6 @@
                                     pr2_controllers_msgs::Pr2GripperCommandAction
                                     :groupname groupname))
    ;; wait for pr2-action server (except move_base)
-   (setq joint-action-enable t)
    (dolist (action (list r-gripper-action l-gripper-action))
      (unless (and joint-action-enable (send action :wait-for-server 3))
        (setq joint-action-enable nil)
@@ -82,7 +91,7 @@
      (:worldcoords
       (unless joint-action-enable
 	(return-from :state (send self :worldcoords)))
-      (send-super :state :worldcoords (or (cadr args) "/world")))
+      (send-super :state :worldcoords (or (cadr args) "world")))
      (t
       (send-super* :state args))
      ))
@@ -231,7 +240,7 @@ Example: (send self :gripper :rarm :position) => 0.00"
           (format nil "~A-~A" (string (car args)) (string (cadr args)))
           *keyword-package*)))
   (:start-grasp
-   (&optional (arm :arms) &key ((:gain g) 0.01) ((:objects objs) objects))
+   (&optional (arm :arms) &key ((:gain g) 0.01) ((:objects objs) objects) force-assoc)
    (send self :move-gripper arm 0.0 :effort (* 2000 g) :wait t)
    (unless joint-action-enable
      (dolist (a (if (eq arm :arms) '(:larm :rarm) (list arm)))
@@ -244,8 +253,9 @@ Example: (send self :gripper :rarm :position) => 0.00"
 		     (send-all (send l :bodies) :vertices))
 		 (send robot a :gripper :links))))))
 	 (dolist (obj objs)
-	   (when (and (find-method obj :faces)
-		      (not (= (pqp-collision-check grasp-convex obj) 0)))
+	   (when (or force-assoc
+               (and (find-method obj :faces)
+                    (not (= (pqp-collision-check grasp-convex obj) 0))))
 	     (if (send obj :parent) (send (send obj :parent) :dissoc obj))
 	     (send robot a :end-coords :assoc obj)))))
      ;; (send self :update-robot-state) ;; update state of 'robot' for real robot
@@ -276,7 +286,7 @@ Example: (send self :gripper :rarm :position) => 0.00"
            (setq resend-goal t))
        ;;
          (unless (eps= (* 1000 (send aresult :position)) (send ajoint :joint-angle) 2)
-           (ros::ros-debug ";; :move-gripper ~A need to resend goal, position = ~A/~A, result and udpate-body differs" (send ajoint :name) (* 1000 (send aresult :position)) (send ajoint :joint-angle))
+           (ros::ros-debug ";; :move-gripper ~A need to resend goal, position = ~A/~A, result and update-body differs" (send ajoint :name) (* 1000 (send aresult :position)) (send ajoint :joint-angle))
            (setq resend-goal t)))
        (incf resend-count)
        (if resend-goal (send self :move-gripper arm 0.0 :effort (* 2000 g) :wait t)))
@@ -324,30 +334,13 @@ Example: (send self :gripper :rarm :position) => 0.00"
 	   (mapcar #'v- current origin))
        current)))
   ;;
-  ;;
-  ;;
   (:wait-torso (&optional (timeout 0))
    (let ((act (find-if #'(lambda (x) (string= (send x :name) "torso_controller/follow_joint_trajectory"))
                        controller-actions)))
      (when act
        (send act :wait-for-result :timeout timeout))))
-  ;;;
-  (:robot-interface-simulation-callback ()
-   (let ((orig-coords (send robot :copy-worldcoords))
-         diff-pos diff-rot diff)
-     (when current-goal-coords
-       (setq diff-pos (send orig-coords :difference-position current-goal-coords)
-             diff-rot (send orig-coords :difference-rotation current-goal-coords :rotation-axis :xy))
-       (cond ((and (eps= (norm diff-pos) 0) (eps= (norm diff-rot) 0))
-              (setq current-goal-coords nil))
-             (t
-              (send robot :newcoords (midcoords (min (/ 10 (max (norm diff-pos) 10))
-                                                     (/ 0.02 (max (norm diff-rot) 0.02)))
-                                                orig-coords current-goal-coords))))
-       );; when
-     (send-super :robot-interface-simulation-callback)
-     ))
   )
+
 
 ;;
 ;;
@@ -378,7 +371,7 @@ Example: (send self :gripper :rarm :position) => 0.00"
      ))
   (:angle-vector-sequence
    (avs &optional (tms (list 3000)) &rest args)
-   (unless (send self :simulation-modep)
+   (unless (or (send self :simulation-modep) (cadr (memq :end-coords-interpolation args)))
      (let* ((prev-av (send robot :angle-vector (send self :state :reference-vector)))
             (len-av (length prev-av))
             (max-av (fill (instantiate float-vector len-av)  180))
@@ -467,7 +460,98 @@ Example: (send self :gripper :rarm :position) => 0.00"
      )) ; :angle-vector-with-constraint
   ) ;; defmethod pr2-interface
 
-   
+;; pr2 switch controllers
+(defmethod pr2-interface
+  (:list-controllers
+   ()
+   "Returns list of available controllers with cons where cdr is t if the controller is running state, nil otherwise.
+   "
+   (let ((srv-name "/pr2_controller_manager/list_controllers")
+         res)
+     (unless (ros::wait-for-service srv-name 10)
+       (ros::ros-error "service ~A is not advertised" srv-name)
+       (return-from :list-controllers nil))
+     (setq res (ros::service-call srv-name
+                                  (instance pr2_mechanism_msgs::ListControllersRequest :init)))
+     (mapcar #'cons (send res :controllers)
+             (mapcar #'(lambda (s) (string= s "running")) (send res :state)))))
+  (:switch-controller
+   (stop start &key (force))
+   "Switch controller
+    Args:
+        stop: controller name or list of controllers to stop
+        start: controller name or list of controllers to start
+        force: switch with strict policy if set to t, switch with best effort otherwise.
+    Returns: t if successfully switched controllers, nil otherwise.
+   "
+   (when (send self :simulation-modep)
+     (ros::ros-warn "switching controller is disabled on simulation mode.")
+     (return-from :switch-controller t))
+   (let ((srv-name "/pr2_controller_manager/switch_controller")
+         (req (instance pr2_mechanism_msgs::SwitchControllerRequest :init))
+         available res)
+     (unless (ros::wait-for-service srv-name 10)
+       (ros::ros-error "service ~A is not advertised" srv-name)
+       (return-from :switch-controller nil))
+     (setq available (mapcar #'car (send self :list-controllers)))
+     (when (set-difference (flatten stop) available :test #'string=)
+       (error "Unknown controller: ~A" (set-difference (flatten stop) available :test #'string=)))
+     (when (set-difference (flatten start) available :test #'string=)
+       (error "Unknown controller: ~A" (set-difference (flatten start) available :test #'string=)))
+     (send req :stop_controllers (or (flatten stop) "dummy_controller"))
+     (send req :start_controllers (or (flatten start) "dummy_controller"))
+     (send req :strictness
+           (if force
+               pr2_mechanism_msgs::SwitchControllerRequest::*STRICT*
+               pr2_mechanism_msgs::SwitchControllerRequest::*BEST_EFFORT*))
+     (setq res (ros::service-call srv-name req))
+     (if (send res :ok)
+         (ros::ros-info "switched controller ~A -> ~A" stop start)
+         (ros::ros-error "failed to switch controller ~A -> ~A" stop start))
+     (send res :ok)))
+  (:start-mannequin-mode
+   (&optional (controller t))
+   "Switch controller to loose_controller.
+    Args:
+        controller: :head :arms :rarm :larm, list of controllers or t for all controllers
+    Returns: t if success, nil otherwise.
+    "
+   (when (eq controller t)
+     (setq controller (list :head :arms)))
+   (setq controller (flatten controller))
+   (let (stop start)
+     (when (memq :head controller)
+       (push "head_traj_controller" stop)
+       (push "head_traj_controller_loose" start))
+     (when (or (memq :larm controller) (memq :arms controller))
+       (push "l_arm_controller" stop)
+       (push "l_arm_controller_loose" start))
+     (when (or (memq :rarm controller) (memq :arms controller))
+       (push "r_arm_controller" stop)
+       (push "r_arm_controller_loose" start))
+     (send self :switch-controller stop start)))
+  (:stop-mannequin-mode
+   (&optional (controller t))
+   "Switch controller from loose_controller to normal controller.
+    Args:
+        controller: :head :arms :rarm :larm, list of controllers or t for all controllers
+    Returns: t if success, nil otherwise.
+    "
+   (when (eq controller t)
+     (setq controller (list :head :arms)))
+   (setq controller (flatten controller))
+   (let (stop start)
+     (when (memq :head controller)
+       (push "head_traj_controller_loose" stop)
+       (push "head_traj_controller" start))
+     (when (or (memq :larm controller) (memq :arms controller))
+       (push "l_arm_controller_loose" stop)
+       (push "l_arm_controller" start))
+     (when (or (memq :rarm controller) (memq :arms controller))
+       (push "r_arm_controller_loose" stop)
+       (push "r_arm_controller" start))
+     (send self :switch-controller stop start))))
+
 
 ;;;;;
 ;;;;; utility functions pr2 robot

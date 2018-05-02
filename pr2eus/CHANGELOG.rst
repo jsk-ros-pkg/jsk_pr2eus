@@ -2,6 +2,85 @@
 Changelog for package pr2eus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.3.13 (2017-07-14)
+-------------------
+* [pr2eus] enable controller-type in :cancel-angle-vector (`#313 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/313>`_)
+  * fix typo in robot-interface ( doc string of :cancel-angle-vector method)
+  * cancel angle-vector by controller-type
+* Contributors: Kei Okada, Shingo Kitagawa
+
+0.3.12 (2017-07-11)
+-------------------
+* [robot-interface.l] :angle-vector-duration add document to how we use :max-joint-velocity (`#305 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/305>`_ )
+* Contributors: Kei Okada
+
+0.3.11 (2017-06-25)
+-------------------
+* use make-caemra-from-ros-camera-info-aux inroseus, in order to generate pr2 model corresponding to `jsk-ros-pkg/jsk_roseus/pulls/#526 <https://github.com/jsk-ros-pkg/jsk-ros-pkg/jsk_roseus/pulls/526>`_ (`#301 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/301>`_)
+  * [pr2eus/pr2.l] update make-camera-from-ros-camera-info-aux
+  * add comment to why we redefine make-camera-from-ros-camera-info-aux in robot model
+  * skip position test in test-cameras on hydro
+
+* [robot_interface.l] add tms comment to :angle-vector-sequence c.f. https://github.com/jsk-ros-pkg/jsk_robot/pull/791#pullrequestreview-45324124 (`#299 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/299>`_)
+* [robot_interface.l] add :stamp method for reading latest stamp (`#298 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/298>`_)
+* .travis.yml: re-enable pr2-ri-test (using gazebo) for indigo (`#296 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/296>`_
+  * pr2-ri-test.l: add test to check :wait-for-interpolation, see (`https://github.com/start-jsk/jsk_apc/issues/2106 <https://github.com/start-jsk/jsk_apc/issues/2106>`_)
+  * when unknown goal is received, we assume the original goal is canceled and set time-to-finish to 0.0
+  * test-start-grasp: send move-gripper with more gain
+  * .travis.yml: re-enable pr2-ri-test (using gazebo) for indigo
+
+* [pr2eus][pr2-interface.l] add switch-controller methods  (`#295 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/295>`_
+  * [pr2eus] add pr2_mechanism_msgs to depend
+
+* [pr2eus][pr2eus_moveit] use ctype in :send-trajectory and pass ctype in angle-vector-motion-plan (`#295 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/295>`_)
+  * use only controller-type in send-trajectory
+
+* [pr2eus] fix some funcs that break behaviors written at docs (`#289 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/289>`_)
+  * [pr2eus][default-ri-test.l] fix: load path for passing test on local machine
+  * [pr2eus][pr2-ri-test-simple.l] assert return values of robot-interface methods
+  * [pr2eus][robot-interface.l] implement :go-waitp when simulation-modep is t
+  * [pr2eus][robot-interface.l] :move-to-wait returns t when simulation-modep
+  * [pr2eus][robot-interface.l] implement :interpolatingp when :simulation-modep is t
+
+* use link-list instead of (car link-list) in use-base condition(`#272 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/272>`_)
+* Contributors: Yuki Furuta, Kei Okada, Shingo Kitagawa, Yohei Kakiuchi, Chi Wun Au
+
+0.3.10 (2017-03-02)
+-------------------
+* [pr2eus][pr2-interface.l] move move-to / go-pos callback for simulation to robot-interface.l (`#288 <https://github.com/jsk-ros-pkg/jsk_pr2eus/pull/288>`_)
++ [pr2eus] fix: remove the first '/' from frame (`#287 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/287>`_)
+* fix: use movebaseaction name for clear-costmap (`#286 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/286>`_)
+  * [pr2eus/robot-interface.l] fix: use move-base-action name for clear-costmap
+  * [pr2eus][robot-interface.l] soft tab
+* Contributors: Kei Okada, Yuki Furuta
+
+0.3.9 (2017-02-22)
+------------------
+* cleanup CMakeLists.txt, use PR2_CONTROLLERS_MSGS_PACKAGE variable and add geneus for hydro (`#285 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/285>`_ )
+* Support Kinetic (`#284 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/284>`_ )
+  * need to add geneus for hydro? https://s3.amazonaws.com/archive.travis-ci.org/jobs/203074134/log.txt
+  * robot-init-test.l: disable test for jade/kinetic, which did not load pr2-interface.l, beacuse of missing pr2_controller_msgs
+  * CMakeLists.txt: using PR2_CONTROLLERS_MSGS_PACKAGE variable to control find_package does not work on hydro
+  * pr2-interface.l exits without error on kinetic
+  * pr2_controllers_msgs is not released on J/K
+  * pr2eus/CMakeLists.txt: pr2_controllers_msgs is not released on J/K
+* Contributors: Kei Okada
+
+0.3.8 (2017-02-07)
+------------------
+* add end-coords-interpolation (`#237 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/237>`_ )
+  * Fix typos in :angle-vector (if end-coords-interpolation
+  * Force end-coords-interpolation to go to given av
+  * add end-coords-interpolation in :angle-vector with:end-coords-interpolation t:  move robot in cartesian space interpolation
+* add more message on kinematics simulator mode
+* Contributors: Kei Okada, Shun Hasegawa
+
+0.3.7 (2016-11-08)
+------------------
+* [pr2eus/pr2-interface.l] add :force-assoc option for :start-grasp
+* robot-interface.l: send-trajectory-each : check if vels/effs is #f()
+* Contributors: Kei Okada, Yuki Furuta
+
 0.3.6 (2016-11-02)
 ------------------
 * add :base-controller-action-name for robot does not have move_base_trajectory_action (`#253 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/253>`_ )
