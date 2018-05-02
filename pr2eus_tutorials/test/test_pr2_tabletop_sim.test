@@ -1,13 +1,10 @@
 <launch>
-  <env name="ROBOT" value="$(optenv ROBOT sim)" />
-  <env name="KINECT1" value="$(optenv KINECT1 true)" />
+  <node name="pr2_tabletop_scene"
+        pkg="pr2eus_tutorials" type="pr2_tabletop_sim.sh"
+        args="gui:=false run_rviz:=false publish_objects_tf:=true"
+        required="true"/>
 
-  <include file="$(find pr2eus_tutorials)/launch/gazebo/pr2_tabletop_sim.launch">
-    <arg name="run_rviz" value="false" />
-    <arg name="gui" value="false" />
-    <arg name="publish_objects_tf" value="true" />
-  </include>
   <test test-name="pr2_tabletop_test_node" pkg="roseus" type="roseus"
         args="$(find pr2eus_tutorials)/test/test-pr2-tabletop.l"
-        time-limit="600" />
+        time-limit="300" retry="2" />
 </launch>

@@ -11,8 +11,17 @@ If you use ROS `indigo` distribution, please replace the word `kinetic` with `in
 ### Using pre-built package
 
 1. Follow the [instruction of ROS installation](http://wiki.ros.org/kinetic/Installation/Ubuntu)
-2. Install the package `sudo apt install ros-kinetic-pr2eus-tutorials`
-3. Load ROS Environment `source /opt/ros/kinetic/setup.bash`
+2. Install the package
+
+    ```bash
+    sudo apt install ros-kinetic-pr2eus-tutorials
+    ```
+
+3. Load ROS Environment
+
+    ```bash
+    source /opt/ros/kinetic/setup.bash`
+    ```
 
 ### Using source package
 
@@ -37,8 +46,11 @@ If you use ROS `indigo` distribution, please replace the word `kinetic` with `in
    catkin build pr2eus_tutorials
    ```
 
-3. Load ROS Environment `source ~/ros/kinetic/devel/setup.bash`
+3. Load ROS Environment
 
+   ```bash
+   source ~/ros/kinetic/devel/setup.bash`
+   ```
 
 ## Demos
 
@@ -46,9 +58,9 @@ If you use ROS `indigo` distribution, please replace the word `kinetic` with `in
 
 1. Startup nodes
 
-First we need to start nodes used for this demo.
+    First we need to start nodes used for this demo.
 
-- Using a real robot
+    - Using a real robot
 
     ```bash
     # on PR2 real robot
@@ -57,7 +69,7 @@ First we need to start nodes used for this demo.
 
     You can locate a desk in front of the robot and put any objects on it.
 
-- Using a simulator
+    - Using a simulator
 
     ```bash
     # on local machine
@@ -69,19 +81,19 @@ First we need to start nodes used for this demo.
 
 2. Run demo
 
-Then we can now start the demo program for picking objects.
+    Then we can now start the demo program for picking objects.
 
-```bash
-rosrun pr2eus_tutorials pr2-tabletop-object-grasp.l
-```
+    ```bash
+    rosrun pr2eus_tutorials pr2-tabletop-object-grasp.l
+    ```
 
-After running the demo program above, you can see object bounding boxes in the `RViZ` window.
-It means the robot now recognizes each objects as individual objects from camera sensor inputs.
+    After running the demo program above, you can see object bounding boxes in the `RViZ` window.
+    It means the robot now recognizes each objects as individual objects from camera sensor inputs.
 
-You can click any object that you want the robot to pick up.
+    You can click any object that you want the robot to pick up.
 
 
-![pr2_tabletop_sim](https://gist.githubusercontent.com/furushchev/b3f3bb08953407966f80f4b0ac70c7dd/raw/pr2_tabletop_screen.png)
+    ![pr2_tabletop_sim](https://gist.githubusercontent.com/furushchev/b3f3bb08953407966f80f4b0ac70c7dd/raw/pr2_tabletop_screen.png)
 
 3. Step-by-step description of the demo program
 

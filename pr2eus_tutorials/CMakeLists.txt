@@ -12,5 +12,5 @@ install(DIRECTORY euslisp launch scripts
 
 if(CATKIN_ENABLE_TESTING)
   find_package(rostest REQUIRED)
-  # add_rostest(test/test_pr2_tabletop_sim.test)  # skip now
+  add_rostest(test/test_pr2_tabletop_sim.test)
 endif()
