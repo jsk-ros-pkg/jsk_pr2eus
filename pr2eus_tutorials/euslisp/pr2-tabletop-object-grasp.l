@@ -1,3 +1,4 @@
+#!/usr/bin/env roseus
 ;; pr2-tabletop-object-grasp.l
 ;; Author: Yuki Furuta <furushchev@jsk.imi.i.u-tokyo.ac.jp>
 
@@ -15,8 +16,7 @@
 
 
 (defun pr2-pregrasp-pose ()
-  (send *pr2* :reset-pose)
-  (send *pr2* :head :look-at #f(700 0 700))
+  (send *pr2* :reset-manip-pose)
   (send *ri* :angle-vector (send *pr2* :angle-vector) 5000)
   (send *ri* :wait-interpolation))
 
