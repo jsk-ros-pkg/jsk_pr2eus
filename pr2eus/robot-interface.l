@@ -1500,6 +1500,9 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
    (unless move-base-trajectory-action
      (ros::ros-warn ":go-velocity is disabled. (move-base-trajectory-action is not found)")
      (return-from :go-velocity t))
+   (setq x (* x (/ msec 1000.0))
+         y (* y (/ msec 1000.0))
+         d (* d (/ msec 1000.0)))
    (let ((goal (send self :move-trajectory x y d msec :stop stop)))
      (prog1
          (send move-base-trajectory-action :send-goal goal)
@@ -1524,16 +1527,17 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
    (unless move-base-trajectory-action
      (ros::ros-warn ":go-pose-unsafe-no-wait is disabled. (move-base-trajectory-action is not found)")
      (return-from :go-pos-unsafe-no-wait t))
-   (let (msec step (maxvel 0.295) (maxrad 0.495))
+   (let ((maxvel 0.295) (maxrad 0.495)
+         msec)
      ;; package://pr2_base_trajectory_action/config/pr2_base_link.yaml
      ;; 80% of maxvel = 0.3[m/sec]
      ;; 80% of maxrad = 0.5[rad/sec]
      (setq msec (* 1000 (max (/ (norm (float-vector x y)) (* maxvel 0.8))
-                             (/ (abs (deg2rad d)) (* maxrad 0.8)))))
-     (setq msec (max msec 1000))
-     (setq step (/ 1000.0 msec))
-     (setq go-pos-unsafe-goal-msg (send self :move-trajectory (* x step) (* y step)
-                                        (* (deg2rad d) step) msec :stop t))
+                             (/ (abs (deg2rad d)) (* maxrad 0.8))
+                             1.0)))
+     (setq go-pos-unsafe-goal-msg (send self :move-trajectory
+                                        x y (deg2rad d) msec
+                                        :stop t))
      (send move-base-trajectory-action :send-goal go-pos-unsafe-goal-msg)
      ))
   (:go-pos-unsafe-wait ()
@@ -1587,109 +1591,108 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
   ;;
   (:move-trajectory-sequence
    (trajectory-points time-list &key (stop t) (start-time) (send-action nil))
-   "trajectory-points [ list of #f(x y d) ] time-list [list of time span]
-stop [ stop after msec moving ]
-start-time [ robot will move at start-time ]
-send-action [ send message to action server, it means robot will move ]"
-   (send self :move-trajectory trajectory-points time-list nil nil
-         :stop stop :start-time start-time :send-action send-action))
+   "Move base following the trajectory points at each time points
+    trajectory-points [ list of #f(x y d) ([m] for x, y; [rad] for d) ]
+    time-list [list of time span [msec] ]
+    stop [ stop after msec moveing ]
+    start-time [ robot will move at start-time [sec or ros::Time] ]
+    send-action [ send message to action server, it means robot will move ]"
+   (send self :spin-once)
+   (labels ((normalize-angle-positive (d)
+              (mod (+ (mod d 2pi) 2pi) 2pi))
+            (normalize-angle (d)
+              (let ((a (normalize-angle-positive d)))
+                (if (> a pi) (- a 2pi) a)))
+            (shortest-angular-distance (from to)
+              (normalize-angle (- to from))))
+     (let ((odom-cds (send self :state :odom :pose))
+           (msg (instance trajectory_msgs::JointTrajectory :init))
+           (goal (instance control_msgs::FollowJointTrajectoryActionGoal :init))
+           (cur-time 0) (nxt-time 0)
+           cds-lst pts-msg-lst
+           cur-cds nxt-cds)
+       (send msg :joint_names (list "base_link_x" "base_link_y" "base_link_pan"))
+       ;; parse start-time
+       (cond
+         ((numberp start-time)
+          (send msg :header :stamp (ros::time+ (ros::time-now) (ros::time start-time))))
+         (start-time (send msg :header :stamp start-time))
+         (t (send msg :header :stamp (ros::time-now))))
+       (setq cds-lst
+             (mapcar #'(lambda (pt)
+                         (let ((cds (make-cascoords :coords odom-cds)))
+                           (send cds :translate (float-vector
+                                                 (* (elt pt 0) 1000.0)
+                                                 (* (elt pt 1) 1000.0) 0))
+                           (send cds :rotate (elt pt 2) :z)
+                           cds))
+                     trajectory-points))
+       (setq cur-cds odom-cds
+             nxt-cds (pop cds-lst)
+             nxt-time (pop time-list)
+             cur-yaw (caar (send cur-cds :rpy-angle))
+             nxt-yaw 0)
+       (while nxt-cds
+         (unless (ros::ok) (return-from :move-trajectory-sequence nil))
+         (let* ((tra  (send cur-cds :transformation nxt-cds))
+                (rot (send cur-cds :rotate-vector (send tra :pos)))
+                (diff-yaw (shortest-angular-distance
+                           (caar (send cur-cds :rpy-angle))
+                           (caar (send nxt-cds :rpy-angle)))))
+           (push
+            (instance trajectory_msgs::JointTrajectoryPoint :init
+                      :positions  (float-vector
+                                   (/ (elt (send cur-cds :pos) 0) 1000)
+                                   (/ (elt (send cur-cds :pos) 1) 1000)
+                                   cur-yaw)
+                      :velocities (float-vector
+                                   (/ (elt rot 0) nxt-time)
+                                   (/ (elt rot 1) nxt-time)
+                                   (/ (caar (send tra :rpy-angle)) nxt-time 0.001))
+                      :time_from_start (ros::time cur-time))
+            pts-msg-lst)
+
+           (incf cur-time (/ nxt-time 1000.0))
+           (setq cur-cds nxt-cds
+                 nxt-cds (pop cds-lst)
+                 nxt-time (pop time-list)
+                 cur-yaw (if (> (caar (send tra :rpy-angle)) 0)
+                             (+ cur-yaw (abs diff-yaw))
+                             (- cur-yaw (abs diff-yaw)))))) ;; while
+       (push ;; the last point
+        (instance trajectory_msgs::JointTrajectoryPoint :init
+                  :positions  (float-vector
+                               (/ (elt (send cur-cds :pos) 0) 1000)
+                               (/ (elt (send cur-cds :pos) 1) 1000)
+                               cur-yaw)
+                  :velocities (if stop
+                                  (float-vector 0 0 0)
+                                  (send (car pts-msg-lst) :velocities))
+                  :time_from_start (ros::time cur-time))
+        pts-msg-lst)
+       (send msg :points (reverse pts-msg-lst))
+       (send goal :goal :trajectory msg)
+       (when send-action
+         (unless move-base-trajectory-action
+           (ros::ros-error "send-action is t, but move-base-trajectory-action is not found")
+           (return-from :move-trajectory-sequence nil))
+         (send move-base-trajectory-action :send-goal goal)
+         (if (send move-base-trajectory-action :wait-for-result)
+             (return-from :move-trajectory-sequence
+               (send move-base-trajectory-action :get-result))
+             (return-from :move-trajectory-sequence nil)))
+       goal)))
+  ;;
   (:move-trajectory
    (x y d &optional (msec 1000) &key (stop t) (start-time) (send-action nil))
-" x [m/sec] y [m/sec] d [rad/sec] msec [millisecond] 
-stop [ stop after msec moving ]
-start-time [ robot will move at start-time ]
-send-action [ send message to action server, it means robot will move ]"
-   (send self :spin-once)
-   (let ((odom-cds (send self :state :odom :pose))
-         (msg (instance trajectory_msgs::JointTrajectory :init))
-         (goal (instance control_msgs::FollowJointTrajectoryActionGoal :init)))
-     (cond
-      ((numberp start-time)
-       (send msg :header :stamp (ros::time+ (ros::time-now) (ros::time start-time))))
-      (start-time (send msg :header :stamp start-time))
-      (t (send msg :header :stamp (ros::time-now))))
-     (send msg :joint_names (list "base_link_x" "base_link_y" "base_link_pan"))
-     (cond
-      ((and (listp x) (listp y))
-       (let ((traj-lst
-              (mapcar #'(lambda (vec)
-                          (send
-                           (make-coords :pos (float-vector (elt vec 0) (elt vec 1) 0)
-                                        :rpy (list (elt vec 2) 0 0))
-                           :transform odom-cds :world)) x))
-             (cur-cds (send odom-cds :copy-worldcoords))
-             (cur-time 0)
-             nxt-cds nxt-time ret)
-         (pprint traj-lst)
-         (setq nxt-cds  (pop traj-lst)
-               nxt-time (pop y))
-         (while nxt-cds
-           (let* ((vr (send cur-cds :transformation nxt-cds))
-                  (vp (send cur-cds :rotate-vector (send vr :pos))))
-             (push
-              (instance trajectory_msgs::JointTrajectoryPoint :init
-                        :positions (float-vector
-                                    (/ (elt (send cur-cds :pos) 0) 1000)
-                                    (/ (elt (send cur-cds :pos) 1) 1000)
-                                    (caar (send cur-cds :rpy-angle)))
-                        :velocities (float-vector
-                                     (/ (elt vp 0) nxt-time)
-                                     (/ (elt vp 1) nxt-time)
-                                     (/ (caar (send vr :rpy-angle)) nxt-time 0.001))
-                        :time_from_start (ros::time cur-time))
-              ret))
-           (incf cur-time (/ nxt-time 1000.0))
-           (setq cur-cds  nxt-cds
-                 nxt-cds  (pop traj-lst)
-                 nxt-time (pop y))
-           ) ;; (while nxt-cds
-         (push ;; push last point
-          (instance trajectory_msgs::JointTrajectoryPoint :init
-                    :positions (float-vector
-                                (/ (elt (send cur-cds :pos) 0) 1000)
-                                (/ (elt (send cur-cds :pos) 1) 1000)
-                                (caar (send cur-cds :rpy-angle)))
-                    :velocities (if stop (float-vector 0 0 0)
-                                  (send (car ret) :velocities))
-                    :time_from_start (ros::time cur-time))
-          ret)
-         (send msg :points (nreverse ret))
-         ))
-      (t
-       (let ((sec (/ msec 1000.0))
-             (odom-angle (elt (car (send odom-cds :rpy-angle)) 0))
-             (odom-pos (scale 0.001 (send odom-cds :pos)))
-             (pt1 (instance trajectory_msgs::JointTrajectoryPoint :init))
-             (pt2 (instance trajectory_msgs::JointTrajectoryPoint :init)))
-         (send pt1 :time_from_start (ros::time))
-         (send pt2 :time_from_start (ros::time sec))
-         (send pt1 :positions (v+ odom-pos
-                                  (float-vector 0 0 odom-angle)))
-         (send pt2 :positions (v+ (v+ odom-pos
-                                      (float-vector 0 0 (+ odom-angle (* sec d))))
-                                  (rotate-vector (scale sec (float-vector x y 0))
-                                                 odom-angle :z)))
-         (send pt1 :velocities (rotate-vector (float-vector x y d) odom-angle :z))
-         (if stop
-             (send pt2 :velocities (float-vector 0 0 0)) ;; To stop just
-           (send pt2 :velocities (rotate-vector (float-vector x y d) odom-angle :z)))
-
-         (ros::ros-debug "move-trajectory (x y d msec) = (~A ~A ~A ~A)" (* sec x) (* sec y) (* sec d) msec)
-         (ros::ros-debug "                odom-pos ~A, odom-angle ~A" odom-pos odom-angle)
-         (ros::ros-debug "                pt1 ~A" (send pt1 :positions))
-         (ros::ros-debug "                pt2 ~A" (send pt2 :positions))
-         ;;
-         (send msg :points (list pt1 pt2)))
-       ))
-     (send goal :goal :trajectory msg)
-     (when (and send-action move-base-trajectory-action)
-       (send move-base-trajectory-action :send-goal goal)
-       (let ((acret
-              (send move-base-trajectory-action :wait-for-result)))
-         (unless acret (return-from :move-trajectory nil))
-         (send move-base-trajectory-action :spin-once)))
-     ;;
-     goal))
+   "x [m] y [m] d [rad] msec [milli second (default: 1000)]
+    stop [ stop after the base reached the goal if T (default: T)]
+    start-time [ robot starts to move from `start-time` (default: now) ]
+    send-action [ send the goal to action server if enabled, otherwise just returns goal without sending (default: nil) ]"
+   (send self :move-trajectory-sequence
+         (list (float-vector x y d))
+         (list msec)
+         :stop stop :start-time start-time :send-action send-action))
   ;;
   (:state
    (&rest args)
