@@ -10,7 +10,7 @@
         args="-d $(find pr2eus_tutorials)/config/pr2_planning.rviz" />
 
   <include if="$(arg LAUNCH_NAVI)"
-           file="$(find pr2_2dnav)/pr2_2dnav.launch" />
+           file="$(find pr2_2dnav)/launch/pr2_2dnav.launch" />
 
   <node if="$(arg LAUNCH_BASE_CONTROLLER)"
         pkg="pr2_base_trajectory_action" type="pr2_base_trajectory_action"
