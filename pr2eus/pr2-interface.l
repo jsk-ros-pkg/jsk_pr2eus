@@ -11,8 +11,8 @@
 	     (string< (unix::getenv "ROS_DISTRO") "indigo"))
 	 (ros::ros-error "pr2eus/pr2-interface.l: pr2_contrllers_msgs is not found"))
 	(t
-	 (ros::ros-warn "pr2eus/pr2-interface.l: pr2_contrllers_msgs is not releaed on ~A" (unix::getenv "ROS_DISTRO"))
-	 (warning-message 1 "exitting without error....")
+	 (ros::ros-warn "pr2eus/pr2-interface.l: pr2_contrllers_msgs is not released on ~A" (unix::getenv "ROS_DISTRO"))
+	 (warning-message 1 "exiting without error....")
 	 (exit 0))))
 
 (ros::load-ros-manifest "control_msgs")
@@ -286,7 +286,7 @@ Example: (send self :gripper :rarm :position) => 0.00"
            (setq resend-goal t))
        ;;
          (unless (eps= (* 1000 (send aresult :position)) (send ajoint :joint-angle) 2)
-           (ros::ros-debug ";; :move-gripper ~A need to resend goal, position = ~A/~A, result and udpate-body differs" (send ajoint :name) (* 1000 (send aresult :position)) (send ajoint :joint-angle))
+           (ros::ros-debug ";; :move-gripper ~A need to resend goal, position = ~A/~A, result and update-body differs" (send ajoint :name) (* 1000 (send aresult :position)) (send ajoint :joint-angle))
            (setq resend-goal t)))
        (incf resend-count)
        (if resend-goal (send self :move-gripper arm 0.0 :effort (* 2000 g) :wait t)))
@@ -513,7 +513,7 @@ Example: (send self :gripper :rarm :position) => 0.00"
    (&optional (controller t))
    "Switch controller to loose_controller.
     Args:
-        controller: :head :arms :rarm :larm, list of controllerse or t for all controllers
+        controller: :head :arms :rarm :larm, list of controllers or t for all controllers
     Returns: t if success, nil otherwise.
     "
    (when (eq controller t)
@@ -534,7 +534,7 @@ Example: (send self :gripper :rarm :position) => 0.00"
    (&optional (controller t))
    "Switch controller from loose_controller to normal controller.
     Args:
-        controller: :head :arms :rarm :larm, list of controllerse or t for all controllers
+        controller: :head :arms :rarm :larm, list of controllers or t for all controllers
     Returns: t if success, nil otherwise.
     "
    (when (eq controller t)
