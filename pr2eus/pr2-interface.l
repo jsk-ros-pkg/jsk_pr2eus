@@ -98,7 +98,7 @@
   (:publish-joint-state () ;; overwrite for pr2
    (send-super :publish-joint-state (append (send robot :joint-list) (send robot :larm :gripper :joint-list) (send robot :rarm :gripper :joint-list))))
   ;;
-  (:wait-interpolation (&optional (ctype) (timeout 0)) ;; overwrite for pr2, due to some joint is stll moving after joint-trajectry-action stops
+  (:wait-interpolation (&optional (ctype) (timeout 0)) ;; overwrite for pr2, due to some joint is still moving after joint-trajectry-action stops
    (when (send self :simulation-modep) (return-from :wait-interpolation (send-super :wait-interpolation)))
    (ros::ros-info "wait-interpolation debug: start")
    (send-super :wait-interpolation ctype timeout)
