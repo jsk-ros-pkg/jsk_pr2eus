@@ -588,14 +588,23 @@
 - timeout : max time of for waiting
 - return values is a list of interpolatingp for all controllers, so (null (some #'identity (send *ri* :wait-interpolation))) -> t if all interpolation has stopped"
    (if (send self :simulation-modep)
-       (while (send self :interpolatingp)
-         (send self :robot-interface-simulation-callback))
-       (cond ;; real robot
-         (ctype
-          (let ((cacts (gethash ctype controller-table)))
-            (send-all cacts :wait-for-result :timeout timeout)))
-         (t (send-all controller-actions :wait-for-result :timeout timeout))))
-   (send-all controller-actions :interpolatingp))
+       (progn
+	 (while (some #'(lambda (a) (send a :interpolatingp)) controller-actions)
+	   (send self :robot-interface-simulation-callback))
+	 (send-all controller-actions :interpolatingp))
+     (cond ;; real robot
+      (ctype
+       (let ((cacts (gethash ctype controller-table)))
+	 (send-all cacts :wait-for-result :timeout timeout)
+	 (mapcar #'(lambda (x)
+		     (not (eq (send x :state) 'ros::*comm-state-done*)))
+		 (send-all cacts :comm-state)
+		 )))
+      (t (progn
+	   (send-all controller-actions :wait-for-result :timeout timeout)
+	   (mapcar #'(lambda (x)
+		       (not (eq (send x :state) 'ros::*comm-state-done*)))
+		   (send-all controller-actions :comm-state)))))))
   (:interpolatingp (&optional (ctype)) ;; controller-type ;; check someone is moving
 "Check if the last sent motion is executing
 return t if interpolating"
