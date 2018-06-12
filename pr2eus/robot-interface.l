@@ -81,7 +81,12 @@
           (setq current-time 0)
           )
         av)))
-  (:interpolatingp () (not (null timer-sequence)))
+  (:interpolatingp
+   ()
+   (cond ((send ri :simulation-modep)
+          (not (null timer-sequence)))
+         (t ;; real robot
+          (not (eq ros::simple-state ros::*simple-goal-state-done*)))))
   )
 
 (defclass robot-interface
