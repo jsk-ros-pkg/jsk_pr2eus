@@ -182,6 +182,38 @@
     (send *ri* :wait-interpolation))
   )
 
+(deftest test-wait-interpolation-timeout
+  (let ((ret))
+    (ros::ros-warn "send angle-vector with 1 sec")
+    (warning-message 3 "send angle-vector with 1 sec~%")
+    (send *pr2* :reset-pose)
+    (send *ri* :angle-vector (send *pr2* :angle-vector) 1000)
+
+    (send *ri* :wait-interpolation)
+    (setq ret (send *ri* :interpolatingp))
+    (ros::ros-warn ":interpolatingp returns ~A (= nil)" ret)
+    (warning-message 3 ":interpolatingp returns ~A (= nil)~%" ret)
+    (assert (null ret) "interpolation must be finished")
+
+    (ros::ros-warn "send angle-vector with 5 sec")
+    (warning-message 3 "send angle-vector with 5 sec~%")
+    (send *pr2* :reset-manip-pose)
+    (send *ri* :angle-vector (send *pr2* :angle-vector) 5000)
+    (send *ri* :wait-interpolation nil 0.1)
+    (ros::rate 5)
+    (dotimes (i (* 3 5)) ;; check if :interpolatingp does not returns nil for 3.0 sec
+      (setq ret (send *ri* :interpolatingp))
+      (ros::ros-warn ":interpolatingp returns ~A (= t)" ret)
+      (warning-message 3 ":interpolatingp returns ~A (= t)~%" ret)
+      (assert ret "robot should be interpolating")
+      (ros::sleep))
+    ;;
+    (send *ri* :wait-interpolation)
+    (setq ret (send *ri* :interpolatingp))
+    (ros::ros-warn ":interpolatingp returns ~A (= nil)" ret)
+    (warning-message 3 ":interpolatingp returns ~A (= nil)~%" ret)
+    (assert (null ret) "interpolation must be finished")
+    ))
 
 (run-all-tests)
 (exit)
