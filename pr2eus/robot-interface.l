@@ -630,7 +630,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
 								     (send goal :goal :min_duration))
 								    (t
 								     (send (car (last (send goal :goal :trajectory :points))) :time_from_start))))
-                                                  (ros::time-now)) :to-sec) 0))))
+                                                  (ros::time-now)) :to-sec) (/ time-to-finish 1000.0)))))
                      cacts)
           (send self :spin-once) ;; need to wait for feedback
           (send self :ros-wait 0.005))))
