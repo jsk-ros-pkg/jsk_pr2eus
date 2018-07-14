@@ -32,7 +32,7 @@
 (deftest test-wait-interpolation-smooth
   (assert (send *robot* :reset-pose))
   (assert (send *ri* :angle-vector (send *robot* :angle-vector) 2000))
-  (assert (null (some #'identity (send *ri* :wait-interpolation-smooth 1000))))
+  (assert (some #'identity (send *ri* :wait-interpolation-smooth 1000)))
   )
 
 (deftest test-state
