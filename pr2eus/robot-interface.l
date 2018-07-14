@@ -624,7 +624,7 @@ return t if interpolating"
 	(dolist (av (list av1 av2 av3 av4))
 	    (send *ri* :angle-vector av)
 	    (send *ri* :wait-interpolation-smooth 300))
-Return value is a list of interpolatingp for all controllers, so (null (some #'identity (send *ri* :wait-interpolation))) -> t if all interpolation has stopped"
+Return value is a list of interpolatingp for all controllers, so (null (some #'identity (send *ri* :wait-interpolation-smooth))) -> t if all interpolation has stopped"
     (when (not (send self :simulation-modep))
       (let ((tm (ros::time-now))
             (cacts (cond
@@ -644,7 +644,8 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
           (send self :spin-once) ;; need to wait for feedback
           (send self :ros-wait 0.005))))
     (while (null (send self :interpolating-smoothp time-to-finish ctype))
-      (send self :ros-wait 0.005)))
+      (send self :ros-wait 0.005))
+    (send-all controller-actions :interpolatingp))
   (:interpolating-smoothp (time-to-finish &optional (ctype)) ;; controller-type
 "Check if the last sent motion will stop for next time-to-finish [msec]"
    (when (send self :simulation-modep)
