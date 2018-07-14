@@ -39,6 +39,10 @@
     (send-super* :init args))
   (:last-feedback-msg-stamp () last-feedback-msg-stamp)
   (:time-to-finish ()
+    (when (send ri :simulation-modep)
+      (if (numberp (car timer-sequence))
+        (setq time-to-finish (- (car timer-sequence) current-time))
+        (setq time-to-finish 0.0)))
     (ros::ros-debug "[~A] time-to-finish ~A" ros::name-space time-to-finish)
     time-to-finish)
   (:action-feedback-cb (msg)
@@ -644,12 +648,12 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
           (send self :spin-once) ;; need to wait for feedback
           (send self :ros-wait 0.005))))
     (while (null (send self :interpolating-smoothp time-to-finish ctype))
-      (send self :ros-wait 0.005))
+      (if (send self :simulation-modep)
+        (send self :robot-interface-simulation-callback)
+        (send self :ros-wait 0.005)))
     (send-all controller-actions :interpolatingp))
   (:interpolating-smoothp (time-to-finish &optional (ctype)) ;; controller-type
 "Check if the last sent motion will stop for next time-to-finish [msec]"
-   (when (send self :simulation-modep)
-     (return-from :interpolating-smoothp t))
    (send self :spin-once)
    (every #'(lambda (x) (< x (/ time-to-finish 1000.0)))
           (cond
