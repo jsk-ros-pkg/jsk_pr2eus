@@ -40,7 +40,8 @@
   (ros::ros-info "send reset-pose and wait-interpolation")
   (assert (send *pr2* :reset-pose))
   (assert (send *ri* :angle-vector (send *pr2* :angle-vector) 2000))
-  (assert (send *ri* :wait-interpolation))
+  (assert (every #'null (send *ri* :wait-interpolation))
+          ":wait-interpolation must be list of nil")
   (assert (null (send *ri* :interpolatingp)))
 
   (ros::ros-info "send reset-pose, cancel goal and wait-interpolation")
@@ -53,7 +54,7 @@
          (goal (send ca :make-goal-instance)))
     (send goal :goal :trajectory :joint_names jn)
     (ros::publish (format nil "~A/goal" (send ca :name)) goal))
-  (assert (send *ri* :wait-interpolation))
+  (assert (every #'null (send *ri* :wait-interpolation)))
   (assert (null (send *ri* :interpolatingp)))
   ;;
   (ros::ros-info "send reset-pose, cancel goal and wait-interpolation-smooth")
