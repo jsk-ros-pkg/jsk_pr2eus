@@ -16,7 +16,6 @@
 	 (exit 0))))
 
 (ros::load-ros-manifest "control_msgs")
-(ros::load-ros-manifest "pr2eus")
 (ros::load-ros-manifest "pr2_msgs")
 (ros::load-ros-manifest "pr2_controllers_msgs")
 (ros::load-ros-manifest "pr2_mechanism_msgs")
