@@ -81,7 +81,12 @@
           (setq current-time 0)
           )
         av)))
-  (:interpolatingp () (not (null timer-sequence)))
+  (:interpolatingp
+   ()
+   (cond ((send ri :simulation-modep)
+          (not (null timer-sequence)))
+         (t ;; real robot
+          (not (eq ros::simple-state ros::*simple-goal-state-done*)))))
   )
 
 (defclass robot-interface
@@ -599,17 +604,12 @@
   (:interpolatingp (&optional (ctype)) ;; controller-type ;; check someone is moving
 "Check if the last sent motion is executing
 return t if interpolating"
-    (when (send self :simulation-modep)
-      (return-from :interpolatingp
-        (some #'(lambda (a) (send a :interpolatingp)) controller-actions)))
-    (send self :spin-once)
-    (cond
-     (ctype
-      (let ((cacts (gethash ctype controller-table)))
-        (some #'(lambda (x) (eq x ros::*simple-goal-state-active*))
-              (send-all cacts :get-state))))
-     (t (some #'(lambda (x) (eq x ros::*simple-goal-state-active*))
-              (send-all controller-actions :get-state)))))
+    (let (cacts)
+      (cond (ctype
+             (setq cacts (gethash ctype controller-table)))
+            (t
+             (setq cacts controller-actions)))
+      (some #'(lambda (a) (send a :interpolatingp)) cacts)))
   (:wait-interpolation-smooth (time-to-finish &optional (ctype))
 "Return time-to-finish [msec] before the sent command is finished. Example code are:
 	(dolist (av (list av1 av2 av3 av4))

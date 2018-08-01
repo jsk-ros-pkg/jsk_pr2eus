@@ -16,7 +16,6 @@
 	 (exit 0))))
 
 (ros::load-ros-manifest "control_msgs")
-(ros::load-ros-manifest "pr2eus")
 (ros::load-ros-manifest "pr2_msgs")
 (ros::load-ros-manifest "pr2_controllers_msgs")
 (ros::load-ros-manifest "pr2_mechanism_msgs")
@@ -103,12 +102,13 @@
    (ros::ros-info "wait-interpolation debug: start")
    (send-super :wait-interpolation ctype timeout)
    (ros::ros-info "wait-interpolation debug: end")
-   (while (ros::ok)
-    (send self :update-robot-state)
-     (when (every #'(lambda(x)(< (abs (send x :joint-velocity))
-                                 (if (derivedp x rotational-joint) 0.05 0.001)))
-                  (send robot :joint-list))
-       (return)))
+   (if (eps= timeout 0)
+       (while (ros::ok)
+         (send self :update-robot-state)
+         (when (every #'(lambda(x)(< (abs (send x :joint-velocity))
+                                     (if (derivedp x rotational-joint) 0.05 0.001)))
+                      (send robot :joint-list))
+           (return))))
    (send-all controller-actions :interpolatingp))
   ;;
   ;;
