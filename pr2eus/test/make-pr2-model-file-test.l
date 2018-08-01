@@ -31,13 +31,14 @@
 	  "check number of link"
 	  )
   (mapcar #'(lambda (link-unstable link-stable)
+              (warning-message 3 "unstable ~A~%  stable ~A~%" link-unstable link-stable)
 	      (assert (equal (send link-unstable :name) (send link-stable :name))
 		      (format nil "check link name ~A ~A" (send link-unstable :name) (send link-stable :name)))
 	      (assert
-	       (= (norm (send (send link-unstable :worldcoords) :difference-position (send link-stable :worldcoords))) 0.0)
-	       (format nil "check link position ~A ~A" link-unstable link-stable))
+	       (eps= (norm (send (send link-unstable :worldcoords) :difference-position (send link-stable :worldcoords))) 0.0)
+	       (format nil "check link position ~A ~A" (send link-unstable :worldcoords) (send link-stable :worldcoords)))
 	      (assert
-	       (= (norm (send (send link-unstable :worldcoords) :difference-rotation (send link-stable :worldcoords))) 0.0)
+	       (eps= (norm (send (send link-unstable :worldcoords) :difference-rotation (send link-stable :worldcoords))) 0.0)
 	       (format nil "check link orientation ~A ~A" link-unstable link-stable))
               (unless (eps= (send link-unstable :weight) (send link-stable :weight))
 		(ros::ros-warn "check link weight ~16,12f ~16,12f" (send link-unstable :weight) (send link-unstable :weight)))
