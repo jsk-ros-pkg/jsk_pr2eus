@@ -624,12 +624,11 @@
          (send* self :send-trajectory (send traj :joint_trajectory) args))
      ret))
   (:trajectory-filter ;; simple trajectory for zero duration
-   (traj &key (copy) (total-time 5000.0) (minimum-time 0.001) (start-offset-time 0) (clear-velocities) &rest args &allow-other-keys)
+   (traj &key (copy) (total-time 5000.0) (start-offset-time 0) (clear-velocities) &rest args &allow-other-keys)
    "traj (moveit_msgs/RobotTrajectory): input trajectory"
    (let ((orig-total-time (send (send (car (last (send traj :joint_trajectory :points))) :time_from_start) :to-sec)))
      ;; check if valid filtering can be applied
-     (when (or (and minimum-time (> orig-total-time minimum-time))
-               (null start-offset-time)
+     (when (or (null start-offset-time)
                (null total-time))
        (ros::ros-debug ";; Trajectory filter is skipped")
        (return-from :trajectory-filter traj))
