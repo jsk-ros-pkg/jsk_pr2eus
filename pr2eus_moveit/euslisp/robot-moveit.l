@@ -559,11 +559,13 @@
      (setq ret (send* self :angle-vector-make-trajectory av args))
      (unless ret (return-from :angle-vector-motion-plan nil))
      (setq traj (send ret :trajectory))
-     (setq traj (send* self :trajectory-filter traj :start-offset-time start-offset-time :total-time reset-total-time args))
      (setq orig-total-time (send (send (car (last (send traj :joint_trajectory :points))) :time_from_start) :to-sec)) ;; [sec]
      (when (< orig-total-time 0.001)
-       (ros::ros-error "Trajectory has very short duration")
-       (return-from :angle-vector-motion-plan nil))
+       (unless reset-total-time
+         (ros::ros-error "Trajectory has very short duration")
+         (return-from :angle-vector-motion-plan nil))
+       (ros::ros-warn "reset Trajectory Total time")
+       (setq traj (send* self :trajectory-filter traj :start-offset-time start-offset-time :total-time reset-total-time args)))
      (ros::ros-info ";; Planned Trajectory Total Time ~7,3f [sec]" orig-total-time)
      (setq total-time
            (cond
