@@ -22,6 +22,8 @@ env:
   matrix:
     - ROS_DISTRO=hydro   USE_DEB=true
     - ROS_DISTRO=indigo  USE_DEB=true EXTRA_DEB="ros-indigo-pr2-gazebo ros-indigo-pr2-arm-kinematics"
+    - ROS_DISTRO=indigo  USE_DEB=true EXTRA_DEB="ros-indigo-pr2-gazebo ros-indigo-pr2-arm-kinematics" TEST_PKGS="pr2eus"
+    - ROS_DISTRO=indigo  USE_DEB=true EXTRA_DEB="ros-indigo-pr2-gazebo ros-indigo-pr2-arm-kinematics" TEST_PKGS="pr2eus_moveit"
     - ROS_DISTRO=jade    USE_DEB=true
     - ROS_DISTRO=kinetic USE_DEB=true
 matrix:
