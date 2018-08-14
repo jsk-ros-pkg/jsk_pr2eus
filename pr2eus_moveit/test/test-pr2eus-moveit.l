@@ -145,6 +145,22 @@
     (assert (> tm-diff 3) (format nil "collsion avoidance motion is too fast ~A" tm-diff))
     ))
 
+;; send angle-vector with start-offset-time
+(deftest test-start-offset-time ()
+  (let (tm-0 tm-1 tm-diff)
+    (send *ri* :angle-vector (send *pr2* :reset-pose))
+    (send *ri* :wait-interpolation)
+    (send *pr2* :rarm :move-end-pos #f(100 0 0) :world)
+    (send *ri* :angle-vector-motion-plan (send *pr2* :angle-vector) :start-offset-time 4 :total-time 2000 :move-arm :rarm :use-torso nil)
+    (setq tm-0 (ros::time-now))
+    (send *ri* :wait-interpolation)
+    (setq tm-1 (ros::time-now))
+    (setq tm-diff (send (ros::time- tm-1 tm-0) :to-sec))
+    (ros::ros-info "time for duration ~A" tm-diff)
+    (assert (> tm-diff 5) (format nil "start-offset-time is ignored. Traj finishes at ~A" tm-diff))
+    (assert (< tm-diff 7) (format nil "start-offset-time is considered multiple times. Traj finishes at ~A" tm-diff))
+    ))
+
 (run-all-tests)
 (exit)
 
