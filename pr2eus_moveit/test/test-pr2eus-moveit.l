@@ -90,6 +90,19 @@
 ;; setup moveit interface
 (send *ri* :set-moveit-environment (instance pr2-moveit-environment :init))
 
+;; test concatenation of moveit response in angle-vector-make-trajectory
+(deftest test-avs-to-angle-vector-make-trajectory ()
+  (let (motion-plan-res tm-list sorted-tm-list)
+    (setq motion-plan-res (send *ri* :angle-vector-make-trajectory
+                                (list (send *pr2* :reset-manip-pose) (send *pr2* :reset-pose))
+                                :move-arm :rarm :use-torso t))
+    (setq tm-list (mapcar #'(lambda (pt) (send (send pt :time_from_start) :to-sec))
+                          (send motion-plan-res :trajectory :joint_trajectory :points)))
+    (setq sorted-tm-list (copy-object tm-list))
+    (sort sorted-tm-list #'<)
+    (assert (equal tm-list sorted-tm-list) "time_from_start is not arranged in ascending order")
+    ))
+
 ;; send angle-vector with collision avoidance
 (deftest test-angle-vector-motion-plan ()
   (let (av-diff)
