@@ -512,12 +512,12 @@
                     :end-coords ed-lst args))
        (unless tmp-ret
          (return-from :angle-vector-make-trajectory nil))
+       (setq points (send tmp-ret :trajectory :joint_trajectory :points))
        (cond
          ((null ret)
           (setq ret tmp-ret))
          (t
-          (setq points (send tmp-ret :trajectory :joint_trajectory :points)
-                mdof-points (send tmp-ret :trajectory :multi_dof_joint_trajectory :points))
+          (setq mdof-points (send tmp-ret :trajectory :multi_dof_joint_trajectory :points))
           (when time-from-start
             (dolist (pt points)
               (send pt :time_from_start
@@ -536,9 +536,9 @@
           (if (send ret :trajectory :multi_dof_joint_trajectory)
               (nconc (send ret :trajectory :multi_dof_joint_trajectory :points) mdof-points)
               (send ret :trajectory :multi_dof_joint_trajectory :points mdof-points))
-          (setq time-from-start
-                (send (send (car (last points)) :time_from_start) :to-sec))
-          (send robot :angle-vector tmp-av))))
+          (send robot :angle-vector tmp-av)))
+       (setq time-from-start
+             (send (send (car (last points)) :time_from_start) :to-sec)))
      ret))
   (:end-coords-make-trajectory (cds &rest args)
    (let* ((r (send* self :parse-end-coords args))
