@@ -236,8 +236,11 @@
                          (send-all clients :get-result)))
                (mapcar #'(lambda (ac)
                            (send ac :spin-once)
-                           (eq (send ac :get-state)
-                               actionlib_msgs::GoalStatus::*ACTIVE*))
+                           (not (null
+                                 (memq (send ac :get-state)
+                                       (list actionlib_msgs::GoalStatus::*PENDING*
+                                             actionlib_msgs::GoalStatus::*ACTIVE*
+                                             actionlib_msgs::GoalStatus::*SUCCEEDED*)))))
                        clients)))
      (case arm (:arms result) (t (car result)))
      ))
@@ -319,12 +322,12 @@ Example: (send self :gripper :rarm :position) => 0.00"
      ret))
   (:stop-grasp
    (&optional (arm :arms) &key (wait nil))
-   (send self :move-gripper arm 0.09 :wait wait)
-   (unless joint-action-enable
-     (dolist (a (if (eq arm :arms) '(:larm :rarm) (list arm)))
-       (dolist (obj (send robot a :end-coords :descendants))
-	 (send robot arm :end-coords :dissoc obj))))
-   t)
+   (prog1
+       (send self :move-gripper arm 0.09 :wait wait)
+     (unless joint-action-enable
+       (dolist (a (if (eq arm :arms) '(:larm :rarm) (list arm)))
+         (dolist (obj (send robot a :end-coords :descendants))
+           (send robot arm :end-coords :dissoc obj))))))
   ;;
   (:pr2-gripper-state-callback
    (arm msg)
