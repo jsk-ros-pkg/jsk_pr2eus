@@ -552,6 +552,16 @@ Example: (send self :gripper :rarm :position) => 0.00"
        (push "r_arm_controller" start))
      (send self :switch-controller stop start))))
 
+;; pr2 costmap
+(defmethod pr2-interface
+  (:change-inflation-range
+   (&optional (range 0.2))
+   "Changes inflation range of local costmap for obstacle avoidance."
+   (send-super :change-inflation-range range
+               :node-name "move_base_node"
+               :costmap-name "local_costmap"
+               :inflation-name "inflation_layer"))
+) ;; pr2 costmap
 
 ;;;;;
 ;;;;; utility functions pr2 robot
@@ -672,21 +682,3 @@ Example: (send self :gripper :rarm :position) => 0.00"
   (let ((req (instance topic_tools::MuxSelectRequest :init
                        :topic (if enable "ground_object_cloud" "empty_cloud"))))
     (ros::service-call "/tilt_laser_mux/select" req)))
-
-(defun clear-costmap (&key (node-name "/move_base"))
-  "reset local costmap and clear unknown grid around robot"
-  (call-empty-service (format nil "/~A/clear_costmaps" node-name)))
-
-(defun change-inflation-range (&optional (range 0.2)
-                                         &key (node-name "/move_base_node")
-                                              (costmap-name "local_costmap")
-                                              (inflation-name "inflation_layer")
-                                         )
-  "change inflation range of local costmap"
-  (let ((req (instance dynamic_reconfigure::ReconfigureRequest :init)))
-    (send req :config :doubles
-          (list (instance dynamic_reconfigure::DoubleParameter :init
-                          :name "inflation_radius" :value range)))
-    (ros::service-call
-     (format nil "~A/~A/~A/set_parameters" node-name costmap-name inflation-name)
-     req)))
