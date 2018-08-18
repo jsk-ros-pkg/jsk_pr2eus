@@ -202,24 +202,44 @@
    (send self :angle-vector av tm :head-controller))
   ;;
   (:move-gripper
-   (arm pos &key (effort 25) (wait t))
+   (arm pos &key (effort 25) (wait t) (ignore-stall))
+   "Moves gripper of `arm` to target `pos` with `effort`.
+    `arm` is either :rarm, :larm or :arms.
+    `pos` is the desired distance between grippers [m].
+    If wait is T, this function returns T for each arm if reached goal or stalled, NIL otherwise.
+    If `ignore-stall` is T, returns NIL for each arm on stall. (e.g. when an object is grasped).
+    If wait if NIL, returns T for each arm if goal is accepted, NIL otherwise."
    (unless joint-action-enable
      (send robot arm :gripper :joint-angle (* pos 1000))
      (send self :publish-joint-state)
      (if viewer (send self :draw-objects))
-     (return-from :move-gripper nil))
+     (return-from :move-gripper t))
    (let* (goal
 	  (clients (case arm
 		     (:rarm (list r-gripper-action))
 		     (:larm (list l-gripper-action))
 		     (:arms (list r-gripper-action l-gripper-action))
-		     (t (ros::ros-warn "arm[~a] in :move-gripper is invalid type" arm)))))
+		     (t (ros::ros-warn "arm[~a] in :move-gripper is invalid type" arm))))
+    result)
      (dolist (client clients)
        (setq goal (instance pr2_controllers_msgs::Pr2GripperCommandActionGoal :init))
        (send goal :goal :command :position pos)
        (send goal :goal :command :max_effort effort)
        (send client :send-goal goal))
-     (if wait (send-all clients :wait-for-result))
+     (setq result
+           (if wait
+               (progn
+                 (send-all clients :wait-for-result)
+                 (mapcar #'(lambda (res)
+                             (or (if ignore-stall nil (send res :stalled))
+                                 (send res :reached_goal)))
+                         (send-all clients :get-result)))
+               (mapcar #'(lambda (ac)
+                           (send ac :spin-once)
+                           (eq (send ac :get-state)
+                               actionlib_msgs::GoalStatus::*ACTIVE*))
+                       clients)))
+     (case arm (:arms result) (t (car result)))
      ))
   (:gripper (&rest args)
    "get information of gripper
