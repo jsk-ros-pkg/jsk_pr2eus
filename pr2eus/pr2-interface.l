@@ -555,7 +555,7 @@ Example: (send self :gripper :rarm :position) => 0.00"
 ;; pr2 costmap
 (defmethod pr2-interface
   (:change-inflation-range
-   (&optional (range 0.2))
+   (&optional (range 0.3))
    "Changes inflation range of local costmap for obstacle avoidance."
    (send-super :change-inflation-range range
                :node-name "move_base_node"
