@@ -16,7 +16,6 @@
 	 (exit 0))))
 
 (ros::load-ros-manifest "control_msgs")
-(ros::load-ros-manifest "pr2eus")
 (ros::load-ros-manifest "pr2_msgs")
 (ros::load-ros-manifest "pr2_controllers_msgs")
 (ros::load-ros-manifest "pr2_mechanism_msgs")
@@ -98,17 +97,18 @@
   (:publish-joint-state () ;; overwrite for pr2
    (send-super :publish-joint-state (append (send robot :joint-list) (send robot :larm :gripper :joint-list) (send robot :rarm :gripper :joint-list))))
   ;;
-  (:wait-interpolation (&optional (ctype) (timeout 0)) ;; overwrite for pr2, due to some joint is stll moving after joint-trajectry-action stops
+  (:wait-interpolation (&optional (ctype) (timeout 0)) ;; overwrite for pr2, due to some joint is still moving after joint-trajectry-action stops
    (when (send self :simulation-modep) (return-from :wait-interpolation (send-super :wait-interpolation)))
    (ros::ros-info "wait-interpolation debug: start")
    (send-super :wait-interpolation ctype timeout)
    (ros::ros-info "wait-interpolation debug: end")
-   (while (ros::ok)
-    (send self :update-robot-state)
-     (when (every #'(lambda(x)(< (abs (send x :joint-velocity))
-                                 (if (derivedp x rotational-joint) 0.05 0.001)))
-                  (send robot :joint-list))
-       (return)))
+   (if (eps= timeout 0)
+       (while (ros::ok)
+         (send self :update-robot-state)
+         (when (every #'(lambda(x)(< (abs (send x :joint-velocity))
+                                     (if (derivedp x rotational-joint) 0.05 0.001)))
+                      (send robot :joint-list))
+           (return))))
    (send-all controller-actions :interpolatingp))
   ;;
   ;;

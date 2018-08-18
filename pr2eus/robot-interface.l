@@ -81,7 +81,12 @@
           (setq current-time 0)
           )
         av)))
-  (:interpolatingp () (not (null timer-sequence)))
+  (:interpolatingp
+   ()
+   (cond ((send ri :simulation-modep)
+          (not (null timer-sequence)))
+         (t ;; real robot
+          (not (eq ros::simple-state ros::*simple-goal-state-done*)))))
   )
 
 (defclass robot-interface
@@ -599,17 +604,12 @@
   (:interpolatingp (&optional (ctype)) ;; controller-type ;; check someone is moving
 "Check if the last sent motion is executing
 return t if interpolating"
-    (when (send self :simulation-modep)
-      (return-from :interpolatingp
-        (some #'(lambda (a) (send a :interpolatingp)) controller-actions)))
-    (send self :spin-once)
-    (cond
-     (ctype
-      (let ((cacts (gethash ctype controller-table)))
-        (some #'(lambda (x) (eq x ros::*simple-goal-state-active*))
-              (send-all cacts :get-state))))
-     (t (some #'(lambda (x) (eq x ros::*simple-goal-state-active*))
-              (send-all controller-actions :get-state)))))
+    (let (cacts)
+      (cond (ctype
+             (setq cacts (gethash ctype controller-table)))
+            (t
+             (setq cacts controller-actions)))
+      (some #'(lambda (a) (send a :interpolatingp)) cacts)))
   (:wait-interpolation-smooth (time-to-finish &optional (ctype))
 "Return time-to-finish [msec] before the sent command is finished. Example code are:
 	(dolist (av (list av1 av2 av3 av4))
@@ -1222,14 +1222,15 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
   :slots (move-base-action move-base-trajectory-action
           move-base-goal-msg move-base-goal-coords  move-base-goal-map-to-frame
           base-frame-id
-          odom-topic
-                           go-pos-unsafe-goal-msg
-                           current-goal-coords)) ;; for simulation-callback
+          odom-topic move-base-trajectory-joint-names
+          go-pos-unsafe-goal-msg
+          current-goal-coords)) ;; for simulation-callback
 (defmethod robot-move-base-interface
   (:init
    (&rest args &key
           (move-base-action-name "move_base") ((:base-frame-id base-frame-id-name) "base_footprint")
           (base-controller-action-name "/base_controller/follow_joint_trajectory")
+          (base-controller-joint-names (list "base_link_x" "base_link_y" "base_link_pan"))
 	  ((:odom-topic odom-topic-name) "/base_odometry/odom") &allow-other-keys)
    (prog1 (send-super* :init args)
      (setq base-frame-id base-frame-id-name)
@@ -1245,7 +1246,8 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
                        :groupname groupname))
        (unless (send move-base-trajectory-action :wait-for-server 3)
          (ros::ros-warn "move-base-trajectory-action is not found")
-         (setq move-base-trajectory-action nil)))
+         (setq move-base-trajectory-action nil))
+       (setq move-base-trajectory-joint-names base-controller-joint-names))
      (ros::subscribe odom-topic-name nav_msgs::Odometry
 		     #'send self :odom-callback :groupname groupname)
      ))
@@ -1611,7 +1613,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
            (cur-time 0) (nxt-time 0)
            cds-lst pts-msg-lst
            cur-cds nxt-cds)
-       (send msg :joint_names (list "base_link_x" "base_link_y" "base_link_pan"))
+       (send msg :joint_names move-base-trajectory-joint-names)
        ;; parse start-time
        (cond
          ((numberp start-time)
