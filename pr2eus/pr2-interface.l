@@ -289,9 +289,9 @@ Example: (send self :gripper :rarm :position) => 0.00"
    ;; for real robot
    (let ((clients (case arm
                     (:rarm (list (cons :r_gripper_joint r-gripper-action)))
-                    (:larm (list (cons :r_gripper_joint l-gripper-action)))
+                    (:larm (list (cons :l_gripper_joint l-gripper-action)))
                     (:arms (list (cons :r_gripper_joint r-gripper-action)
-				 (cons :l_gripper_joint l-gripper-action)))
+                                 (cons :l_gripper_joint l-gripper-action)))
                     (t (ros::ros-warn "arm[~a] in :move-gripper is invalid type" arm))))
          aresult ajoint (resend-goal t) (resend-count 0) ret)
      (while (and resend-goal (< resend-count 2))
