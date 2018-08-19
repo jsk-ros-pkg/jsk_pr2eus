@@ -189,7 +189,7 @@
     (setq tm-diff (send (ros::time- tm-1 tm-0) :to-sec))
     (ros::ros-info "time for duration ~A" tm-diff)
     (assert (> tm-diff 5) (format nil "start-offset-time is ignored. Traj finishes at ~A" tm-diff))
-    (assert (< tm-diff 7) (format nil "start-offset-time is considered multiple times. Traj finishes at ~A" tm-diff))
+    (assert (< tm-diff 8) (format nil "start-offset-time is considered multiple times. Traj finishes at ~A" tm-diff))
     ))
 
 (run-all-tests)
