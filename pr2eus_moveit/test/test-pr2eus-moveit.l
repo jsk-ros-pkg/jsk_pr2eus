@@ -99,7 +99,7 @@
     (setq tm-list (mapcar #'(lambda (pt) (send (send pt :time_from_start) :to-sec))
                           (send motion-plan-res :trajectory :joint_trajectory :points)))
     (setq sorted-tm-list (copy-object tm-list))
-    (sort sorted-tm-list #'<)
+    (sort sorted-tm-list #'<=)
     (assert (equal tm-list sorted-tm-list) "time_from_start is not arranged in ascending order")
     ))
 
