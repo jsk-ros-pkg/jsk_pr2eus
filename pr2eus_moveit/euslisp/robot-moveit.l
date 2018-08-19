@@ -521,12 +521,10 @@
           (when time-from-start
             (dolist (pt points)
               (send pt :time_from_start
-                    (ros::time (+ time-from-start
-                                  (send (send pt :time_from_start) :to-sec)))))
+                    (ros::time+ time-from-start (send pt :time_from_start))))
             (dolist (pt mdof-points)
               (send pt :time_from_start
-                    (ros::time (+ time-from-start
-                                  (send (send pt :time_from_start) :to-sec))))))
+                    (ros::time+ time-from-start (send pt :time_from_start)))))
           (send ret :planning_time (+ (send ret :planning_time) (send tmp-ret :planning_time)))
           (if (send ret :trajectory :joint_trajectory :points)
               (nconc (send ret :trajectory :joint_trajectory :points) points)
@@ -535,7 +533,7 @@
               (nconc (send ret :trajectory :multi_dof_joint_trajectory :points) mdof-points)
               (send ret :trajectory :multi_dof_joint_trajectory :points mdof-points))))
        (setq time-from-start
-             (send (send (car (last points)) :time_from_start) :to-sec))
+             (copy-object (send (car (last points)) :time_from_start)))
        (send robot :angle-vector tmp-av))
      ret))
   (:end-coords-make-trajectory (cds &rest args)
