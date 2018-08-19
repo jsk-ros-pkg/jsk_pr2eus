@@ -489,7 +489,7 @@
                   :get-ik-for-pose cds confkey :end-coords ed-lst args))
      ret))
   (:angle-vector-make-trajectory
-   (av &rest args &key (start-offset-time 0.01) &allow-other-keys)
+   (av &rest args)
    (let* ((r (send* self :parse-end-coords args))
           (confkey (car r))
           (ed-lst (cdr r))
@@ -522,12 +522,10 @@
             (dolist (pt points)
               (send pt :time_from_start
                     (ros::time (+ time-from-start
-                                  start-offset-time
                                   (send (send pt :time_from_start) :to-sec)))))
             (dolist (pt mdof-points)
               (send pt :time_from_start
                     (ros::time (+ time-from-start
-                                  start-offset-time
                                   (send (send pt :time_from_start) :to-sec))))))
           (send ret :planning_time (+ (send ret :planning_time) (send tmp-ret :planning_time)))
           (if (send ret :trajectory :joint_trajectory :points)
@@ -671,7 +669,7 @@
      (send* self :planning-environment
             :get-ik-for-pose cds confkey :end-coords ed-lst :use-multi-dof use-base args)))
   (:angle-vector-make-trajectory
-   (av &rest args &key (start-offset-time 0.01) &allow-other-keys)
+   (av &rest args)
    (when (member :use-base args)
      ;; set current base position to goal constraints
      (let* ((odom->base (send *tfl* :lookup-transform
@@ -682,8 +680,7 @@
          (if (member :extra-goal-constraints args)
              (nconc (cdr (assoc :extra-goal-constraints args)) consts)
              (setq args (append args (list :extra-goal-constraints consts))))))
-   (send-super* :angle-vector-make-trajectory av
-                :start-offset-time start-offset-time args))
+   (send-super* :angle-vector-make-trajectory av args))
   (:end-coords-make-trajectory
    (cds &rest args)
    ;; TODO set base position as initial state
