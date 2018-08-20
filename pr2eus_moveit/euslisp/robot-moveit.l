@@ -527,10 +527,18 @@
                     (ros::time+ time-from-start (send pt :time_from_start)))))
           (send ret :planning_time (+ (send ret :planning_time) (send tmp-ret :planning_time)))
           (if (send ret :trajectory :joint_trajectory :points)
-              (nconc (send ret :trajectory :joint_trajectory :points) points)
+              (when points
+                (when (ros::time= (send (car points) :time_from_start) time-from-start)
+                  ;; First point of newly planned traj overlaps with last point of existing traj
+                  (pop points))
+                (nconc (send ret :trajectory :joint_trajectory :points) points))
               (send ret :trajectory :joint_trajectory :points points))
-          (if (send ret :trajectory :multi_dof_joint_trajectory)
-              (nconc (send ret :trajectory :multi_dof_joint_trajectory :points) mdof-points)
+          (if (send ret :trajectory :multi_dof_joint_trajectory :points)
+              (when mdof-points
+                (when (ros::time= (send (car mdof-points) :time_from_start) time-from-start)
+                  ;; First point of newly planned traj overlaps with last point of existing traj
+                  (pop mdof-points))
+                (nconc (send ret :trajectory :multi_dof_joint_trajectory :points) mdof-points))
               (send ret :trajectory :multi_dof_joint_trajectory :points mdof-points))))
        (setq time-from-start
              (copy-object (send (car (last points)) :time_from_start)))
