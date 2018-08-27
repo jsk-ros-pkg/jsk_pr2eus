@@ -649,11 +649,15 @@
          (when clear-velocities
            (send pt :velocities #f())
            (send pt :accelerations #f()))
+         (send pt :velocities
+               (map float-vector #'(lambda (x) (/ x time-scale)) (send pt :velocities)))
          (send pt :time_from_start (ros::time (* time-scale (send (send pt :time_from_start) :to-sec)))))
        (dolist (pt mdof-points)
          (when clear-velocities
            (send pt :velocities nil)
            (send pt :accelerations nil))
+         (send pt :velocities
+               (map float-vector #'(lambda (x) (/ x time-scale)) (send pt :velocities)))
          (send pt :time_from_start (ros::time (* time-scale (send (send pt :time_from_start) :to-sec))))))
        traj))
   ) ;; robot-interface
