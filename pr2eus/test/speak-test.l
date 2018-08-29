@@ -42,6 +42,12 @@
 ;;  (assert (send *ri* :speak-jp "やあ" :wait t))
 )
 
+(deftest test-speak-file ()
+  (assert (speak (pathname "/usr/share/sounds/alsa/Front_Left.wav"))))
+
+(deftest test-ri-speak-file ()
+  (assert (send *ri* :speak (pathname "/usr/share/sounds/alsa/Front_Left.wav"))))
+
 (run-all-tests)
 (exit)
 
