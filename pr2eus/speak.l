@@ -20,7 +20,7 @@
        (send msg :sound sound))
       ((pathnamep sound)
        (send msg :sound sound_play::SoundRequest::*play_file*)
-       (send msg :arg sound))
+       (send msg :arg (namestring sound)))
       (t
        (send msg :sound sound_play::SoundRequest::*say*)
        (send msg :arg (string sound))))
