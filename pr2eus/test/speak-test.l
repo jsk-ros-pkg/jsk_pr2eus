@@ -29,7 +29,7 @@
 
 (deftest test-speak-jp ()
   (assert (speak-jp "こんにちは"))
-;;  (assert (speak-jp "こんにちは" :wait t))
+  (assert (speak-jp "こんにちは" :wait t))
 )
 
 (deftest test-ri-speak-en ()
@@ -39,7 +39,7 @@
 
 (deftest test-ri-speak-jp ()
   (assert (send *ri* :speak-jp "やあ"))
-;;  (assert (send *ri* :speak-jp "やあ" :wait t))
+  (assert (send *ri* :speak-jp "やあ" :wait t))
 )
 
 (run-all-tests)
