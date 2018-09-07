@@ -565,14 +565,14 @@
          (ros::ros-error "Trajectory has very short duration")
          (return-from :angle-vector-motion-plan nil))
        (ros::ros-warn "reset Trajectory Total time")
-       (setq traj (send* self :trajectory-filter traj :start-offset-time start-offset-time :total-time reset-total-time args)))
+       (setq traj (send* self :trajectory-filter traj :total-time reset-total-time args)))
      (ros::ros-info ";; Planned Trajectory Total Time ~7,3f [sec]" orig-total-time)
      (setq total-time
            (cond
              ((eq total-time :fast) (* scale (* orig-total-time 1000)))
              ((or (null total-time) (> orig-total-time (/ total-time 1000.0))) (* orig-total-time 1000))
              (t total-time)))
-     (setq traj (send* self :trajectory-filter traj :start-offset-time start-offset-time :total-time total-time args))
+     (setq traj (send* self :trajectory-filter traj :total-time total-time args))
      (ros::ros-info ";; Scaled Trajectory Total Time ~0,3f(~0,3f) [sec]" (send (send (car (last (send traj :joint_trajectory :points))) :time_from_start) :to-sec) (/ total-time 1000.0))
      (ros::ros-info ";; generated ~A points for ~A sec using [~A] group" (length (send traj :joint_trajectory :points)) (/ total-time 1000.0) (send ret :group_name))
      (ros::ros-info ";; will send to ~A" (send traj :joint_trajectory :joint_names))
@@ -626,12 +626,11 @@
          (send* self :send-trajectory (send traj :joint_trajectory) args))
      ret))
   (:trajectory-filter ;; simple trajectory for zero duration
-   (traj &key (copy) (total-time 5000.0) (start-offset-time 0) (clear-velocities) &rest args &allow-other-keys)
+   (traj &key (copy) (total-time 5000.0) (clear-velocities) &rest args &allow-other-keys)
    "traj (moveit_msgs/RobotTrajectory): input trajectory"
    (let ((orig-total-time (send (send (car (last (send traj :joint_trajectory :points))) :time_from_start) :to-sec)))
      ;; check if valid filtering can be applied
-     (when (or (null start-offset-time)
-               (null total-time))
+     (when (null total-time)
        (ros::ros-debug ";; Trajectory filter is skipped")
        (return-from :trajectory-filter traj))
 
@@ -646,12 +645,12 @@
          (when clear-velocities
            (send pt :velocities #f())
            (send pt :accelerations #f()))
-         (send pt :time_from_start (ros::time (+ start-offset-time (* time-scale (send (send pt :time_from_start) :to-sec))))))
+         (send pt :time_from_start (ros::time (* time-scale (send (send pt :time_from_start) :to-sec)))))
        (dolist (pt mdof-points)
          (when clear-velocities
            (send pt :velocities nil)
            (send pt :accelerations nil))
-         (send pt :time_from_start (ros::time (+ start-offset-time (* time-scale (send (send pt :time_from_start) :to-sec)))))))
+         (send pt :time_from_start (ros::time (* time-scale (send (send pt :time_from_start) :to-sec))))))
        traj))
   ) ;; robot-interface
 
