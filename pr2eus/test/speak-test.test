@@ -3,6 +3,7 @@
 
   <node name="speak_test_node" pkg="roseus" type="roseus"
         args="$(find pr2eus)/test/speak-test.l" required="true" />
+  <test test-name="speak_test_node" pkg="pr2eus" type="speak-test.py" />
 
   <!-- sound_play could not run within travis -->
   <!-- <node pkg="sound_play" type="soundplay_node.py" name="sound_play"> -->
