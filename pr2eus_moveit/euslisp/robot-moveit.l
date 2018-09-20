@@ -489,7 +489,7 @@
                   :get-ik-for-pose cds confkey :end-coords ed-lst args))
      ret))
   (:angle-vector-make-trajectory
-   (av &rest args &key (start-offset-time 0.01) &allow-other-keys)
+   (av &rest args)
    (let* ((r (send* self :parse-end-coords args))
           (confkey (car r))
           (ed-lst (cdr r))
@@ -521,23 +521,27 @@
           (when time-from-start
             (dolist (pt points)
               (send pt :time_from_start
-                    (ros::time (+ time-from-start
-                                  start-offset-time
-                                  (send (send pt :time_from_start) :to-sec)))))
+                    (ros::time+ time-from-start (send pt :time_from_start))))
             (dolist (pt mdof-points)
               (send pt :time_from_start
-                    (ros::time (+ time-from-start
-                                  start-offset-time
-                                  (send (send pt :time_from_start) :to-sec))))))
+                    (ros::time+ time-from-start (send pt :time_from_start)))))
           (send ret :planning_time (+ (send ret :planning_time) (send tmp-ret :planning_time)))
           (if (send ret :trajectory :joint_trajectory :points)
-              (nconc (send ret :trajectory :joint_trajectory :points) points)
+              (when points
+                (when (ros::time= (send (car points) :time_from_start) time-from-start)
+                  ;; First point of newly planned traj overlaps with last point of existing traj
+                  (pop points))
+                (nconc (send ret :trajectory :joint_trajectory :points) points))
               (send ret :trajectory :joint_trajectory :points points))
-          (if (send ret :trajectory :multi_dof_joint_trajectory)
-              (nconc (send ret :trajectory :multi_dof_joint_trajectory :points) mdof-points)
+          (if (send ret :trajectory :multi_dof_joint_trajectory :points)
+              (when mdof-points
+                (when (ros::time= (send (car mdof-points) :time_from_start) time-from-start)
+                  ;; First point of newly planned traj overlaps with last point of existing traj
+                  (pop mdof-points))
+                (nconc (send ret :trajectory :multi_dof_joint_trajectory :points) mdof-points))
               (send ret :trajectory :multi_dof_joint_trajectory :points mdof-points))))
        (setq time-from-start
-             (send (send (car (last points)) :time_from_start) :to-sec))
+             (copy-object (send (car (last points)) :time_from_start)))
        (send robot :angle-vector tmp-av))
      ret))
   (:end-coords-make-trajectory (cds &rest args)
@@ -671,7 +675,7 @@
      (send* self :planning-environment
             :get-ik-for-pose cds confkey :end-coords ed-lst :use-multi-dof use-base args)))
   (:angle-vector-make-trajectory
-   (av &rest args &key (start-offset-time 0.01) &allow-other-keys)
+   (av &rest args)
    (when (member :use-base args)
      ;; set current base position to goal constraints
      (let* ((odom->base (send *tfl* :lookup-transform
@@ -682,8 +686,7 @@
          (if (member :extra-goal-constraints args)
              (nconc (cdr (assoc :extra-goal-constraints args)) consts)
              (setq args (append args (list :extra-goal-constraints consts))))))
-   (send-super* :angle-vector-make-trajectory av
-                :start-offset-time start-offset-time args))
+   (send-super* :angle-vector-make-trajectory av args))
   (:end-coords-make-trajectory
    (cds &rest args)
    ;; TODO set base position as initial state
