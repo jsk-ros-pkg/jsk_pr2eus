@@ -23,6 +23,14 @@
   (assert (send *ri* :angle-vector (send *robot* :angle-vector) 2000))
   )
 
+(deftest test-end-coords-interpolation
+  (assert (send *robot* :reset-pose))
+  (assert (send *robot* :larm :move-end-pos #f(50 0 0) :world))
+  (assert (send *robot* :rarm :move-end-pos #f(50 0 0) :world))
+  (assert (send *ri* :angle-vector (send *robot* :angle-vector) 1000 nil 0
+                :end-coords-interpolation t))
+  )
+
 (deftest test-wait-interpolation
   (assert (send *robot* :reset-pose))
   (assert (send *ri* :angle-vector (send *robot* :angle-vector) 2000))
