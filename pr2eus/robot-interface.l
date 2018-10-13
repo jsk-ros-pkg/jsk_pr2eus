@@ -45,7 +45,10 @@
    (let ((finish-time) (current-time))
      (ros::ros-debug "[~A] feedback-cb ~A" ros::name-space msg)
      (setq last-feedback-msg-stamp (send msg :header :stamp))
-     (unless (and (send ros::comm-state :action-goal) (not (equal (send (class ros::action-spec) :name) 'control_msgs::SingleJointPositionAction))) (return-from :action-feedback-cb nil))
+     (unless (and (send ros::comm-state :action-goal)
+                  (not (equal (send (class ros::action-spec) :name)
+                              'control_msgs::SingleJointPositionAction)))
+       (return-from :action-feedback-cb nil))
      (cond ((derivedp msg control_msgs::followjointtrajectoryactionfeedback)
             (setq current-time (send msg :feedback :error :time_from_start)))
            (t
@@ -477,7 +480,7 @@
            (if target-limbs
                (progn
                  (send minjerk :start-interpolation)
-		 (send minjerk :pass-time pass-tm)
+                 (send minjerk :pass-time pass-tm)
                  (while (progn (send minjerk :pass-time pass-tm) (send minjerk :interpolatingp))
                    (setq p (elt (send minjerk :position) 0))
                    ;; set midpoint of av as initial pose of IK
