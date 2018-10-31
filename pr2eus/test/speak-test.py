@@ -37,7 +37,8 @@ class TestSpeak(unittest.TestCase):
             rospy.sleep(1)
         rospy.logwarn("check speak_msg")
         self.assertTrue(self.speak_msg.command == SoundRequest.PLAY_ONCE)
-        self.assertTrue(self.speak_msg.volume > 0)
+        if hasattr(SoundRequest, 'volume'): # volume is added from 0.3.0 https://github.com/ros-drivers/audio_common/commit/da9623414f381642e52f59701c09928c72a54be7#diff-fe2d85580f1ccfed4e23a608df44a7f7
+            self.assertTrue(self.speak_msg.volume > 0)
         self.assertTrue(len(self.speak_msg.arg) > 0)
         
         while self.speak_msg_jp == None:
@@ -45,7 +46,8 @@ class TestSpeak(unittest.TestCase):
             rospy.sleep(1)
         rospy.logwarn("check speak_msg")
         self.assertTrue(self.speak_msg_jp.command == SoundRequest.PLAY_ONCE)
-        self.assertTrue(self.speak_msg_jp.volume > 0)
+        if hasattr(SoundRequest, 'volume'):
+            self.assertTrue(self.speak_msg_jp.volume > 0)
         self.assertTrue(len(self.speak_msg_jp.arg) > 0)
 
 if __name__ == '__main__':
