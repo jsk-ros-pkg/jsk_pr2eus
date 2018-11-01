@@ -20,14 +20,13 @@ env:
     - ROS_PARALLEL_TEST_JOBS="-j1"
     - USE_DOCKER=true
   matrix:
-    - ROS_DISTRO=hydro   USE_DEB=true
     - ROS_DISTRO=indigo  USE_DEB=true EXTRA_DEB="ros-indigo-pr2-gazebo ros-indigo-pr2-arm-kinematics"
-    - ROS_DISTRO=jade    USE_DEB=true
     - ROS_DISTRO=kinetic USE_DEB=true
+    - ROS_DISTRO=melodic USE_DEB=true
 matrix:
   fast_finish: true
-  allow_failures:
-    - env: ROS_DISTRO=hydro   USE_DEB=true
+  # allow_failures:
+  #   - env: ROS_DISTRO=melodic USE_DEB=true
 script: source .travis/travis.sh
 after_success:
   - TRAVIS_JOB_SUBNUMBER="${TRAVIS_JOB_NUMBER##*.}"
