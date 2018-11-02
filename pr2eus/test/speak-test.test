@@ -21,14 +21,14 @@
     <param name="~topic" value="robotsound"  unless="$(arg test_action)" />
     <param name="~topic" value="robotsound/goal" if="$(arg test_action)" />
     <param name="hz" value="10" />
-    <param name="hzerror" value="10" />
+    <param name="hzerror" value="1000000" /> <!-- we just want to check if the topic is published or not, so we'll use publishtest in future -->
     <param name="test_duration" value="10" />
   </test>
   <test pkg="rostest" type="hztest" test-name="hz_test_sound_play_jp" >
     <param name="~topic" value="robotsound_jp"  unless="$(arg test_action)" />
     <param name="~topic" value="robotsound_jp/goal" if="$(arg test_action)" />
     <param name="hz" value="10" />
-    <param name="hzerror" value="10" />
+    <param name="hzerror" value="1000000" />
     <param name="test_duration" value="10" />
   </test>
 </launch>
