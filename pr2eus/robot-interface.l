@@ -443,6 +443,7 @@
        (ros::ros-warn "length of tms should be the same or smaller than avs")
        (setq tms (subseq tms 0 (length avs)))))
      (when end-coords-interpolation ;; set end-coords interpolation
+       (setq min-time (/ (float min-time) end-coords-interpolation-steps))
        (let ((av-orig (send robot :angle-vector)) ;; initial av, restore at end
              (c-orig  (send robot :copy-worldcoords)) ;; inital coords, restore at end
              (av-prev-orig av-prev) ;; prev-av
