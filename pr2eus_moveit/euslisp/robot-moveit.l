@@ -489,7 +489,7 @@
                   :get-ik-for-pose cds confkey :end-coords ed-lst args))
      ret))
   (:angle-vector-make-trajectory
-   (av &rest args &key (start-offset-time 0.01) &allow-other-keys)
+   (av &rest args)
    (let* ((r (send* self :parse-end-coords args))
           (confkey (car r))
           (ed-lst (cdr r))
@@ -512,33 +512,37 @@
                     :end-coords ed-lst args))
        (unless tmp-ret
          (return-from :angle-vector-make-trajectory nil))
+       (setq points (send tmp-ret :trajectory :joint_trajectory :points))
        (cond
          ((null ret)
           (setq ret tmp-ret))
          (t
-          (setq points (send tmp-ret :trajectory :joint_trajectory :points)
-                mdof-points (send tmp-ret :trajectory :multi_dof_joint_trajectory :points))
+          (setq mdof-points (send tmp-ret :trajectory :multi_dof_joint_trajectory :points))
           (when time-from-start
             (dolist (pt points)
               (send pt :time_from_start
-                    (ros::time (+ time-from-start
-                                  start-offset-time
-                                  (send (send pt :time_from_start) :to-sec)))))
+                    (ros::time+ time-from-start (send pt :time_from_start))))
             (dolist (pt mdof-points)
               (send pt :time_from_start
-                    (ros::time (+ time-from-start
-                                  start-offset-time
-                                  (send (send pt :time_from_start) :to-sec))))))
+                    (ros::time+ time-from-start (send pt :time_from_start)))))
           (send ret :planning_time (+ (send ret :planning_time) (send tmp-ret :planning_time)))
           (if (send ret :trajectory :joint_trajectory :points)
-              (nconc (send ret :trajectory :joint_trajectory :points) points)
+              (when points
+                (when (ros::time= (send (car points) :time_from_start) time-from-start)
+                  ;; First point of newly planned traj overlaps with last point of existing traj
+                  (pop points))
+                (nconc (send ret :trajectory :joint_trajectory :points) points))
               (send ret :trajectory :joint_trajectory :points points))
-          (if (send ret :trajectory :multi_dof_joint_trajectory)
-              (nconc (send ret :trajectory :multi_dof_joint_trajectory :points) mdof-points)
-              (send ret :trajectory :multi_dof_joint_trajectory :points mdof-points))
-          (setq time-from-start
-                (send (send (car (last points)) :time_from_start) :to-sec))
-          (send robot :angle-vector tmp-av))))
+          (if (send ret :trajectory :multi_dof_joint_trajectory :points)
+              (when mdof-points
+                (when (ros::time= (send (car mdof-points) :time_from_start) time-from-start)
+                  ;; First point of newly planned traj overlaps with last point of existing traj
+                  (pop mdof-points))
+                (nconc (send ret :trajectory :multi_dof_joint_trajectory :points) mdof-points))
+              (send ret :trajectory :multi_dof_joint_trajectory :points mdof-points))))
+       (setq time-from-start
+             (copy-object (send (car (last points)) :time_from_start)))
+       (send robot :angle-vector tmp-av))
      ret))
   (:end-coords-make-trajectory (cds &rest args)
    (let* ((r (send* self :parse-end-coords args))
@@ -565,14 +569,14 @@
          (ros::ros-error "Trajectory has very short duration")
          (return-from :angle-vector-motion-plan nil))
        (ros::ros-warn "reset Trajectory Total time")
-       (setq traj (send* self :trajectory-filter traj :start-offset-time start-offset-time :total-time reset-total-time args)))
+       (setq traj (send* self :trajectory-filter traj :total-time reset-total-time args)))
      (ros::ros-info ";; Planned Trajectory Total Time ~7,3f [sec]" orig-total-time)
      (setq total-time
            (cond
              ((eq total-time :fast) (* scale (* orig-total-time 1000)))
              ((or (null total-time) (> orig-total-time (/ total-time 1000.0))) (* orig-total-time 1000))
              (t total-time)))
-     (setq traj (send* self :trajectory-filter traj :start-offset-time start-offset-time :total-time total-time args))
+     (setq traj (send* self :trajectory-filter traj :total-time total-time args))
      (ros::ros-info ";; Scaled Trajectory Total Time ~0,3f(~0,3f) [sec]" (send (send (car (last (send traj :joint_trajectory :points))) :time_from_start) :to-sec) (/ total-time 1000.0))
      (ros::ros-info ";; generated ~A points for ~A sec using [~A] group" (length (send traj :joint_trajectory :points)) (/ total-time 1000.0) (send ret :group_name))
      (ros::ros-info ";; will send to ~A" (send traj :joint_trajectory :joint_names))
@@ -626,12 +630,11 @@
          (send* self :send-trajectory (send traj :joint_trajectory) args))
      ret))
   (:trajectory-filter ;; simple trajectory for zero duration
-   (traj &key (copy) (total-time 5000.0) (start-offset-time 0) (clear-velocities) &rest args &allow-other-keys)
+   (traj &key (copy) (total-time 5000.0) (clear-velocities) &rest args &allow-other-keys)
    "traj (moveit_msgs/RobotTrajectory): input trajectory"
    (let ((orig-total-time (send (send (car (last (send traj :joint_trajectory :points))) :time_from_start) :to-sec)))
      ;; check if valid filtering can be applied
-     (when (or (null start-offset-time)
-               (null total-time))
+     (when (null total-time)
        (ros::ros-debug ";; Trajectory filter is skipped")
        (return-from :trajectory-filter traj))
 
@@ -643,15 +646,31 @@
             (time-step (/ 1 (float (1- size))))
             (time-scale (/ (/ total-time 1000.0) orig-total-time)))
        (dolist (pt points)
-         (when clear-velocities
-           (send pt :velocities #f())
-           (send pt :accelerations #f()))
-         (send pt :time_from_start (ros::time (+ start-offset-time (* time-scale (send (send pt :time_from_start) :to-sec))))))
+         (if clear-velocities
+           (progn
+             (send pt :velocities #f())
+             (send pt :accelerations #f()))
+           (progn
+             (send pt :velocities
+                   (map float-vector #'(lambda (x) (/ x time-scale)) (send pt :velocities)))
+             (send pt :accelerations
+                   (map float-vector #'(lambda (x) (/ x (expt time-scale 2))) (send pt :accelerations)))))
+         (send pt :time_from_start (ros::time (* time-scale (send (send pt :time_from_start) :to-sec)))))
        (dolist (pt mdof-points)
-         (when clear-velocities
-           (send pt :velocities nil)
-           (send pt :accelerations nil))
-         (send pt :time_from_start (ros::time (+ start-offset-time (* time-scale (send (send pt :time_from_start) :to-sec)))))))
+         (if clear-velocities
+           (progn
+             (send pt :velocities nil)
+             (send pt :accelerations nil))
+           (progn
+             (dolist (twist-key (list :linear :angular))
+               (dolist (vec-key (list :x :y :z))
+                 (dolist (vel (send pt :velocities))
+                   (send vel twist-key vec-key
+                         (/ (send vel twist-key vec-key) time-scale)))
+                 (dolist (acc (send pt :accelerations))
+                   (send acc twist-key vec-key
+                         (/ (send acc twist-key vec-key) (expt time-scale 2))))))))
+         (send pt :time_from_start (ros::time (* time-scale (send (send pt :time_from_start) :to-sec))))))
        traj))
   ) ;; robot-interface
 
@@ -672,7 +691,7 @@
      (send* self :planning-environment
             :get-ik-for-pose cds confkey :end-coords ed-lst :use-multi-dof use-base args)))
   (:angle-vector-make-trajectory
-   (av &rest args &key (start-offset-time 0.01) &allow-other-keys)
+   (av &rest args)
    (when (member :use-base args)
      ;; set current base position to goal constraints
      (let* ((odom->base (send *tfl* :lookup-transform
@@ -683,8 +702,7 @@
          (if (member :extra-goal-constraints args)
              (nconc (cdr (assoc :extra-goal-constraints args)) consts)
              (setq args (append args (list :extra-goal-constraints consts))))))
-   (send-super* :angle-vector-make-trajectory av
-                :start-offset-time start-offset-time args))
+   (send-super* :angle-vector-make-trajectory av args))
   (:end-coords-make-trajectory
    (cds &rest args)
    ;; TODO set base position as initial state
