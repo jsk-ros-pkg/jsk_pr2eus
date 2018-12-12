@@ -72,7 +72,7 @@
                           :positions (instantiate float-vector (length jn))
                           :time_from_start (ros::time 0.1))))
     (ros::publish (format nil "~A/goal" (send ca :name)) goal))
-  (assert (null (send *ri* :wait-interpolation-smooth 500))) ;; see https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/187#issuecomment-303074351
+  (assert (send *ri* :wait-interpolation-smooth 500))
   (assert (send *ri* :interpolating-smoothp 500)) ;; see https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/187#issuecomment-303074351
   )
 

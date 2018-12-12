@@ -39,6 +39,10 @@
     (send-super* :init args))
   (:last-feedback-msg-stamp () last-feedback-msg-stamp)
   (:time-to-finish ()
+    (when (send ri :simulation-modep)
+      (if (numberp (car timer-sequence))
+        (setq time-to-finish (- (car timer-sequence) current-time))
+        (setq time-to-finish 0.0)))
     (ros::ros-debug "[~A] time-to-finish ~A" ros::name-space time-to-finish)
     time-to-finish)
   (:action-feedback-cb (msg)
@@ -46,12 +50,21 @@
      (ros::ros-debug "[~A] feedback-cb ~A" ros::name-space msg)
      (setq last-feedback-msg-stamp (send msg :header :stamp))
      (unless (and (send ros::comm-state :action-goal) (not (equal (send (class ros::action-spec) :name) 'control_msgs::SingleJointPositionAction))) (return-from :action-feedback-cb nil))
-     (cond ((derivedp msg control_msgs::followjointtrajectoryactionfeedback)
-            (setq current-time (send msg :feedback :error :time_from_start)))
-           (t
-            (ros::ros-warn "feedback message type is not control_msgs/FollowJointTrajectoryActionFeedback.")
-            ;; e.g. Type: pr2_controllers_msgs/JointTrajectoryActionFeedback does not have :error
-            (setq current-time (ros::time- (ros::time-now) (send msg :status :goal_id :stamp)))))
+     ;; TODO: Use time_from_start of feedback.
+     ;; FIXME: Currently, time_from_start varies by robot.
+     ;; https://github.com/start-jsk/rtmros_common/pull/1052#issuecomment-404753185
+     ;; (cond ((derivedp msg control_msgs::followjointtrajectoryactionfeedback)
+     ;;        (setq current-time (send msg :feedback :error :time_from_start)))
+     ;;       (t
+     ;;        (ros::ros-warn "feedback message type is not control_msgs/FollowJointTrajectoryActionFeedback.")
+     ;;        ;; e.g. Type: pr2_controllers_msgs/JointTrajectoryActionFeedback does not have :error
+     ;;        (setq current-time (ros::time- (ros::time-now) (send msg :status :goal_id :stamp)))))
+
+     ;; NOTE: Use stamp of feedback msg instead of (ros::time-now) to depend on feedback.
+     ;; NOTE: As stamp of goal_id is when goal is accepted, it may be different from trajectory start time.
+     ;; NOTE: So trajectory start time is got from stamp of goal trajectory instead of goal_id stamp.
+     (setq current-time (ros::time- (send msg :header :stamp)
+                                    (send (send ros::comm-state :action-goal) :goal :trajectory :header :stamp)))
      (setq finish-time (send (car (last (send (send ros::comm-state :action-goal) :goal :trajectory :points))) :time_from_start))
      (if (string= (send (send ros::comm-state :action-goal) :goal_id :id)
                   (send msg :status :goal_id :id))
@@ -616,7 +629,7 @@ return t if interpolating"
 	(dolist (av (list av1 av2 av3 av4))
 	    (send *ri* :angle-vector av)
 	    (send *ri* :wait-interpolation-smooth 300))
-Return value is a list of interpolatingp for all controllers, so (null (some #'identity (send *ri* :wait-interpolation))) -> t if all interpolation has stopped"
+Return value is a list of interpolatingp for all controllers, so (null (some #'identity (send *ri* :wait-interpolation-smooth))) -> t if all interpolation has stopped"
     (when (not (send self :simulation-modep))
       (let ((tm (ros::time-now))
             (cacts (cond
@@ -631,16 +644,17 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
 								     (send goal :goal :min_duration))
 								    (t
 								     (send (car (last (send goal :goal :trajectory :points))) :time_from_start))))
-                                                  (ros::time-now)) :to-sec) 0))))
+                                                  (ros::time-now)) :to-sec) (/ time-to-finish 1000.0)))))
                      cacts)
           (send self :spin-once) ;; need to wait for feedback
           (send self :ros-wait 0.005))))
     (while (null (send self :interpolating-smoothp time-to-finish ctype))
-      (send self :ros-wait 0.005)))
+      (if (send self :simulation-modep)
+        (send self :robot-interface-simulation-callback)
+        (send self :ros-wait 0.005)))
+    (send-all controller-actions :interpolatingp))
   (:interpolating-smoothp (time-to-finish &optional (ctype)) ;; controller-type
 "Check if the last sent motion will stop for next time-to-finish [msec]"
-   (when (send self :simulation-modep)
-     (return-from :interpolating-smoothp t))
    (send self :spin-once)
    (every #'(lambda (x) (< x (/ time-to-finish 1000.0)))
           (cond
