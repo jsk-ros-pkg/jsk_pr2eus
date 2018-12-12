@@ -1,4 +1,8 @@
+(require :robot-interface "package://pr2eus/robot-interface.l")
 (require :robot-moveit "package://pr2eus_moveit/euslisp/robot-moveit.l")
+(require :pr2 "package://pr2eus/pr2.l")
+(require :pr2-utils "package://pr2eus/pr2-utils.l")
+(require :pr2-interface "package://pr2eus/pr2-interface.l")
 
 (defclass pr2-moveit-environment
   :super moveit-environment
@@ -83,5 +87,12 @@
         <group name="torso"/>
     <group/>
 |#
+
+
+(unless (fboundp 'pr2-init-org)
+  (setf (symbol-function 'pr2-init-org) (symbol-function 'pr2-init))
+  (defun pr2-init (&optional (create-viewer))
+    (pr2-init-org create-viewer)
+    (send *ri* :set-moveit-environment (instance pr2-moveit-environment :init))))
 
 (provide :pr2eus-moveit "pr2eus-moveit.l")
