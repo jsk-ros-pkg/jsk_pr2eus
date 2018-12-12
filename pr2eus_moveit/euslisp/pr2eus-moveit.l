@@ -49,6 +49,7 @@
                                          (send robot :larm :joint-list)
                                          (send robot :rarm :joint-list)))
                )
+         )))
 #| ;; sample of pr2_moveit_config/config/pr2.srdf
     <group name="base">
         <joint name="world_joint" />
@@ -82,6 +83,5 @@
         <group name="torso"/>
     <group/>
 |#
-         ))
 
 (provide :pr2eus-moveit "pr2eus-moveit.l")
