@@ -225,6 +225,25 @@
     (assert (null ret) "interpolation must be finished")
     ))
 
+(deftest test-end-coords-interpolation
+  (let (tm-0 tm-1 tm-diff)
+    (send *pr2* :reset-manip-pose)
+    (send *ri* :angle-vector (send *pr2* :angle-vector))
+    (send *ri* :wait-interpolation)
+    (send *pr2* :larm :move-end-pos #f(50 0 0) :world)
+    (send *pr2* :rarm :move-end-pos #f(50 0 0) :world)
+    (send *ri* :angle-vector (send *pr2* :angle-vector) 1000 nil 0
+          :min-time 1.0
+          :end-coords-interpolation t
+          :end-coords-interpolation-steps 10)
+    (setq tm-0 (ros::time-now))
+    (send *ri* :wait-interpolation)
+    (setq tm-1 (ros::time-now))
+    (setq tm-diff (send (ros::time- tm-1 tm-0) :to-sec))
+    (ros::ros-info "time for duration ~A" tm-diff)
+    (assert (< tm-diff 2) (format nil "end-coords-interpolation takes too long time ~A" tm-diff))
+    ))
+
 (run-all-tests)
 (exit)
 
