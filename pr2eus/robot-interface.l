@@ -81,7 +81,12 @@
           (setq current-time 0)
           )
         av)))
-  (:interpolatingp () (not (null timer-sequence)))
+  (:interpolatingp
+   ()
+   (cond ((send ri :simulation-modep)
+          (not (null timer-sequence)))
+         (t ;; real robot
+          (not (eq ros::simple-state ros::*simple-goal-state-done*)))))
   )
 
 (defclass robot-interface
@@ -438,6 +443,7 @@
        (ros::ros-warn "length of tms should be the same or smaller than avs")
        (setq tms (subseq tms 0 (length avs)))))
      (when end-coords-interpolation ;; set end-coords interpolation
+       (setq min-time (/ (float min-time) end-coords-interpolation-steps))
        (let ((av-orig (send robot :angle-vector)) ;; initial av, restore at end
              (c-orig  (send robot :copy-worldcoords)) ;; inital coords, restore at end
              (av-prev-orig av-prev) ;; prev-av
@@ -599,17 +605,12 @@
   (:interpolatingp (&optional (ctype)) ;; controller-type ;; check someone is moving
 "Check if the last sent motion is executing
 return t if interpolating"
-    (when (send self :simulation-modep)
-      (return-from :interpolatingp
-        (some #'(lambda (a) (send a :interpolatingp)) controller-actions)))
-    (send self :spin-once)
-    (cond
-     (ctype
-      (let ((cacts (gethash ctype controller-table)))
-        (some #'(lambda (x) (eq x ros::*simple-goal-state-active*))
-              (send-all cacts :get-state))))
-     (t (some #'(lambda (x) (eq x ros::*simple-goal-state-active*))
-              (send-all controller-actions :get-state)))))
+    (let (cacts)
+      (cond (ctype
+             (setq cacts (gethash ctype controller-table)))
+            (t
+             (setq cacts controller-actions)))
+      (some #'(lambda (a) (send a :interpolatingp)) cacts)))
   (:wait-interpolation-smooth (time-to-finish &optional (ctype))
 "Return time-to-finish [msec] before the sent command is finished. Example code are:
 	(dolist (av (list av1 av2 av3 av4))
@@ -1222,14 +1223,15 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
   :slots (move-base-action move-base-trajectory-action
           move-base-goal-msg move-base-goal-coords  move-base-goal-map-to-frame
           base-frame-id
-          odom-topic
-                           go-pos-unsafe-goal-msg
-                           current-goal-coords)) ;; for simulation-callback
+          odom-topic move-base-trajectory-joint-names
+          go-pos-unsafe-goal-msg
+          current-goal-coords)) ;; for simulation-callback
 (defmethod robot-move-base-interface
   (:init
    (&rest args &key
           (move-base-action-name "move_base") ((:base-frame-id base-frame-id-name) "base_footprint")
           (base-controller-action-name "/base_controller/follow_joint_trajectory")
+          (base-controller-joint-names (list "base_link_x" "base_link_y" "base_link_pan"))
 	  ((:odom-topic odom-topic-name) "/base_odometry/odom") &allow-other-keys)
    (prog1 (send-super* :init args)
      (setq base-frame-id base-frame-id-name)
@@ -1245,7 +1247,8 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
                        :groupname groupname))
        (unless (send move-base-trajectory-action :wait-for-server 3)
          (ros::ros-warn "move-base-trajectory-action is not found")
-         (setq move-base-trajectory-action nil)))
+         (setq move-base-trajectory-action nil))
+       (setq move-base-trajectory-joint-names base-controller-joint-names))
      (ros::subscribe odom-topic-name nav_msgs::Odometry
 		     #'send self :odom-callback :groupname groupname)
      ))
@@ -1367,7 +1370,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
      (if (null move-base-goal-msg) (return-from :move-to-wait nil))
      (while (and (null ret) (<= count retry))
        (when (> count 0) ;; retry
-         (clear-costmap :node-name (send move-base-action :name))
+         (send self :clear-costmap)
          (send move-base-goal-msg :header :seq count)
          (send move-base-goal-msg :goal :target_pose :header :seq count)
          (ros::ros-info "move-to : send-goal to ~A at ~A (~d)" (ros::tf-point->pos (send move-base-goal-msg :goal :target_pose :pose :position)) (send move-base-goal-msg :goal :target_pose :header :frame_id) count)
@@ -1611,7 +1614,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
            (cur-time 0) (nxt-time 0)
            cds-lst pts-msg-lst
            cur-cds nxt-cds)
-       (send msg :joint_names (list "base_link_x" "base_link_y" "base_link_pan"))
+       (send msg :joint_names move-base-trajectory-joint-names)
        ;; parse start-time
        (cond
          ((numberp start-time)
@@ -1720,6 +1723,27 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
    )) ;; when
    (send-super :robot-interface-simulation-callback)
    )
+  (:clear-costmap
+   ()
+   "Send signal to clear costmap for obstacle avoidance to move_base."
+   (let ((srv-name (format nil "~A/clear_costmaps" (send move-base-action :name))))
+     (if (ros::wait-for-service srv-name 0)
+         (call-empty-service srv-name)))
+   t)
+  (:change-inflation-range
+   (&optional (range 0.2)
+    &key (node-name "/move_base_node")
+         (costmap-name "local_costmap")
+         (inflation-name "inflation"))
+   "Changes inflation range of local costmap for obstacle avoidance."
+   (let ((srv-name (format nil "~A/~A/~A/set_parameters" node-name costmap-name inflation-name))
+         (req (instance dynamic_reconfigure::ReconfigureRequest :init)))
+     (send req :config :doubles
+           (list (instance dynamic_reconfigure::DoubleParameter :init
+                           :name "inflation_radius" :value range)))
+     (if (ros::wait-for-service srv-name 0)
+         (ros::service-call srv-name req)))
+   t)
 )
 
 ;;;;
@@ -1840,7 +1864,13 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
 
 (defun clear-costmap (&key (node-name "/move_base_node"))
   "reset local costmap and clear unknown grid around robot"
-  (call-empty-service (format nil "/~A/clear_costmaps" node-name)))
+  (if (and (boundp '*ri*) (derivedp *ri* robot-move-base-interface))
+      (send *ri* :clear-costmap)
+      ;; for backward compatibility
+      (let ((srv-name (format nil "/~A/clear_costmaps" node-name)))
+        (if (ros::wait-for-service srv-name 0)
+            (call-empty-service srv-name))))
+  t)
 
 (defun change-inflation-range (&optional (range 0.2)
                                          &key (node-name "/move_base_node")
@@ -1848,12 +1878,17 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
                                               (inflation-name "inflation")
                                          )
   "change inflation range of local costmap"
-  (let ((req (instance dynamic_reconfigure::ReconfigureRequest :init)))
-    (send req :config :doubles
-          (list (instance dynamic_reconfigure::DoubleParameter :init
-                          :name "inflation_radius" :value range)))
-    (ros::service-call (format nil "~A/~A/~A/set_parameters" node-name costmap-name inflation-name) req)
-    ))
+  (if (and (boundp '*ri*) (derivedp *ri* robot-move-base-interface))
+      (send *ri* :change-inflation-range range)
+      ;; for backward compatibility
+      (let ((srv-name (format nil "~A/~A/~A/set_parameters" node-name costmap-name inflation-name))
+            (req (instance dynamic_reconfigure::ReconfigureRequest :init)))
+        (send req :config :doubles
+              (list (instance dynamic_reconfigure::DoubleParameter :init
+                              :name "inflation_radius" :value range)))
+        (if (ros::wait-for-service srv-name 0)
+            (ros::service-call srv-name req))))
+  t)
 
 ;;
 ;; robot-init

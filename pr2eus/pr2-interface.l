@@ -16,7 +16,6 @@
 	 (exit 0))))
 
 (ros::load-ros-manifest "control_msgs")
-(ros::load-ros-manifest "pr2eus")
 (ros::load-ros-manifest "pr2_msgs")
 (ros::load-ros-manifest "pr2_controllers_msgs")
 (ros::load-ros-manifest "pr2_mechanism_msgs")
@@ -103,12 +102,13 @@
    (ros::ros-info "wait-interpolation debug: start")
    (send-super :wait-interpolation ctype timeout)
    (ros::ros-info "wait-interpolation debug: end")
-   (while (ros::ok)
-    (send self :update-robot-state)
-     (when (every #'(lambda(x)(< (abs (send x :joint-velocity))
-                                 (if (derivedp x rotational-joint) 0.05 0.001)))
-                  (send robot :joint-list))
-       (return)))
+   (if (eps= timeout 0)
+       (while (ros::ok)
+         (send self :update-robot-state)
+         (when (every #'(lambda(x)(< (abs (send x :joint-velocity))
+                                     (if (derivedp x rotational-joint) 0.05 0.001)))
+                      (send robot :joint-list))
+           (return))))
    (send-all controller-actions :interpolatingp))
   ;;
   ;;
@@ -552,6 +552,16 @@ Example: (send self :gripper :rarm :position) => 0.00"
        (push "r_arm_controller" start))
      (send self :switch-controller stop start))))
 
+;; pr2 costmap
+(defmethod pr2-interface
+  (:change-inflation-range
+   (&optional (range 0.3))
+   "Changes inflation range of local costmap for obstacle avoidance."
+   (send-super :change-inflation-range range
+               :node-name "move_base_node"
+               :costmap-name "local_costmap"
+               :inflation-name "inflation_layer"))
+) ;; pr2 costmap
 
 ;;;;;
 ;;;;; utility functions pr2 robot
@@ -672,4 +682,3 @@ Example: (send self :gripper :rarm :position) => 0.00"
   (let ((req (instance topic_tools::MuxSelectRequest :init
                        :topic (if enable "ground_object_cloud" "empty_cloud"))))
     (ros::service-call "/tilt_laser_mux/select" req)))
-
