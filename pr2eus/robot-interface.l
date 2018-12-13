@@ -1373,7 +1373,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
      (if (null move-base-goal-msg) (return-from :move-to-wait nil))
      (while (and (null ret) (<= count retry))
        (when (> count 0) ;; retry
-         (clear-costmap :node-name (send move-base-action :name))
+         (send self :clear-costmap)
          (send move-base-goal-msg :header :seq count)
          (send move-base-goal-msg :goal :target_pose :header :seq count)
          (ros::ros-info "move-to : send-goal to ~A at ~A (~d)" (ros::tf-point->pos (send move-base-goal-msg :goal :target_pose :pose :position)) (send move-base-goal-msg :goal :target_pose :header :frame_id) count)
@@ -1726,6 +1726,27 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
    )) ;; when
    (send-super :robot-interface-simulation-callback)
    )
+  (:clear-costmap
+   ()
+   "Send signal to clear costmap for obstacle avoidance to move_base."
+   (let ((srv-name (format nil "~A/clear_costmaps" (send move-base-action :name))))
+     (if (ros::wait-for-service srv-name 0)
+         (call-empty-service srv-name)))
+   t)
+  (:change-inflation-range
+   (&optional (range 0.2)
+    &key (node-name "/move_base_node")
+         (costmap-name "local_costmap")
+         (inflation-name "inflation"))
+   "Changes inflation range of local costmap for obstacle avoidance."
+   (let ((srv-name (format nil "~A/~A/~A/set_parameters" node-name costmap-name inflation-name))
+         (req (instance dynamic_reconfigure::ReconfigureRequest :init)))
+     (send req :config :doubles
+           (list (instance dynamic_reconfigure::DoubleParameter :init
+                           :name "inflation_radius" :value range)))
+     (if (ros::wait-for-service srv-name 0)
+         (ros::service-call srv-name req)))
+   t)
 )
 
 ;;;;
@@ -1846,7 +1867,13 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
 
 (defun clear-costmap (&key (node-name "/move_base_node"))
   "reset local costmap and clear unknown grid around robot"
-  (call-empty-service (format nil "/~A/clear_costmaps" node-name)))
+  (if (and (boundp '*ri*) (derivedp *ri* robot-move-base-interface))
+      (send *ri* :clear-costmap)
+      ;; for backward compatibility
+      (let ((srv-name (format nil "/~A/clear_costmaps" node-name)))
+        (if (ros::wait-for-service srv-name 0)
+            (call-empty-service srv-name))))
+  t)
 
 (defun change-inflation-range (&optional (range 0.2)
                                          &key (node-name "/move_base_node")
@@ -1854,12 +1881,17 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
                                               (inflation-name "inflation")
                                          )
   "change inflation range of local costmap"
-  (let ((req (instance dynamic_reconfigure::ReconfigureRequest :init)))
-    (send req :config :doubles
-          (list (instance dynamic_reconfigure::DoubleParameter :init
-                          :name "inflation_radius" :value range)))
-    (ros::service-call (format nil "~A/~A/~A/set_parameters" node-name costmap-name inflation-name) req)
-    ))
+  (if (and (boundp '*ri*) (derivedp *ri* robot-move-base-interface))
+      (send *ri* :change-inflation-range range)
+      ;; for backward compatibility
+      (let ((srv-name (format nil "~A/~A/~A/set_parameters" node-name costmap-name inflation-name))
+            (req (instance dynamic_reconfigure::ReconfigureRequest :init)))
+        (send req :config :doubles
+              (list (instance dynamic_reconfigure::DoubleParameter :init
+                              :name "inflation_radius" :value range)))
+        (if (ros::wait-for-service srv-name 0)
+            (ros::service-call srv-name req))))
+  t)
 
 ;;
 ;; robot-init
