@@ -95,8 +95,8 @@
   (let* ((lang (or (ros::get-param "speak_language") "en"))
          (speak-string (cdr (assoc lang speach-string-candidates :test #'string=)))
          (speak-func
-          (if (fboundp (eval (read-from-string (format nil "'speak-~A" lang))))
-              (eval (read-from-string (format nil "#'speak-~A" lang))))))
+          (when (functionp (intern (read-from-string (format nil "'speak-~A" lang))))
+            (intern (read-from-string (format nil "#'speak-~A" lang))))))
     ;; Check argument
     (unless speak-string
       (warn ";; No speach string are specified for ~A from argumenta!! Use english and speak-google!!~%" lang)
