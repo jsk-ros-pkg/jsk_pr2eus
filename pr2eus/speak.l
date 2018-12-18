@@ -104,7 +104,8 @@
       (setq speak-func #'speak-google))
     ;; Check speak-xx function existence.
     (unless speak-func
-      (error ";; No such speak function (speak-~A) defined!!~%" lang))
+      (warn ";; No such speak function (speak-~A) defined!! Using google engine~%" lang)
+      (setq speak-func #'speak-google))
     (warn ";; ~A~%" (list (cadr speak-func) speak-string args))
     ;; Speak
     (apply speak-func speak-string args)
