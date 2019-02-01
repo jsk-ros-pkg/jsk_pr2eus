@@ -998,7 +998,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
            ))
        (let ((goal (send action :make-goal-instance))
              (st (ros::time+ (ros::time-now) (ros::time starttime))))
-         (send goal :header :stamp st)
+         (send goal :header :stamp (ros::time-now))
          (send goal :header :seq 1)
          (send goal :goal :trajectory :header :stamp st)
          (send goal :goal :trajectory :header :seq 1)
