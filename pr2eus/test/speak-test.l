@@ -43,5 +43,6 @@
 )
 
 (run-all-tests)
+(ros::sleep 2) ;; wait for last message actually send out
 (exit)
 
