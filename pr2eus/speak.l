@@ -5,14 +5,15 @@
 
 (defparameter *sound-play-clients* (make-hash-table :test #'equal))
 
-(defun play-sound (sound &key arg2 (topic-name "robotsound") wait)
+(defun play-sound (sound &key arg2 (topic-name "robotsound") wait (volume 1.0))
   "Plays sound using sound_play server
    Args:
      sound: if sound is pathname, plays sound file located at given path
             if it is number, server plays builtin sound
             otherwise server plays sound as speech sentence
      topic-name: namespace of sound_play server
-     wait: wait until sound is played"
+     wait: wait until sound is played
+     volume: Volume at which to play the sound. 0 is mute, 1.0 is 100%."
   (let ((msg (instance sound_play::SoundRequest :init
                        :command sound_play::SoundRequest::*play_once*)))
     (cond
@@ -24,6 +25,12 @@
       (t
        (send msg :sound sound_play::SoundRequest::*say*)
        (send msg :arg (string sound))))
+    ;; since sound_play version 0.3.1, the message
+    ;; including volume slot. c.f.
+    ;; https://github.com/ros-drivers/audio_common/pull/51
+    (when (find-method msg :volume)
+      (send msg :volume volume))
+
     (if arg2 (send msg :arg2 arg2))
 
     (when (boundp 'sound_play::SoundRequestAction)
@@ -50,25 +57,27 @@
     (ros::publish topic-name msg)
     t))
 
-(defun speak (text &key (lang "") (topic-name "robotsound") wait)
+(defun speak (text &key (lang "") (topic-name "robotsound") wait (volume 1.0))
   "Speak sentence using text-to-speech services.
    Args:
      text: sentence to speak
      lang: language to speak, currently :en or :ja are supported.
      topic-name: namespace of sound_play node
-     wait: wait the end of speech if enabled"
+     wait: wait the end of speech if enabled
+     volume: Volume at which to play the sound. 0 is mute, 1.0 is 100%."
   (play-sound text
               :topic-name topic-name
               :wait wait
+              :volume volume
               :arg2 (if (keywordp lang)
                         (string-downcase lang) lang)))
 
-(defun speak-en (text &key (topic-name "robotsound") wait)
+(defun speak-en (text &key (topic-name "robotsound") wait (volume 1.0))
   "Speak english sentence"
-  (speak text :topic-name topic-name :wait wait))
+  (speak text :topic-name topic-name :wait wait :volume volume))
 
-(defun speak-jp (text &key (topic-name "robotsound_jp") wait)
+(defun speak-jp (text &key (topic-name "robotsound_jp") wait (volume 1.0))
   "Speak japanese sentence"
-  (speak text :lang :ja :topic-name topic-name :wait wait))
+  (speak text :lang :ja :topic-name topic-name :wait wait :volume volume))
 
 (provide :speak) ;; end of speak.l
