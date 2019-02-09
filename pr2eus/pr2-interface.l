@@ -407,8 +407,15 @@ Example: (send self :gripper :rarm :position) => 0.00"
 
 (defmethod pr2-interface
   (:angle-vector-with-constraint
-   (av1 &optional (tm 3000) (arm :arms) &key (rotation-axis t) (translation-axis t) &rest args)
-   (let (av0 c0 c1 avs tms ret arm-av pav)
+   (av1 &optional (tm 3000) (arm :arms)
+        &key (rotation-axis t) (translation-axis t) (revert-if-fail t) (initial-angle-vector nil) (div 10)
+        &rest args)
+   "Send trajectory with interpolation in euclidean space.
+    `av1` is the target angle vector. `tm` is the total duration of the motion. `arm` is the controller that the trajectory is sent to.
+    `:rotation-axis` and `:translation-axis` are for setting constraint on interpolated trajectory.
+    If `:revert-if-fail` is NIL, no trajectory is sent if the interpolation is failed.
+    If `:initial-angle-vector` is set, the value is used as initial pose of the robot, otherwise the `:reference-vector` is used."
+   (let (av0 c0 c1 avs tms ret arm-av pav cur)
      (setq pav (send robot :angle-vector))
      (unless (memq arm '(:larm :rarm :arms))
        (warning-message 1 ":angle-vector-with-constraint arm=~A is not supported, use :larm or :rarm~%" arm)
@@ -416,10 +423,12 @@ Example: (send self :gripper :rarm :position) => 0.00"
      (send robot :angle-vector av1)
      (cond ((memq arm '(:larm :rarm))
             (setq c1 (send robot arm :end-coords :copy-worldcoords)))
-           (t
+           (t ;; :arms
             (setq c1 (cons (send robot :larm :end-coords :copy-worldcoords)
                            (send robot :rarm :end-coords :copy-worldcoords)))))
-     (setq av0 (send robot :angle-vector (send self :state :reference-vector)))
+     (if initial-angle-vector
+       (setq av0 (send robot :angle-vector initial-angle-vector))
+       (setq av0 (send robot :angle-vector (send self :state :reference-vector))))
      (cond ((memq arm '(:larm :rarm))
             (setq c0 (send robot arm :end-coords :copy-worldcoords))
             (setq arm-av (send robot arm :angle-vector)))
@@ -428,24 +437,25 @@ Example: (send self :gripper :rarm :position) => 0.00"
                            (send robot :rarm :end-coords :copy-worldcoords)))
             (setq arm-av (cons (send robot :larm :angle-vector)
                                (send robot :rarm :angle-vector)))))
-     (dotimes (i 10)
-       (send robot :angle-vector (midpoint (/ (1+ i) 10.0) av0 av1))
+     (dotimes (i div)
+       (setq cur (/ (1+ i) (float div)))
+       (send robot :angle-vector (midpoint cur av0 av1))
        (cond ((memq arm '(:larm :rarm))
               (setq arm-av (send robot arm :angle-vector arm-av)))
              (t
               (setq arm-av (list (send robot :larm :angle-vector (car arm-av))
                                  (send robot :rarm :angle-vector (cdr arm-av))))))
        (cond ((memq arm '(:larm :rarm))
-              (setq ret (send robot arm :inverse-kinematics (midcoords (/ (1+ i) 10.0) c0 c1)
+              (setq ret (send robot arm :inverse-kinematics (midcoords cur c0 c1)
                               :rotation-axis rotation-axis :translation-axis translation-axis)))
              (t
               (setq ret
-                    (and (send robot :larm :inverse-kinematics (midcoords (/ (1+ i) 10.0) (car c0) (car c1))
+                    (and (send robot :larm :inverse-kinematics (midcoords cur (car c0) (car c1))
                                :rotation-axis rotation-axis :translation-axis translation-axis)
-                         (send robot :rarm :inverse-kinematics (midcoords (/ (1+ i) 10.0) (cdr c0) (cdr c1))
+                         (send robot :rarm :inverse-kinematics (midcoords cur (cdr c0) (cdr c1))
                                :rotation-axis rotation-axis :translation-axis translation-axis)))))
-       (unless ret
-         (warning-message 1 ":angle-vector-with-constraint ik failed~%")
+       (when (and (null ret) revert-if-fail)
+         (ros::ros-error ":angle-vector-with-constraint ik failed~%")
          (send robot :angle-vector pav)
          (return-from :angle-vector-with-constraint nil))
        (cond ((memq arm '(:larm :rarm))
@@ -454,7 +464,7 @@ Example: (send self :gripper :rarm :position) => 0.00"
               (setq arm-av (cons (send robot :larm :angle-vector)
                                  (send robot :rarm :angle-vector)))))
        (push (send robot :angle-vector) avs)
-       (push (/ tm 10.0) tms))
+       (push (/ tm (float div)) tms))
      (setq avs (reverse avs))
      (send-super :angle-vector-sequence avs tms) ;; avoid :check-continuous-joint-move-over-180
      )) ; :angle-vector-with-constraint
