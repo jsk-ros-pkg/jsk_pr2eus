@@ -1,5 +1,3 @@
-(ros::load-ros-manifest "pr2eus_moveit")
-
 (require :robot-moveit "package://pr2eus_moveit/euslisp/robot-moveit.l")
 
 (defclass pr2-moveit-environment
