@@ -42,6 +42,18 @@
 ;;  (assert (send *ri* :speak-jp "やあ" :wait t))
 )
 
+(deftest test-speak-file ()
+  (assert (speak (pathname "/usr/share/sounds/alsa/Front_Left.wav"))))
+
+(deftest test-ri-speak-file ()
+  (assert (send *ri* :speak (pathname "/usr/share/sounds/alsa/Front_Left.wav"))))
+
+(deftest test-speak-number ()
+  (assert (speak 1)))
+
+(deftest test-ri-speak-number ()
+  (assert (send *ri* :speak 1)))
+
 (run-all-tests)
 (ros::sleep 2) ;; wait for last message actually send out
 (exit)
