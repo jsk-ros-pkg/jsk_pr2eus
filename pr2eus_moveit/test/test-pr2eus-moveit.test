@@ -1,5 +1,9 @@
 <launch>
+  <arg name="DISPLAY" default="" />
   <arg name="gui" default="false"/>
+
+  <env name="DISPLAY" value="$(arg DISPLAY)" />
+
   <include file="$(find pr2_gazebo)/launch/pr2_empty_world.launch" >
     <arg name="gui" default="$(arg gui)"/>
     <arg name="paused" default="false"/>
