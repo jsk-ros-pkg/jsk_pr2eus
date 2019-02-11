@@ -2,8 +2,8 @@
 Changelog for package pr2eus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.3.14 (2019-02-11)
+-------------------
 * [pr2eus] add :get-grasp-result methody and :wait key to :start-grasp method (`#386 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/386>`_ )
 * pr2-interface: Make use of return value of :move-gripper method (`#364 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/364>`_ )
 

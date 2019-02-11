@@ -2,8 +2,8 @@
 Changelog for package pr2eus_moveit
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.3.14 (2019-02-11)
+-------------------
 * fix typo and add pr2-init in pr2eus-moveit.l for PR2 + moveit (`#382 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/382>`_ )
 
   * add moveit pr2-init in pr2eus-moveit.l

@@ -2,8 +2,8 @@
 Changelog for package pr2eus_tutorials
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.3.14 (2019-02-11)
+-------------------
 * add jsk_interactive_marker (`#349 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/349>`_ )
   c.f. https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/348
 * Contributors: Kei Okada
