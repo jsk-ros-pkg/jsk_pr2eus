@@ -395,6 +395,7 @@
 - min-time : minimum time for time to goal
 - end-coords-interpolation : set t if you want to move robot in cartesian space interpolation
 - end-coords-interpolation-steps : number of divisions when interpolating end-coords
+- limit-rotation : set t if you want to restrict upper/lower limit angle of unlimited rotational joint
 "
    (if end-coords-interpolation
      (return-from :angle-vector (send self :angle-vector-sequence (list av) (list tm) ctype start-time :scale scale :min-time min-time :end-coords-interpolation t :end-coords-interpolation-steps end-coords-interpolation-steps)))
