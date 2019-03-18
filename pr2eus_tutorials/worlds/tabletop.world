@@ -34,22 +34,22 @@
     <include>
       <name>room73b2-karimoku-table-0</name>
       <uri>model://room73b2-karimoku-table_static</uri>
-      <pose>1.12 0.0 0.0 0.0 0.0 0.0</pose>
+      <pose>1.02 0.0 0.0 0.0 0.0 0.0</pose>
     </include>
     <include>
       <name>room73b2-mac-burger-box-0</name>
       <uri>model://room73b2-mac-burger-box</uri>
-      <pose>0.81 0.25 0.71 -1.57 0.0 1.57</pose>
+      <pose>0.71 0.25 0.71 -1.57 0.0 1.57</pose>
     </include>
     <include>
       <name>room73b2-bottle-0</name>
       <uri>model://room73b2-bottle</uri>
-      <pose>0.81 0.0 0.71 0.0 0.0 0.0</pose>
+      <pose>0.71 0.0 0.71 0.0 0.0 0.0</pose>
     </include>
     <include>
       <name>room73b2-georgia-emerald-mountain-0</name>
       <uri>model://room73b2-georgia-emerald-mountain</uri>
-      <pose>0.81 -0.25 0.71 -1.57 0.0 0.0</pose>
+      <pose>0.71 -0.25 0.71 -1.57 0.0 0.0</pose>
     </include>
   </world>
 </sdf>
