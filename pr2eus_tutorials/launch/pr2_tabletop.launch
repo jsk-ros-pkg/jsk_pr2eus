@@ -4,8 +4,9 @@
   <arg name="launch_tracking" default="false" />
   <arg name="manager" default="pr2_tabletop_object_detector_nodelet_manager"/>
   <arg name="machine" default="c2" />
+  <arg name="load_machine" default="false" />
 
-  <include file="$(find pr2_machine)/$(env ROBOT).machine" />
+  <include file="$(find pr2_machine)/$(env ROBOT).machine" unless="$(arg load_machine)" />
 
   <include file="$(find jsk_pcl_ros)/sample/tabletop_object_detector.launch">
     <arg name="input" value="/kinect_head/depth_registered/throttled/points" />

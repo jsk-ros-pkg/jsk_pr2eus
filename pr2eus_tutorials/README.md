@@ -73,7 +73,7 @@ If you use ROS `indigo` distribution, please replace the word `kinetic` with `in
 
     ```bash
     # on local machine
-    rosrun pr2eus_tutorials pr2_tabletop_sim.sh # PLEASE NOTE NOT `roslaunch` BUT `rosrun`!
+    roslaunch pr2eus_tutorials pr2_tabletop_sim.launch
     # It may take time to download materials for the first time
     ```
 
