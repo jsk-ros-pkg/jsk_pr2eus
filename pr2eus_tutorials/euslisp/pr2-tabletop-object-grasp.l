@@ -83,19 +83,22 @@
           (send *ri* :stop-grasp *arm* :wait t)
           (setq *grasping-object-p* nil))
       (setq *grasping-object-p* t))
-    (unless (send *pr2* *arm* :inverse-kinematics
-                target-obj :rotation-axis :z)
+    (unless
+      (send *pr2* *arm* :inverse-kinematics
+            (make-coords :pos (v+ (send target-obj :worldpos)
+                                  (float-vector -120 0 0))
+                         :rpy #f(0 0 0))
+            :rotation-axis t)
       (publish-error "out of reach...")
       (return-from grasp-target-callback nil))
     (publish-info "openning gripper...")
     (send *ri* :stop-grasp *arm* :wait t)
-    (send *pr2* *arm* :move-end-pos #f(-160 0 0))
     (send *pr2* :head :look-at-hand *arm*)
     (publish-info "pre grasp pose...")
     (send *ri* :angle-vector (send *pr2* :angle-vector) 6000)
     (send *ri* :wait-interpolation)
     (publish-info "reaching...")
-    (send *pr2* *arm* :move-end-pos #f(160 0 0))
+    (send *pr2* *arm* :move-end-pos #f(160 0 0) :world)
     (send *pr2* :head :look-at-hand *arm*)
     (send *ri* :angle-vector (send *pr2* :angle-vector) 3000)
     (send *ri* :wait-interpolation)
@@ -109,26 +112,18 @@
         (pr2-pregrasp-pose)
         (return-from grasp-target-callback nil)))
     (publish-info "picking up...")
-    (send *pr2* *arm* :move-end-pos #f(0 0 100) *pr2*)
+    (send *pr2* *arm* :move-end-pos #f(0 0 150) :world)
     (send *pr2* :head :look-at-hand *arm*)
     (send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
     (send *ri* :wait-interpolation)
-    (send *pr2* *arm* :inverse-kinematics
-          (make-coords :pos #f(700 0 800))
-          :rotation-axis nil
-          :look-at-target t)
-    (send *ri* :angle-vector (send *pr2* :angle-vector) 4000)
-    (send *ri* :wait-interpolation)
     (publish-info "grasp succeeded!")
 
-    (send *pr2* *arm* :inverse-kinematics
-          target-obj :rotation-axis :z
-          :look-at-target t)
-    (publish-info "return object...")
-    (send *ri* :angle-vector (send *pr2* :angle-vector) 5000)
+    (send *pr2* *arm* :move-end-pos #f(0 0 -150) :world)
+    (send *ri* :angle-vector (send *pr2* :angle-vector) 3000)
     (send *ri* :wait-interpolation)
     (send *ri* :stop-grasp *arm* :wait t)
-    (send *pr2* *arm* :move-end-pos #f(-150 0 0))
+    (publish-info "return object...")
+    (send *pr2* *arm* :move-end-pos #f(-160 0 0) :world)
     (send *ri* :angle-vector (send *pr2* :angle-vector) 3000)
     (send *ri* :wait-interpolation)
     (publish-info "pre grasp pose")
@@ -138,7 +133,8 @@
 
 
 (defun wait-for-grasp-target ()
-  (ros::subscribe *grasp-target-bounding-box-topic* jsk_recognition_msgs::BoundingBox #'grasp-target-callback)
+  (ros::subscribe *grasp-target-bounding-box-topic*
+                  jsk_recognition_msgs::BoundingBox #'grasp-target-callback)
   (publish-info "click tabletop object!")
   (ros::spin))
 
