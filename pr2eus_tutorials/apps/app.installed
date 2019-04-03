@@ -1,0 +1,3 @@
+apps:
+- app: pr2eus_tutorials/tabletop_grasp
+  display: TableTop Object Grasp
