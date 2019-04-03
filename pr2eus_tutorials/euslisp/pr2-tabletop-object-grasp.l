@@ -112,7 +112,7 @@
     (setq *grasp-state* "grasp-closing")
     (publish-grasp-state)
     (publish-info "grasping...")
-    (let ((grasp-result (send *ri* :start-grasp *arm* :gain 0.3)))
+    (let ((grasp-result (send *ri* :start-grasp *arm*)))
       (send *ri* :wait-interpolation)
       (unless (< 5.0 grasp-result)
         (publish-error "failed to grasp ~A" grasp-result)
