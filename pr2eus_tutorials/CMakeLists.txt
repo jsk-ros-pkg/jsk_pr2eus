@@ -13,8 +13,9 @@ install(DIRECTORY euslisp launch scripts
 if(CATKIN_ENABLE_TESTING)
   find_package(rostest REQUIRED)
   # indigo: pr2_simulator pr2.launch arg API changed from kinetic
-  # melodic: pr2_simulator is not released ye
-  if("$ENV{ROS_DISTRO}" STREQUAL "kinetic")
+  # melodic: pr2_simulator is not released yet
+  find_package(pr2_gazebo QUIET)
+  if("$ENV{ROS_DISTRO}" STRGREATER "indigo" AND pr2_gazebo_FOUND)
     add_rostest(test/test_pr2_tabletop_sim.test)
   endif()
 endif()
