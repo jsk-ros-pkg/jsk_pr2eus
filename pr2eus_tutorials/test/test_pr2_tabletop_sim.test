@@ -7,5 +7,5 @@
 
   <test test-name="pr2_tabletop_test_node" pkg="roseus" type="roseus"
         args="$(find pr2eus_tutorials)/test/test-pr2-tabletop.l"
-        time-limit="300" retry="2" />
+        time-limit="800" retry="2" />
 </launch>
