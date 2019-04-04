@@ -1,0 +1,8 @@
+<launch>
+  <include file="$(find pr2eus_tutorials)/launch/pr2_tabletop.launch" />
+
+  <node name="pr2_interactive_object_grasp_node" pkg="roseus" type="roseus"
+        args="$(find pr2eus_tutorials)/euslisp/pr2-tabletop-object-grasp.l"
+        output="screen" />
+
+</launch>
