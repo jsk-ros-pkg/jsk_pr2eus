@@ -70,10 +70,12 @@ If you use ROS `indigo` distribution, please replace the word `kinetic` with `in
     You can locate a desk in front of the robot and put any objects on it.
 
     - Using a simulator
+    
+    you can set physics engine with roslaunch argument.
 
     ```bash
     # on local machine
-    roslaunch pr2eus_tutorials pr2_tabletop_sim.launch
+    roslaunch pr2eus_tutorials pr2_tabletop_sim.launch physics:=dart
     # It may take time to download materials for the first time
     ```
 
