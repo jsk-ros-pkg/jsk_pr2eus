@@ -39,17 +39,17 @@
     <include>
       <name>room73b2-wanda-0</name>
       <uri>model://room73b2-wanda</uri>
-      <pose>0.71 0.25 0.71 -1.57 0.0 3.14</pose>
+      <pose>0.75 0.25 0.71 -1.57 0.0 3.14</pose>
     </include>
     <include>
       <name>room73b2-iemon-0</name>
       <uri>model://room73b2-iemon</uri>
-      <pose>0.71 0.0 0.80 -1.57 0.0 3.14</pose>
+      <pose>0.75 0.0 0.80 -1.57 0.0 3.14</pose>
     </include>
     <include>
       <name>room73b2-georgia-emerald-mountain-0</name>
       <uri>model://room73b2-georgia-emerald-mountain</uri>
-      <pose>0.71 -0.25 0.71 -1.57 0.0 0.0</pose>
+      <pose>0.75 -0.25 0.71 -1.57 0.0 0.0</pose>
     </include>
   </world>
 </sdf>
