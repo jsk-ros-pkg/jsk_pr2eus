@@ -16,6 +16,7 @@ if(CATKIN_ENABLE_TESTING)
   # melodic: pr2_simulator is not released yet
   find_package(pr2_gazebo QUIET)
   if("$ENV{ROS_DISTRO}" STRGREATER "indigo" AND pr2_gazebo_FOUND)
-    add_rostest(test/test_pr2_tabletop_sim.test)
+      # disable test: too long time
+      # add_rostest(test/test_pr2_tabletop_sim.test)
   endif()
 endif()
