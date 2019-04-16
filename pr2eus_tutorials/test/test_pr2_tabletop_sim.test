@@ -1,0 +1,11 @@
+<launch>
+  <include file="$(find pr2eus_tutorials)/launch/gazebo/pr2_tabletop_sim.launch">
+    <arg name="run_rviz" value="false" />
+    <arg name="gui" value="false" />
+    <arg name="publish_objects_tf" value="true" />
+  </include>
+
+  <test test-name="pr2_tabletop_test_node" pkg="roseus" type="roseus"
+        args="$(find pr2eus_tutorials)/test/test-pr2-tabletop.l"
+        time-limit="800" retry="2" />
+</launch>

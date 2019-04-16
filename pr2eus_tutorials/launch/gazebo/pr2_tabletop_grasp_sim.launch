@@ -1,0 +1,12 @@
+<launch>
+  <arg name="run_rviz" default="true" />
+
+  <include file="$(find pr2eus_tutorials)/launch/gazebo/pr2_tabletop_scene.launch" />
+
+  <include file="$(find pr2eus_tutorials)/launch/pr2_tabletop_grasp.launch">
+    <arg name="run_rviz" value="$(arg run_rviz)" />
+  </include>
+
+  <node name="kinect_throttled_points" pkg="topic_tools" type="throttle"
+        args="messages /head_mount_kinect/depth_registered/points 5.0 /kinect_head_c2/depth_registered/points_throttle" />
+</launch>
