@@ -52,31 +52,32 @@ If you use ROS `indigo` distribution, please replace the word `kinetic` with `in
    source ~/ros/kinetic/devel/setup.bash`
    ```
 
-## Demos
+## Tabletop Object Grasping Demo
 
-### PR2 Tabletop Object Detection
+### Tabletop Object Grasping Demo with PR2
 
 1. Startup nodes
 
     First we need to start nodes used for this demo.
 
-    - Using a real robot
+    **Using a real robot**
 
     ```bash
     # on PR2 real robot
+    ssh <robot address>
     roslaunch pr2eus_tutorials pr2_tabletop.launch
     ```
 
     You can locate a desk in front of the robot and put any objects on it.
 
-    - Using a simulator
-    
-    you can set physics engine with roslaunch argument.
+    **Using a simulator**
+
+    You can set physics engine with roslaunch argument.
 
     ```bash
     # on local machine
-    roslaunch pr2eus_tutorials pr2_tabletop_sim.launch physics:=dart
     # It may take time to download materials for the first time
+    roslaunch pr2eus_tutorials pr2_tabletop_sim.launch physics:=dart
     ```
 
     You can see the robot is spawned in a scene with a desk and some objects.
@@ -85,70 +86,93 @@ If you use ROS `indigo` distribution, please replace the word `kinetic` with `in
 
     Then we can now start the demo program for picking objects.
 
+    **Start Euslisp program**
+
     ```bash
+    # on local machine
     rosrun pr2eus_tutorials pr2-tabletop-object-grasp.l
     ```
 
+    **Start Rviz**
+
     After running the demo program above, you can see object bounding boxes in the `RViZ` window.
     It means the robot now recognizes each objects as individual objects from camera sensor inputs.
+
+    ```bash
+    # on local machine
+    rviz -d $(rospack find pr2eus_tutorials)/config/pr2_tabletop.rviz
+    ```
+
+    **Additional setup for Kinetic local machine with a real robot**
+
+    If you want to know why we need these node, please see [here](https://github.com/jsk-ros-pkg/jsk_pr2eus/pull/387#issuecomment-470505882).
+    You also need to switch `Tabletop Object` rviz panel topic from `/bounding_box_interactive_marker/update` to `/bounding_box_interactive_marker/kinetic/update` .
+
+    ```bash
+    # on local machine
+    rosrun jsk_robot_utils marker_msg_from_indigo_to_kinetic.py
+    rosrun topic_tools relay /bounding_box_interactive_marker/kinetic/feedback  /bounding_box_interactive_marker/feedback
+    ```
+    
+    **Click object bouding on Rviz**
 
     You can click any object that you want the robot to pick up.
 
 
     ![pr2_tabletop_sim](https://gist.githubusercontent.com/furushchev/b3f3bb08953407966f80f4b0ac70c7dd/raw/pr2_tabletop_screen.png)
 
-3. Step-by-step description of the demo program
+### Step-by-step Description of Demo program
 
-    In the bottom of the demo program `pr2-tabletop-object-grasp.l`, you can see a main function `demo`.
+In the bottom of the demo program `pr2-tabletop-object-grasp.l`, you can see a main function `demo`.
 
-    ```lisp
-    (defun demo ()
-      (setq *grasping-object-p* nil)
-      (setq *arm* :rarm)
-      (setq *tfl* (instance ros::transform-listener :init))
-      (setq *tfb* (instance ros::transform-broadcaster :init))
-      (pr2-init)
-      (pr2-pregrasp-pose)
-      (wait-for-grasp-target))
-    ```
+```lisp
+(defun demo ()
+  (setq *grasping-object-p* nil)
+  (setq *arm* :rarm)
+  (setq *tfl* (instance ros::transform-listener :init))
+  (setq *tfb* (instance ros::transform-broadcaster :init))
+  (pr2-init)
+  (pr2-pregrasp-pose)
+  (wait-for-grasp-target))
+```
 
-    The `(pr2-init)` method is just a initialization function for pr2 robot that instantiate two objects required for robot manipulation from euslisp:
+The `(pr2-init)` method is just a initialization function for pr2 robot that instantiate two objects required for robot manipulation from euslisp:
 
-    - `*pr2*`: This object is a kinematic model for a PR2 robot. This object includes any fundamental functions for robot modeling such as inverse kinematics, dynamics, geometric constraints and so on. You can visualize this model by evaluating `(objects (list *pr2*))`.
-    - `*ri*`: This is an object that send a control signal to the actual robot from euslisp kinematics model and receive the result or actual states of the robot. `ri` is an abbreviation of `robot interface`.
+- `*pr2*`: This object is a kinematic model for a PR2 robot. This object includes any fundamental functions for robot modeling such as inverse kinematics, dynamics, geometric constraints and so on. You can visualize this model by evaluating `(objects (list *pr2*))`.
+- `*ri*`: This is an object that send a control signal to the actual robot from euslisp kinematics model and receive the result or actual states of the robot. `ri` is an abbreviation of `robot interface`.
 
-    Please note that `(pr2-init)` function is defined in `pr2-interface.l` in the `pr2eus` package.
-    In this demo program, the function is loaded in the top of the script:
-    
-    ```lisp
-    (require :pr2-interface "package://pr2eus/pr2-interface.l")
-    ```
+Please note that `(pr2-init)` function is defined in `pr2-interface.l` in the `pr2eus` package.
+In this demo program, the function is loaded in the top of the script:
 
-    After `(pr2-init)` is executed, the kinematic model looks like below:
+```lisp
+(require :pr2-interface "package://pr2eus/pr2-interface.l")
+```
 
-    ![pr2-reset-pose](https://user-images.githubusercontent.com/1901008/39504750-d44efa06-4e08-11e8-8aef-7c0f3ce0802b.png)
+After `(pr2-init)` is executed, the kinematic model looks like below:
+
+![pr2-reset-pose](https://user-images.githubusercontent.com/1901008/39504750-d44efa06-4e08-11e8-8aef-7c0f3ce0802b.png)
 
 
-    After initialized the robot in euslisp, `(pr2-pregrasp-pose)` method is executed.
+After initialized the robot in euslisp, `(pr2-pregrasp-pose)` method is executed.
 
-    ```lisp
-    (defun pr2-pregrasp-pose ()
-      (send *pr2* :reset-manip-pose)
-      (send *ri* :angle-vector (send *pr2* :angle-vector) 5000)
-      (send *ri* :wait-interpolation))
-    ```
+```lisp
+(defun pr2-pregrasp-pose ()
+  (send *pr2* :reset-manip-pose)
+  (send *ri* :angle-vector (send *pr2* :angle-vector) 5000)
+  (send *ri* :wait-interpolation))
+```
 
-    The first line `(send *pr2* :reset-manip-pose)` changes the pose of euslisp kinematic model to the predefined pose called `reset-manip-pose`.
-    With calling this method, the actual robot does **NOT** move because this method only changes the states of the kinematic model. Instead you can see the current states of the kinematic model by `(objects (list *pr2*))`.
-    The kinematic model now looks like below:
+The first line `(send *pr2* :reset-manip-pose)` changes the pose of euslisp kinematic model to the predefined pose called `reset-manip-pose`.
+With calling this method, the actual robot does **NOT** move because this method only changes the states of the kinematic model. Instead you can see the current states of the kinematic model by `(objects (list *pr2*))`.
+The kinematic model now looks like below:
 
-    ![pr2-reset-manip-pose](https://user-images.githubusercontent.com/1901008/39504749-d42a4ff8-4e08-11e8-8597-6ca54b5a97e7.png)
+![pr2-reset-manip-pose](https://user-images.githubusercontent.com/1901008/39504749-d42a4ff8-4e08-11e8-8597-6ca54b5a97e7.png)
 
-    The second line then send the current state of kinematic model to the actual robot.
-    The second argument `5000` allows the robot to take 5000 milliseconds to move to the pose. If the second argument is omitted, the default argument `3000` will be used.
+The second line then send the current state of kinematic model to the actual robot.
+The second argument `5000` allows the robot to take 5000 milliseconds to move to the pose. If the second argument is omitted, the default argument `3000` will be used.
 
-    After the second line, it will take 5 seconds until the robot ends to move, but the method call itself returns immediately.
-    The last method called in the last line is just for waiting for the robot until he ends to move to the specified pose.
+After the second line, it will take 5 seconds until the robot ends to move, but the method call itself returns immediately.
+The last method called in the last line is just for waiting for the robot until he ends to move to the specified pose.
 
 
 ## Reach Object Demo
