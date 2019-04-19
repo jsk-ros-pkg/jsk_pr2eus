@@ -10,115 +10,122 @@ If you use ROS `indigo` distribution, please replace the word `kinetic` with `in
 
 ### Using pre-built package
 
-1. Follow the [instruction of ROS installation](http://wiki.ros.org/kinetic/Installation/Ubuntu)
-2. Install the package
+#### Install ROS
 
-    ```bash
-    sudo apt install ros-kinetic-pr2eus-tutorials
-    ```
+Follow the [instruction of ROS installation](http://wiki.ros.org/kinetic/Installation/Ubuntu)
 
-3. Load ROS Environment
+#### Install the package
 
-    ```bash
-    source /opt/ros/kinetic/setup.bash
-    ```
+```bash
+sudo apt install ros-kinetic-pr2eus-tutorials
+```
+
+#### Load ROS Environment
+
+```bash
+source /opt/ros/kinetic/setup.bash
+```
 
 ### Using source package
 
-1. Follow the [instruction of ROS installation](http://wiki.ros.org/kinetic/Installation/Ubuntu)
-2. Setup catkin workspace
+#### Install ROS
 
-   ```bash
-   source /opt/ros/kinetic/setup.bash
-   sudo apt install python-catkin-tools python-wstool python-rosdep git
-   sudo rosdep init
-   rosdep update
-   # Create catkin workspace and download source repository
-   mkdir -p ~/ros/kinetic/src && cd ~/ros/kinetic/src
-   wstool init
-   wstool set jsk-ros-pkg/jsk_pr2eus --git https://github.com/jsk-ros-pkg/jsk_pr2eus.git -v master
-   wstool update
-   # Install dependencies for building the package
-   rosdep install --from-paths . -i -r -n -y
-   # Build the package
-   cd ~/ros/kinetic
-   catkin init
-   catkin build pr2eus_tutorials
-   ```
+Follow the [instruction of ROS installation](http://wiki.ros.org/kinetic/Installation/Ubuntu)
 
-3. Load ROS Environment
+#### Setup catkin workspace
 
-   ```bash
-   source ~/ros/kinetic/devel/setup.bash
-   ```
+```bash
+source /opt/ros/kinetic/setup.bash
+sudo apt install python-catkin-tools python-wstool python-rosdep git
+sudo rosdep init
+rosdep update
+# Create catkin workspace and download source repository
+mkdir -p ~/ros/kinetic/src && cd ~/ros/kinetic/src
+wstool init
+wstool set jsk-ros-pkg/jsk_pr2eus --git https://github.com/jsk-ros-pkg/jsk_pr2eus.git -v master
+wstool update
+# Install dependencies for building the package
+rosdep install --from-paths . -i -r -n -y
+# Build the package
+cd ~/ros/kinetic
+catkin init
+catkin build
+```
+
+#### Load ROS Environment
+
+```bash
+source ~/ros/kinetic/devel/setup.bash
+```
+
 ## Tabletop Object Grasping Demo
 
 ### Tabletop Object Grasping Demo with PR2
 
-1. Startup nodes
+#### Startup nodes
 
-    First we need to start nodes used for this demo.
+First we need to start nodes used for this demo.
 
-    **Using a real robot**
+##### Using a real robot
 
-    ```bash
-    # on PR2 real robot
-    ssh <robot address>
-    roslaunch pr2eus_tutorials pr2_tabletop.launch
-    ```
+```bash
+# on PR2 real robot
+ssh <robot address>
+roslaunch pr2eus_tutorials pr2_tabletop.launch
+```
 
-    You can locate a desk in front of the robot and put any objects on it.
+You can locate a desk in front of the robot and put any objects on it.
 
-    **Using a simulator**
+##### Using a simulator
 
-    You can set physics engine with roslaunch argument.
+You can set physics engine with roslaunch argument.
 
-    ```bash
-    # on local machine
-    # It may take time to download materials for the first time
-    roslaunch pr2eus_tutorials pr2_tabletop_sim.launch physics:=dart
-    ```
+```bash
+# on local machine
+# It may take time to download materials for the first time
+roslaunch pr2eus_tutorials pr2_tabletop_sim.launch physics:=dart
+```
 
-    You can see the robot is spawned in a scene with a desk and some objects.
+You can see the robot is spawned in a scene with a desk and some objects.
 
-2. Run demo
+#### Run demo
 
-    Then we can now start the demo program for picking objects.
+Then we can now start the demo program for picking objects.
 
-    **Start Euslisp program**
+##### Start Euslisp program
 
-    ```bash
-    # on local machine
-    rosrun pr2eus_tutorials pr2-tabletop-object-grasp.l
-    ```
+```bash
+# on local machine
+rosrun pr2eus_tutorials pr2-tabletop-object-grasp.l
+```
 
-    **Start Rviz**
+##### Start Rviz
 
-    After running the demo program above, you can see object bounding boxes in the `RViZ` window.
-    It means the robot now recognizes each objects as individual objects from camera sensor inputs.
+After running the demo program above, you can see object bounding boxes in the `RViZ` window.
+It means the robot now recognizes each objects as individual objects from camera sensor inputs.
 
-    ```bash
-    # on local machine
-    rviz -d $(rospack find pr2eus_tutorials)/config/pr2_tabletop.rviz
-    ```
+```bash
+# on local machine
+rviz -d $(rospack find pr2eus_tutorials)/config/pr2_tabletop.rviz
+```
 
-    **Additional setup for Kinetic local machine with a real robot**
+##### Additional setup for Kinetic local machine with a real robot
 
-    If you want to know why we need these node, please see [here](https://github.com/jsk-ros-pkg/jsk_pr2eus/pull/387#issuecomment-470505882).
-    You also need to switch `Tabletop Object` rviz panel topic from `/bounding_box_interactive_marker/update` to `/bounding_box_interactive_marker/kinetic/update` .
+If you want to know why we need these node, please see [here](https://github.com/jsk-ros-pkg/jsk_pr2eus/pull/387#issuecomment-470505882).
+You also need to switch `Tabletop Object` rviz panel topic from `/bounding_box_interactive_marker/update` to `/bounding_box_interactive_marker/kinetic/update` .
 
-    ```bash
-    # on local machine
-    rosrun jsk_robot_utils marker_msg_from_indigo_to_kinetic.py
-    rosrun topic_tools relay /bounding_box_interactive_marker/kinetic/feedback  /bounding_box_interactive_marker/feedback
-    ```
-    
-    **Click object bouding on Rviz**
+```bash
+# on local machine
+rosrun jsk_robot_utils marker_msg_from_indigo_to_kinetic.py
+rosrun topic_tools relay /bounding_box_interactive_marker/kinetic/feedback  /bounding_box_interactive_marker/feedback
+```
 
-    You can click any object that you want the robot to pick up.
+##### Click object bouding on Rviz
+
+You can click any object that you want the robot to pick up.
 
 
-    ![pr2_tabletop_sim](https://gist.githubusercontent.com/furushchev/b3f3bb08953407966f80f4b0ac70c7dd/raw/pr2_tabletop_screen.png)
+![pr2_tabletop_sim](https://gist.githubusercontent.com/furushchev/b3f3bb08953407966f80f4b0ac70c7dd/raw/pr2_tabletop_screen.png)
 
 ### Step-by-step Description of Demo program
 
