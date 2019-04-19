@@ -20,7 +20,7 @@ If you use ROS `indigo` distribution, please replace the word `kinetic` with `in
 3. Load ROS Environment
 
     ```bash
-    source /opt/ros/kinetic/setup.bash`
+    source /opt/ros/kinetic/setup.bash
     ```
 
 ### Using source package
@@ -49,9 +49,8 @@ If you use ROS `indigo` distribution, please replace the word `kinetic` with `in
 3. Load ROS Environment
 
    ```bash
-   source ~/ros/kinetic/devel/setup.bash`
+   source ~/ros/kinetic/devel/setup.bash
    ```
-
 ## Tabletop Object Grasping Demo
 
 ### Tabletop Object Grasping Demo with PR2
