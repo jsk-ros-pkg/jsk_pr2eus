@@ -377,7 +377,7 @@
 - tm : (time to goal in [msec])
    if designated tm is faster than fastest speed, use fastest speed
    if not specified, it will use 1/scale of the fastest speed .
-   if :fastest is specified use fastest speed calculated from max speed
+   if :fast is specified use fastest speed calculated from max speed
 - ctype : controller method name
 - start-time : time to start moving
 - scale : if tm is not specified, it will use 1/scale of the fastest speed
@@ -402,7 +402,7 @@
       ((numberp tm)
        (if (< tm fastest-tm)
            (setq tm fastest-tm)))
-      ;;Safe Mode (Speed will be 5 * fastest-time)
+      ;;Safe Mode (Speed will be 5 * fastest-tm)
       ((null tm)
        (setq tm (* 5 fastest-tm)))
       ;;Error Not Good Input
@@ -434,7 +434,7 @@
    if tms is atom, then use (list (make-list (length avs) :initial-element tms))) for tms
    if designated each tmn is faster than fastest speed, use fastest speed
    if tmn is nil, then it will use 1/scale of the fastest speed .
-   if :fastest is specified, use fastest speed calculated from max speed
+   if :fast is specified, use fastest speed calculated from max speed
 - ctype : controller method name
 - start-time : time to start moving
 - scale : if tms is not specified, it will use 1/scale of the fastest speed
