@@ -402,7 +402,7 @@
       ((numberp tm)
        (if (< tm fastest-tm)
            (setq tm fastest-tm)))
-      ;;Safe Mode (Speed will be 5 * fastest-time)
+      ;;Safe Mode (Speed will be 5 * fastest-tm)
       ((null tm)
        (setq tm (* 5 fastest-tm)))
       ;;Error Not Good Input
