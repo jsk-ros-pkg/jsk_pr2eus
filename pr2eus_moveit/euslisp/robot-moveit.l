@@ -555,6 +555,19 @@
    (av &rest args &key (ctype controller-type) (start-offset-time 0) (total-time)
        (move-arm :larm) (reset-total-time 5000.0) (use-send-angle-vector) (scale 1.0)
        &allow-other-keys)
+   "Plan collision-free trajectory and send it to robot, this method returns immediately, so use :wait-interpolation to block until the motion stops.
+- av : joint angle vector (float-vector) [deg] or sequence of joint angle vector (list av0 av1 ... avn)
+- ctype : controller method name
+- start-offset-time : time to start moving, the same as start-time in :angle-vector
+- total-time : time to execute the whole motion in [msec]
+   if designated total-time is shorter than the planned time, use the planned time
+   if not specified, use the planned time
+   if :fast is specified, use 'scale' times of the planned time
+- move-arm : arm symbol (e.g., :larm, :rarm, :arms) you want to move
+- reset-total-time : if planned time is too short, planned trajectory is scaled so that this value becomes its execution time
+- use-send-angle-vector : whether to use :angle-vector in robot-interface for sending trajectory
+- scale : if :fast is specified as total-time, it will use 'scale' times of the planned time
+"
    (let (traj ret orig-total-time sent-controllers other-joints)
      (setq ctype (or ctype controller-type))
      (unless (gethash ctype controller-table)
