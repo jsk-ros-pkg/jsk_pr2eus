@@ -10,145 +10,175 @@ If you use ROS `indigo` distribution, please replace the word `kinetic` with `in
 
 ### Using pre-built package
 
-1. Follow the [instruction of ROS installation](http://wiki.ros.org/kinetic/Installation/Ubuntu)
-2. Install the package
+#### Install ROS
 
-    ```bash
-    sudo apt install ros-kinetic-pr2eus-tutorials
-    ```
+Follow the [instruction of ROS installation](http://wiki.ros.org/kinetic/Installation/Ubuntu)
 
-3. Load ROS Environment
+#### Install the package
 
-    ```bash
-    source /opt/ros/kinetic/setup.bash`
-    ```
+```bash
+sudo apt install ros-kinetic-pr2eus-tutorials
+```
+
+#### Load ROS Environment
+
+```bash
+source /opt/ros/kinetic/setup.bash
+```
 
 ### Using source package
 
-1. Follow the [instruction of ROS installation](http://wiki.ros.org/kinetic/Installation/Ubuntu)
-2. Setup catkin workspace
+#### Install ROS
 
-   ```bash
-   source /opt/ros/kinetic/setup.bash
-   sudo apt install python-catkin-tools python-wstool python-rosdep git
-   sudo rosdep init
-   rosdep update
-   # Create catkin workspace and download source repository
-   mkdir -p ~/ros/kinetic/src && cd ~/ros/kinetic/src
-   wstool init
-   wstool set jsk-ros-pkg/jsk_pr2eus --git https://github.com/jsk-ros-pkg/jsk_pr2eus.git -v master
-   wstool update
-   # Install dependencies for building the package
-   rosdep install --from-paths . -i -r -n -y
-   # Build the package
-   cd ~/ros/kinetic
-   catkin init
-   catkin build pr2eus_tutorials
-   ```
+Follow the [instruction of ROS installation](http://wiki.ros.org/kinetic/Installation/Ubuntu)
 
-3. Load ROS Environment
+#### Setup catkin workspace
 
-   ```bash
-   source ~/ros/kinetic/devel/setup.bash`
-   ```
+```bash
+source /opt/ros/kinetic/setup.bash
+sudo apt install python-catkin-tools python-wstool python-rosdep git
+sudo rosdep init
+rosdep update
+# Create catkin workspace and download source repository
+mkdir -p ~/ros/kinetic/src && cd ~/ros/kinetic/src
+wstool init
+wstool set jsk-ros-pkg/jsk_pr2eus --git https://github.com/jsk-ros-pkg/jsk_pr2eus.git -v master
+wstool update
+# Install dependencies for building the package
+rosdep install --from-paths . -i -r -n -y
+# Build the package
+cd ~/ros/kinetic
+catkin init
+catkin build
+```
 
-## Demos
+#### Load ROS Environment
 
-### PR2 Tabletop Object Detection
+```bash
+source ~/ros/kinetic/devel/setup.bash
+```
 
-1. Startup nodes
+## Tabletop Object Grasping Demo
 
-    First we need to start nodes used for this demo.
+### Tabletop Object Grasping Demo with PR2
 
-    - Using a real robot
+#### Startup nodes
 
-    ```bash
-    # on PR2 real robot
-    roslaunch pr2eus_tutorials pr2_tabletop.launch
-    ```
+First we need to start nodes used for this demo.
 
-    You can locate a desk in front of the robot and put any objects on it.
+##### Using a real robot
 
-    - Using a simulator
-    
-    you can set physics engine with roslaunch argument.
+```bash
+# on PR2 real robot
+ssh <robot address>
+roslaunch pr2eus_tutorials pr2_tabletop.launch
+```
 
-    ```bash
-    # on local machine
-    roslaunch pr2eus_tutorials pr2_tabletop_sim.launch physics:=dart
-    # It may take time to download materials for the first time
-    ```
+You can locate a desk in front of the robot and put any objects on it.
 
-    You can see the robot is spawned in a scene with a desk and some objects.
+##### Using a simulator
 
-2. Run demo
+You can set physics engine with roslaunch argument.
 
-    Then we can now start the demo program for picking objects.
+```bash
+# on local machine
+# It may take time to download materials for the first time
+roslaunch pr2eus_tutorials pr2_tabletop_sim.launch physics:=dart
+```
 
-    ```bash
-    rosrun pr2eus_tutorials pr2-tabletop-object-grasp.l
-    ```
+You can see the robot is spawned in a scene with a desk and some objects.
 
-    After running the demo program above, you can see object bounding boxes in the `RViZ` window.
-    It means the robot now recognizes each objects as individual objects from camera sensor inputs.
+#### Run demo
 
-    You can click any object that you want the robot to pick up.
+Then we can now start the demo program for picking objects.
 
+##### Start Euslisp program
 
-    ![pr2_tabletop_sim](https://gist.githubusercontent.com/furushchev/b3f3bb08953407966f80f4b0ac70c7dd/raw/pr2_tabletop_screen.png)
+```bash
+# on local machine
+rosrun pr2eus_tutorials pr2-tabletop-object-grasp.l
+```
 
-3. Step-by-step description of the demo program
+##### Start Rviz
 
-    In the bottom of the demo program `pr2-tabletop-object-grasp.l`, you can see a main function `demo`.
+After running the demo program above, you can see object bounding boxes in the `RViZ` window.
+It means the robot now recognizes each objects as individual objects from camera sensor inputs.
 
-    ```lisp
-    (defun demo ()
-      (setq *grasping-object-p* nil)
-      (setq *arm* :rarm)
-      (setq *tfl* (instance ros::transform-listener :init))
-      (setq *tfb* (instance ros::transform-broadcaster :init))
-      (pr2-init)
-      (pr2-pregrasp-pose)
-      (wait-for-grasp-target))
-    ```
+```bash
+# on local machine
+rviz -d $(rospack find pr2eus_tutorials)/config/pr2_tabletop.rviz
+```
 
-    The `(pr2-init)` method is just a initialization function for pr2 robot that instantiate two objects required for robot manipulation from euslisp:
+##### Additional setup for Kinetic local machine with a real robot
 
-    - `*pr2*`: This object is a kinematic model for a PR2 robot. This object includes any fundamental functions for robot modeling such as inverse kinematics, dynamics, geometric constraints and so on. You can visualize this model by evaluating `(objects (list *pr2*))`.
-    - `*ri*`: This is an object that send a control signal to the actual robot from euslisp kinematics model and receive the result or actual states of the robot. `ri` is an abbreviation of `robot interface`.
+If you want to know why we need these node, please see [here](https://github.com/jsk-ros-pkg/jsk_pr2eus/pull/387#issuecomment-470505882).
+You also need to switch `Tabletop Object` rviz panel topic from `/bounding_box_interactive_marker/update` to `/bounding_box_interactive_marker/kinetic/update` .
 
-    Please note that `(pr2-init)` function is defined in `pr2-interface.l` in the `pr2eus` package.
-    In this demo program, the function is loaded in the top of the script:
-    
-    ```lisp
-    (require :pr2-interface "package://pr2eus/pr2-interface.l")
-    ```
+```bash
+# on local machine
+rosrun jsk_robot_utils marker_msg_from_indigo_to_kinetic.py
+rosrun topic_tools relay /bounding_box_interactive_marker/kinetic/feedback  /bounding_box_interactive_marker/feedback
+```
 
-    After `(pr2-init)` is executed, the kinematic model looks like below:
+##### Click object bouding on Rviz
 
-    ![pr2-reset-pose](https://user-images.githubusercontent.com/1901008/39504750-d44efa06-4e08-11e8-8aef-7c0f3ce0802b.png)
+You can click any object that you want the robot to pick up.
 
 
-    After initialized the robot in euslisp, `(pr2-pregrasp-pose)` method is executed.
+![pr2_tabletop_sim](https://gist.githubusercontent.com/furushchev/b3f3bb08953407966f80f4b0ac70c7dd/raw/pr2_tabletop_screen.png)
 
-    ```lisp
-    (defun pr2-pregrasp-pose ()
-      (send *pr2* :reset-manip-pose)
-      (send *ri* :angle-vector (send *pr2* :angle-vector) 5000)
-      (send *ri* :wait-interpolation))
-    ```
+### Step-by-step Description of Demo program
 
-    The first line `(send *pr2* :reset-manip-pose)` changes the pose of euslisp kinematic model to the predefined pose called `reset-manip-pose`.
-    With calling this method, the actual robot does **NOT** move because this method only changes the states of the kinematic model. Instead you can see the current states of the kinematic model by `(objects (list *pr2*))`.
-    The kinematic model now looks like below:
+In the bottom of the demo program `pr2-tabletop-object-grasp.l`, you can see a main function `demo`.
 
-    ![pr2-reset-manip-pose](https://user-images.githubusercontent.com/1901008/39504749-d42a4ff8-4e08-11e8-8597-6ca54b5a97e7.png)
+```lisp
+(defun demo ()
+  (setq *grasping-object-p* nil)
+  (setq *arm* :rarm)
+  (setq *tfl* (instance ros::transform-listener :init))
+  (setq *tfb* (instance ros::transform-broadcaster :init))
+  (pr2-init)
+  (pr2-pregrasp-pose)
+  (wait-for-grasp-target))
+```
 
-    The second line then send the current state of kinematic model to the actual robot.
-    The second argument `5000` allows the robot to take 5000 milliseconds to move to the pose. If the second argument is omitted, the default argument `3000` will be used.
+The `(pr2-init)` method is just a initialization function for pr2 robot that instantiate two objects required for robot manipulation from euslisp:
 
-    After the second line, it will take 5 seconds until the robot ends to move, but the method call itself returns immediately.
-    The last method called in the last line is just for waiting for the robot until he ends to move to the specified pose.
+- `*pr2*`: This object is a kinematic model for a PR2 robot. This object includes any fundamental functions for robot modeling such as inverse kinematics, dynamics, geometric constraints and so on. You can visualize this model by evaluating `(objects (list *pr2*))`.
+- `*ri*`: This is an object that send a control signal to the actual robot from euslisp kinematics model and receive the result or actual states of the robot. `ri` is an abbreviation of `robot interface`.
+
+Please note that `(pr2-init)` function is defined in `pr2-interface.l` in the `pr2eus` package.
+In this demo program, the function is loaded in the top of the script:
+
+```lisp
+(require :pr2-interface "package://pr2eus/pr2-interface.l")
+```
+
+After `(pr2-init)` is executed, the kinematic model looks like below:
+
+![pr2-reset-pose](https://user-images.githubusercontent.com/1901008/39504750-d44efa06-4e08-11e8-8aef-7c0f3ce0802b.png)
+
+
+After initialized the robot in euslisp, `(pr2-pregrasp-pose)` method is executed.
+
+```lisp
+(defun pr2-pregrasp-pose ()
+  (send *pr2* :reset-manip-pose)
+  (send *ri* :angle-vector (send *pr2* :angle-vector) 5000)
+  (send *ri* :wait-interpolation))
+```
+
+The first line `(send *pr2* :reset-manip-pose)` changes the pose of euslisp kinematic model to the predefined pose called `reset-manip-pose`.
+With calling this method, the actual robot does **NOT** move because this method only changes the states of the kinematic model. Instead you can see the current states of the kinematic model by `(objects (list *pr2*))`.
+The kinematic model now looks like below:
+
+![pr2-reset-manip-pose](https://user-images.githubusercontent.com/1901008/39504749-d42a4ff8-4e08-11e8-8597-6ca54b5a97e7.png)
+
+The second line then send the current state of kinematic model to the actual robot.
+The second argument `5000` allows the robot to take 5000 milliseconds to move to the pose. If the second argument is omitted, the default argument `3000` will be used.
+
+After the second line, it will take 5 seconds until the robot ends to move, but the method call itself returns immediately.
+The last method called in the last line is just for waiting for the robot until he ends to move to the specified pose.
 
 
 ## Reach Object Demo
