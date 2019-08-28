@@ -722,7 +722,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
    (when (send self :simulation-modep)
      (return-from :send-ros-controller nil))
    (if (and warningp
-	    (yes-or-no-p (format nil "~C[3~CmAre you sure to move the real robot? (~A) ~C[0m" #x1b 49 (send action :name) #x1b)))
+	    (not (yes-or-no-p (format nil "~C[3~CmAre you sure to move the real robot? (~A) ~C[0m" #x1b 49 (send action :name) #x1b))))
        (return-from :send-ros-controller nil))
    (let* ((goal (send action :make-goal-instance))
 	  (goal-points nil)
