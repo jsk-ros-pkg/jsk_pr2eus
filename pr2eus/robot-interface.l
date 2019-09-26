@@ -1744,8 +1744,11 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
    "Send signal to clear costmap for obstacle avoidance to move_base."
    (let ((srv-name (format nil "~A/clear_costmaps" (send move-base-action :name))))
      (if (ros::wait-for-service srv-name 0)
-         (call-empty-service srv-name)))
-   t)
+         (progn
+           (call-empty-service srv-name)
+           t)
+         nil))
+   )
   (:change-inflation-range
    (&optional (range 0.2)
     &key (node-name "/move_base_node")
@@ -1880,13 +1883,16 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
 
 (defun clear-costmap (&key (node-name "/move_base_node"))
   "reset local costmap and clear unknown grid around robot"
-  (if (and (boundp '*ri*) (derivedp *ri* robot-move-base-interface))
-      (send *ri* :clear-costmap)
+  (if (and (and (boundp '*ri*) (derivedp *ri* robot-move-base-interface))
+           (send *ri* :clear-costmap))
+      t
       ;; for backward compatibility
       (let ((srv-name (format nil "/~A/clear_costmaps" node-name)))
         (if (ros::wait-for-service srv-name 0)
-            (call-empty-service srv-name))))
-  t)
+            (progn
+              (call-empty-service srv-name)
+              t)
+            nil))))
 
 (defun change-inflation-range (&optional (range 0.2)
                                          &key (node-name "/move_base_node")
