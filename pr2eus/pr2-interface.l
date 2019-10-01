@@ -267,7 +267,8 @@ Example: (send self :gripper :rarm :position) => 0.00"
    (send self :move-gripper arm 0.0 :effort (* 2000 g) :wait wait)
    (unless joint-action-enable
      (dolist (a (if (eq arm :arms) '(:larm :rarm) (list arm)))
-       (let ((grasp-convex
+       (when objs
+         (let ((grasp-convex
 	      (convex-hull-3d
 	       (flatten
 		(mapcar
@@ -280,7 +281,7 @@ Example: (send self :gripper :rarm :position) => 0.00"
                (and (find-method obj :faces)
                     (not (= (pqp-collision-check grasp-convex obj) 0))))
 	     (if (send obj :parent) (send (send obj :parent) :dissoc obj))
-	     (send robot a :end-coords :assoc obj)))))
+	     (send robot a :end-coords :assoc obj))))))
      ;; (send self :update-robot-state) ;; update state of 'robot' for real robot
      (return-from :start-grasp
        (case arm
