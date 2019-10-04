@@ -17,4 +17,5 @@
 
 [//]: #
 
-PR2_joints.pdf shows the joint names and joint limits for PR2
+
+[PR2_joints.pdf](./PR2_joints.pdf) shows the joint names and joint limits for PR2.
