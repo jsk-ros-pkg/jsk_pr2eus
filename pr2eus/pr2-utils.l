@@ -42,6 +42,7 @@
 (defmethod pr2-robot
   (:select-target-arm
    (c)
+   (setq c (mapcar #'(lambda (x) (if (functionp x) (funcall x) x)) c))
    (cond ((and (consp c) (= 2 (length c))) ;; dual arm
 	  (let ((v0 (send self :inverse-transform-vector (send (car c) :worldpos)))
 		(v1 (send self :inverse-transform-vector (send (cadr c) :worldpos))))
