@@ -16,3 +16,6 @@
 | jsk_pr2eus (amd64) | [![Build Status](http://build.ros.org/job/Kbin_uX64__jsk_pr2eus__ubuntu_xenial_amd64__binary/badge/icon)](http://build.ros.org/job/Kbin_uX64__jsk_pr2eus__ubuntu_xenial_amd64__binary)           | [![Build Status](http://build.ros.org/job/Mbin_uB64__jsk_pr2eus__ubuntu_bionic_amd64__binary/badge/icon)](http://build.ros.org/job/Mbin_uB64__jsk_pr2eus__ubuntu_bionic_amd64__binary)           |
 
 [//]: #
+
+
+[PR2_joints.pdf](./PR2_joints.pdf) shows the joint names and joint limits for PR2.
