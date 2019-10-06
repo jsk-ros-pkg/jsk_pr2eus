@@ -42,18 +42,19 @@
 (defmethod pr2-robot
   (:select-target-arm
    (c)
-   (setq c (mapcar #'(lambda (x) (if (functionp x) (funcall x) x)) c))
    (cond ((and (consp c) (= 2 (length c))) ;; dual arm
+          (setq c (mapcar #'(lambda (x) (if (functionp x) (funcall x) x)) c))
 	  (let ((v0 (send self :inverse-transform-vector (send (car c) :worldpos)))
 		(v1 (send self :inverse-transform-vector (send (cadr c) :worldpos))))
 	    (if (> (elt v0 1) (elt v1 1)) (list :larm :rarm) (list :rarm :larm))))
          ((consp c) ;; single arm
+          (setq c (mapcar #'(lambda (x) (if (functionp x) (funcall x) x)) c))
 	  (let ((v (send self :inverse-transform-vector (send (car c) :worldpos))))
 	    (if (> (elt v 1) 0) :larm :rarm)) ;; check y-coords
           )
-	 (t         ;; single arm
-	  (let ((v (send self :inverse-transform-vector (send c :worldpos))))
-	    (if (> (elt v 1) 0) :larm :rarm)) ;; check y-coords
+         (t         ;; single arm
+          (let ((v (send self :inverse-transform-vector (send (if (functionp c) (funcall c) c) :worldpos))))
+            (if (> (elt v 1) 0) :larm :rarm)) ;; check y-coords
 	  )))
   (:inverse-kinematics
    (target-coords &rest args &key (link-list) (move-arm)
