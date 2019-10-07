@@ -626,6 +626,7 @@ return t if interpolating"
              (setq cacts (gethash ctype controller-table)))
             (t
              (setq cacts controller-actions)))
+      (send self :spin-once)  ;; update interpolatingp
       (some #'(lambda (a) (send a :interpolatingp)) cacts)))
   (:wait-interpolation-smooth (time-to-finish &optional (ctype))
 "Return time-to-finish [msec] before the sent command is finished. Example code are:
@@ -667,9 +668,10 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
             (send-all controller-actions :time-to-finish)))))
   (:stop-motion (&key (stop-time 0))
    "Stop current executing motion"
-   (let ((av (send self :state :potentio-vector)))
-     (send self :angle-vector av stop-time)
-     (send self :wait-interpolation)))
+   (when (send self :interpolatingp)
+     (let ((av (send self :state :potentio-vector)))
+       (send self :angle-vector av stop-time)
+       (send self :wait-interpolation))))
   (:cancel-angle-vector
    (&key ((:controller-actions ca))
          ((:controller-type ct))
