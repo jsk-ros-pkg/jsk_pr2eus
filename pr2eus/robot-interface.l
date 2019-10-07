@@ -666,12 +666,14 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
               (send-all cacts :time-to-finish)))
            (t
             (send-all controller-actions :time-to-finish)))))
-  (:stop-motion (&key (stop-time 0))
+  (:stop-motion (&key (stop-time 0) (wait t))
    "Stop current executing motion"
    (when (send self :interpolatingp)
      (let ((av (send self :state :potentio-vector)))
        (send self :angle-vector av stop-time)
-       (send self :wait-interpolation))))
+       (if wait
+           (send self :wait-interpolation)
+           t))))
   (:cancel-angle-vector
    (&key ((:controller-actions ca))
          ((:controller-type ct))
