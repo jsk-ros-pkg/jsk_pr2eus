@@ -667,7 +667,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
            (t
             (send-all controller-actions :time-to-finish)))))
   (:stop-motion (&key (stop-time 0) (wait t))
-   "Stop current executing motion"
+   "Smoothly stops the motion being executed by sending the current joint state to the joint trajectory action goal"
    (when (send self :interpolatingp)
      (let ((av (send self :state :potentio-vector)))
        (send self :angle-vector av stop-time)
@@ -678,7 +678,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
    (&key ((:controller-actions ca))
          ((:controller-type ct))
          (wait))
-   "Cancel current joint trajectory action"
+   "Cancels the current joint trajectory action, causing an abrupt stop"
    (when (null (or ca ct)) (setq ca controller-actions))
    (when ca (send-all ca :cancel-all-goals))
    (when ct (send-all (gethash ct controller-table) :cancel-all-goals))
