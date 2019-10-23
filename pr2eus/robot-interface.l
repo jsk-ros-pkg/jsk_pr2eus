@@ -1241,13 +1241,15 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
           base-frame-id
           odom-topic move-base-trajectory-joint-names
           go-pos-unsafe-goal-msg
-          current-goal-coords)) ;; for simulation-callback
+          current-goal-coords
+          holonomic)) ;; for simulation-callback
 (defmethod robot-move-base-interface
   (:init
    (&rest args &key
           (move-base-action-name "move_base") ((:base-frame-id base-frame-id-name) "base_footprint")
           (base-controller-action-name "/base_controller/follow_joint_trajectory")
           (base-controller-joint-names (list "base_link_x" "base_link_y" "base_link_pan"))
+          (holonomic t)
 	  ((:odom-topic odom-topic-name) "/base_odometry/odom") &allow-other-keys)
    (prog1 (send-super* :init args)
      (setq base-frame-id base-frame-id-name)
@@ -1255,6 +1257,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
      (setq move-base-action (instance ros::simple-action-client :init
                                       move-base-action-name move_base_msgs::MoveBaseAction
                                       :groupname groupname))
+     (setq holonomic holonomic)
      (when base-controller-action-name
        (setq move-base-trajectory-action
              (instance ros::simple-action-client :init
@@ -1424,6 +1427,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
          ;;
          (dotimes (i 2)
            (if (< (setq diff-len (norm (subseq (send diff :worldpos) 0 2))) 200) ;; move_base thre = 200mm
+             (if holonomic
                (let* ((msec (* diff-len 10))
                       (x (/ (elt (send diff :worldpos) 0) msec))
                       (y (/ (elt (send diff :worldpos) 1) msec))
@@ -1436,6 +1440,25 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
                      (return-from :move-to-wait nil)))
                  ;;(unix::usleep (* (round msec) 1000)) ;; why time wait
                  )
+               (let* ((x (elt (send diff :worldpos) 0))
+                      (y (elt (send diff :worldpos) 1))
+                      (d (elt (car (rpy-angle (send diff :worldrot))) 0))
+                      (forward-p (>= x 0))
+                      (v (if forward-p 0.1 -0.1))
+                      (msec (/ diff-len v))
+                      (d0 (if forward-p (atan2 y x) (atan2 (- y) (- x))))
+                      (vd0 (/ d0 (/ msec 1000)))
+                      (vd1 (/ (- d d0) (/ msec 1000))))
+                 (ros::ros-warn ":move-to -> :go-velocity x:~A y:~A d:~A msec:~A" 0 0 vd0 msec)
+                 (ros::ros-warn ":move-to -> :go-velocity x:~A y:~A d:~A msec:~A" v 0 0 msec)
+                 (ros::ros-warn ":move-to -> :go-velocity x:~A y:~A d:~A msec:~A" 0 0 vd1 msec)
+                 (unix:usleep (* 400 1000)) ;; 400ms ???
+                 (let ((acret (and (send self :go-velocity 0 0 vd0 msec :wait t)
+                                   (send self :go-velocity v 0 0 msec :wait t)
+                                   (send self :go-velocity 0 0 vd1 msec :wait t))))
+                   (unless acret
+                     (setq move-base-goal-msg nil)
+                     (return-from :move-to-wait nil)))))
              (progn
                (ros::ros-error "too far from goal position ~A mm (> 200mm)" diff-len)
 	       ;; move-to succeeded but away from 200 mm
