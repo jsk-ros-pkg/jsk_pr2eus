@@ -1241,8 +1241,8 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
           base-frame-id
           odom-topic move-base-trajectory-joint-names
           go-pos-unsafe-goal-msg
-          current-goal-coords
-          holonomic)) ;; for simulation-callback
+          current-goal-coords  ;; for simulation-callback
+          holonomic))
 (defmethod robot-move-base-interface
   (:init
    (&rest args &key
@@ -1442,20 +1442,23 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
                  )
                (let* ((x (elt (send diff :worldpos) 0))
                       (y (elt (send diff :worldpos) 1))
-                      (d (elt (car (rpy-angle (send diff :worldrot))) 0))
                       (forward-p (>= x 0))
-                      (v (if forward-p 0.1 -0.1))
-                      (msec (/ diff-len v))
+                      (d (elt (car (rpy-angle (send diff :worldrot))) 0))
                       (d0 (if forward-p (atan2 y x) (atan2 (- y) (- x))))
-                      (vd0 (/ d0 (/ msec 1000)))
-                      (vd1 (/ (- d d0) (/ msec 1000))))
-                 (ros::ros-warn ":move-to -> :go-velocity x:~A y:~A d:~A msec:~A" 0 0 vd0 msec)
-                 (ros::ros-warn ":move-to -> :go-velocity x:~A y:~A d:~A msec:~A" v 0 0 msec)
-                 (ros::ros-warn ":move-to -> :go-velocity x:~A y:~A d:~A msec:~A" 0 0 vd1 msec)
+                      (d1 (- d d0))
+                      (dv0-msec (* (abs d0) 1000))
+                      (dv0 (/ d0 (/ dv0-msec 1000.0)))
+                      (v-msec (* diff-len 10))
+                      (v (* (if forward-p 1.0 -1.0) (/ diff-len v-msec)))
+                      (dv1-msec (* (abs d1) 1000))
+                      (dv1 (/ d1 (/ dv1-msec 1000.0))))
+                 (ros::ros-warn ":move-to -> :go-velocity x:0 y:0 d:~A msec:~A" dv0 dv0-msec)
+                 (ros::ros-warn ":move-to -> :go-velocity x:~A y:0 d:0 msec:~A" v v-msec)
+                 (ros::ros-warn ":move-to -> :go-velocity x:0 y:0 d:~A msec:~A" dv1 dv1-msec)
                  (unix:usleep (* 400 1000)) ;; 400ms ???
-                 (let ((acret (and (send self :go-velocity 0 0 vd0 msec :wait t)
-                                   (send self :go-velocity v 0 0 msec :wait t)
-                                   (send self :go-velocity 0 0 vd1 msec :wait t))))
+                 (let ((acret (and (send self :go-velocity 0 0 dv0 dv0-msec :wait t)
+                                   (send self :go-velocity v 0 0 v-msec :wait t)
+                                   (send self :go-velocity 0 0 dv1 dv1-msec :wait t))))
                    (unless acret
                      (setq move-base-goal-msg nil)
                      (return-from :move-to-wait nil)))))
