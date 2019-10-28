@@ -741,5 +741,5 @@ Example: (send self :gripper :rarm :position) => 0.00"
 (defun use-tilt-laser-obstacle-cloud (enable)
   ;; check if we have service call
   (let ((req (instance topic_tools::MuxSelectRequest :init
-                       :topic (if enable "ground_object_cloud" "empty_cloud"))))
+                       :topic (if enable "tilt_scan_filtered" "empty_cloud"))))
     (ros::service-call "/tilt_laser_mux/select" req)))
