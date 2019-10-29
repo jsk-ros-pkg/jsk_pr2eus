@@ -1410,16 +1410,17 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
        (incf count))
      (ros::ros-info "move-to : ~A" (if ret 'succeeded 'failed))
      (when (and ret correction)
-       (let* ((map-goal-coords
-                (if (string= frame-id base-frame-id)
-                    (send (send map-to-frame :copy-worldcoords) :transform (send coords :worldcoords))
-                  (send (send *tfl* :lookup-transform "map" frame-id (ros::time 0))
-                        :transform (send coords :copy-worldcoords)))) ;; goal-coords in /map coordinates
-              (lret (send *tfl* :wait-for-transform "map" base-frame-id (ros::time-now) 5))
-              (current-coords (send *tfl* :lookup-transform "map" base-frame-id (ros::time 0)))
-              (diff (send current-coords :transformation map-goal-coords))
-              (diff-len (norm (subseq (send diff :worldpos) 0 2))))
-         (dotimes (i 2)
+       (dotimes (i 2)
+         (let* ((map-goal-coords
+                  (if (string= frame-id base-frame-id)
+                      (send (send map-to-frame :copy-worldcoords) :transform (send coords :worldcoords))
+                    (send (send *tfl* :lookup-transform "map" frame-id (ros::time 0))
+                          :transform (send coords :copy-worldcoords)))) ;; goal-coords in /map coordinates
+                (timestamp (ros::time-now))
+                (lret (send *tfl* :wait-for-transform "map" base-frame-id timestamp 5))
+                (current-coords (send *tfl* :lookup-transform "map" base-frame-id timestamp))
+                (diff (send current-coords :transformation map-goal-coords))
+                (diff-len (norm (subseq (send diff :worldpos) 0 2))))
            (ros::ros-warn ":move-to wait-for transform map to ~A -> ~A" base-frame-id lret)
            (when (null lret)
              (ros::ros-error ":move-to wait-for transform map to ~A failed" base-frame-id)
