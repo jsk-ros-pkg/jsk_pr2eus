@@ -1414,7 +1414,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
          (when (null lret)
            (ros::ros-error ":move-to wait-for transform map to ~A failed" base-frame-id)
            (setq move-base-goal-msg nil)
-           (return-from :move-to-no-wait nil))
+           (return-from :move-to-wait nil))
          (setq current-coords (send *tfl* :lookup-transform "map" base-frame-id (ros::time 0)))
          (setq diff (send current-coords :transformation map-goal-coords))
          (ros::ros-warn ":move-to current-coords  ~A" current-coords)
