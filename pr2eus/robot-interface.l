@@ -1285,10 +1285,9 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
    (when joint-action-enable
      (send move-base-action :cancel-all-goals)
      (when move-base-trajectory-action
-       (prog1
-           (send move-base-trajectory-action :cancel-all-goals)
-         (if force-stop (send self :go-velocity 0 0 0)))
-       )
+       ;; some robots (e.g. fetch) don't have move-base-trajectory-action
+       (send move-base-trajectory-action :cancel-all-goals))
+     (if force-stop (send self :go-velocity 0 0 0))
      ))
 
   (:make-plan
