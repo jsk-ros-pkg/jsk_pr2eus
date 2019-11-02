@@ -23,6 +23,39 @@
      joint-angle))
   )
 
+;; support :go-velocity in pr2-interface because pr2_move_base_controller is released under jsk_robot and could not used in pr2eus package
+(defmethod pr2-interface
+  (:send-cmd-vel-raw (x y d &key (topic-name "/base_controller/command"))
+    (when (send self :simulation-modep)
+      (return-from :send-cmd-vel-raw t))
+    (unless (ros::get-topic-publisher topic-name)
+      (ros::advertise topic-name geometry_msgs::Twist 1)
+      (unix:sleep 1))
+    (let ((msg (instance geometry_msgs::Twist :init)))
+      (send msg :linear :x x)
+      (send msg :linear :x y)
+      (send msg :angular :z d)
+      (ros::publish topic-name msg)))
+  (:go-velocity
+    (x y d ;; [m/sec] [m/sec] [rad/sec]
+       &optional (msec 1000) ;; msec is total animation time [msec]
+       &key (stop t) (wait t))
+    (unless wait
+      (ros::ros-error ":go-velocity without wait is unsupported")
+      (return-from :go-velocity nil))
+    (ros::rate 100)
+    (let ((start-time (ros::time-now)))
+      (while (and (ros::ok)
+                  (< (* 1000.0 (send (ros::time- (ros::time-now) start-time) :to-sec)) msec))
+        (send self :spin-once)
+        (send self :send-cmd-vel-raw x y d)
+        (ros::sleep)))
+    (when stop
+      (send self :send-cmd-vel-raw 0 0 0))
+    (ros::rate 10)
+    t)
+  )
+
 ;; initialize *pr2*
 
 (setq *pr2* (pr2))
@@ -255,6 +288,22 @@
     (setq diff-pos (norm (v- (send pos1 :pos) (send pos0 :pos))))
     ;; diff in 1cm
     (assert (< diff-pos 10) (format nil "go-stop does not stop: ~A > 10" diff-pos))))
+
+(deftest test-go-velocity
+  (let (pos1 pos2)
+    (pr2-tuckarm-pose)
+    (setq pos1 (send *ri* :state :worldcoords))
+    (ros::ros-info "(before go-velocity) current location ~A" pos1)
+    (send *ri* :go-velocity 1 0 0)
+    (unix:sleep 1)
+    (ros::ros-info "(after 1 sec )      current location ~A" (send *ri* :state :worldcoords))
+    (send *ri* :go-stop)
+    (unix:sleep 1)
+    (ros::ros-info "(after :go-stop)    current location ~A" (send *ri* :state :worldcoords))
+    (unix:sleep 1)
+    (ros::ros-info "(after 1 sec )      current location ~A" (send *ri* :state :worldcoords))
+    ;;(assert (< tm-diff 2) (format nil "end-coords-interpolation takes too long time ~A" tm-diff))
+    ))
 
 (run-all-tests)
 (exit)
