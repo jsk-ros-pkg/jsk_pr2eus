@@ -9,7 +9,10 @@
   <env name="DISPLAY" value="" unless="$(arg gui)"/>
 
   <!-- start empty world -->
-  <node name="gazebo" pkg="gazebo_ros" type="gzserver" args="-r worlds/empty.world" respawn="true" output="screen"/>
+  <node name="gazebo" pkg="gazebo_ros" type="gzserver" args="-r worlds/empty.world"
+        respawn="true" output="log" unless="$(arg use_kinect_env)" /> <!-- indigo -->
+  <node name="gazebo" pkg="gazebo_ros" type="gzserver" args="-r $(find pr2eus)/test/worlds/playground.world"
+        respawn="true" output="log"     if="$(arg use_kinect_env)" />
   <group if="$(arg gui)">
     <node name="gazebo_gui" pkg="gazebo_ros" type="gzclient" respawn="false" output="screen"/>
   </group>
@@ -18,6 +21,40 @@
   <include file="$(find pr2_gazebo)/launch/pr2.launch"/>
   <param name="/l_gripper_controller/gripper_action_node/stall_velocity_threshold" value="1.0" /> <!-- 0.33 -->
   <param name="/r_gripper_controller/gripper_action_node/stall_velocity_threshold" value="1.0" />
+
+  <!-- for :move-to and :go-velocity tests -->
+  <include file="$(find pr2_navigation_slam)/slam_gmapping.xml" />
+  <!-- Filter for tilt laser shadowing/veiling -->
+
+  <node pkg="move_base" type="move_base" name="move_base_node" >
+    <remap from="odom" to="base_odometry/odom" />
+    <remap from="cmd_vel" to="base_controller/command" />
+
+    <!-- Use the dwa local planner for the PR2 -->
+    <param name="base_local_planner" value="dwa_local_planner/DWAPlannerROS" />
+
+    <!-- Load common configuration files -->
+    <rosparam file="$(find pr2_navigation_config)/move_base/move_base_params.yaml" command="load" />
+    <rosparam file="$(find pr2_navigation_config)/move_base/costmap_common_params.yaml" command="load" ns="global_costmap" />
+    <rosparam file="$(find pr2_navigation_config)/move_base/costmap_common_params.yaml" command="load" ns="local_costmap" />
+    <rosparam file="$(find pr2_navigation_config)/move_base/dwa_local_planner.yaml" command="load" ns="DWAPlannerROS" />
+    <rosparam file="$(find pr2_navigation_config)/move_base/recovery_behaviors.yaml" command="load" />
+
+    <!-- Load slam navigation specific parameters -->
+    <rosparam file="$(find pr2_navigation_slam)/config/move_base_params.yaml" command="load" />
+    <rosparam file="$(find pr2_navigation_slam)/config/global_costmap_params.yaml" command="load" />
+    <rosparam file="$(find pr2_navigation_slam)/config/local_costmap_params.yaml" command="load"  />
+    <rosparam>
+      global_costmap:
+        observation_sources: base_scan tilt_scan
+        tilt_scan:
+          topic: /tilt_scan
+      local_costmap:
+        observation_sources: base_scan tilt_scan
+        tilt_scan:
+          topic: /tilt_scan
+    </rosparam>
+  </node>
 
   <!-- start test -->
   <test test-name="pr2_ri_test" pkg="roseus" type="roseus" retry="1"
