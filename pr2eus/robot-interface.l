@@ -1283,9 +1283,12 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
   ;;
   (:go-stop (&optional (force-stop t))
    (when joint-action-enable
-     (send move-base-action :cancel-all-goals)
      (prog1
-         (send move-base-trajectory-action :cancel-all-goals)
+       (if move-base-trajectory-action
+         (and
+           (send move-base-action :cancel-all-goals)
+           (send move-base-trajectory-action :cancel-all-goals))
+         (send move-base-action :cancel-all-goals))
        (if force-stop (send self :go-velocity 0 0 0)))
      ))
 
