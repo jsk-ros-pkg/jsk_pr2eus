@@ -90,7 +90,7 @@
      (:worldcoords
       (unless joint-action-enable
 	(return-from :state (send self :worldcoords)))
-      (send-super :state :worldcoords (or (cadr args) "world")))
+      (send-super :state :worldcoords (or (cadr args) "map")))
      (t
       (send-super* :state args))
      ))
