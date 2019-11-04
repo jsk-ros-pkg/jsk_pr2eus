@@ -124,7 +124,7 @@
     (unix:sleep 1))
   )
 
-(deftest test-tuckle-arm
+(deftest test-tuck-arm
   (assert (pr2-tuckarm-pose :larm))
   (assert (pr2-tuckarm-pose :rarm))
   )
