@@ -33,7 +33,7 @@
       (unix:sleep 1))
     (let ((msg (instance geometry_msgs::Twist :init)))
       (send msg :linear :x x)
-      (send msg :linear :x y)
+      (send msg :linear :y y)
       (send msg :angular :z d)
       (ros::publish topic-name msg)))
   (:go-velocity
