@@ -16,8 +16,8 @@ env:
     - secure: "REUwDilheEXGFShSdFNgQ1rRAFBw2QG2eT8XDAQsDFyhPfCnjGDA1Ak25TbVIz4a02M9/hDP4QtsXFj6VRHVs4tV55zrGeLea06+Fw8vjHEICYVtfzYYvZB3pHnWoxxPUcQTU+CgTMGV3lLSupMgvyNNY8J6UdaiW8+Oj7icHc4="
     - ROSWS=wstool
     - BUILDER=catkin
-    - CATKIN_PARALLEL_TEST_JOBS="-j4 -p1"
-    - ROS_PARALLEL_TEST_JOBS="-j4"
+    - CATKIN_PARALLEL_TEST_JOBS="-j8 -p4"
+    - ROS_PARALLEL_TEST_JOBS="-j8"
     - USE_DOCKER=true
   matrix:
     - ROS_DISTRO=indigo  USE_DEB=true EXTRA_DEB="ros-indigo-pr2-gazebo ros-indigo-pr2-arm-kinematics"
