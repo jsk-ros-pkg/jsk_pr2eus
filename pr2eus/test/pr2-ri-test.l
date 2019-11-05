@@ -54,6 +54,48 @@
       (send self :send-cmd-vel-raw 0 0 0))
     (ros::rate 10)
     t)
+  (:go-pos-unsafe
+    (x y d
+       &key (translation-threshold 0.05) (rotation-threshold (deg2rad 5))
+            (translation-gain 1.0) (rotation-gain 1.0)
+            (stop t) (wait t))
+    (unless wait
+      (ros::ros-error ":go-pos-unsafe without wait is unsupported")
+      (return-from :go-pos-unsafe nil))
+    (ros::rate 100)
+    ;; x, y
+    (let (org-cds cur-cds diffpos diffrot x-err y-err d-err)
+      (send self :spin-once)
+      (setq org-cds (send self :state :odom :pose))
+      (while (ros::ok)
+        (send self :spin-once)
+        (setq cur-cds (send self :state :odom :pose))
+        (setq diffpos (send org-cds :difference-position cur-cds))
+        (setq x-err (- x (* 0.001 (elt diffpos 0))))
+        (setq y-err (- y (* 0.001 (elt diffpos 1))))
+        (when (and (< (abs x-err) translation-threshold)
+                   (< (abs y-err) translation-threshold))
+          (when stop (send self :send-cmd-vel-raw 0 0 0)) ;; stop
+          (return))
+        (let ((x-vel (* translation-gain x-err))
+              (y-vel (* translation-gain y-err)))
+          (send self :send-cmd-vel-raw x-vel y-vel 0))
+        (ros::sleep))
+      (while (ros::ok)
+        (send self :spin-once)
+        (setq cur-cds (send self :state :odom :pose))
+        (setq diffrot (send org-cds :difference-rotation cur-cds))
+        (setq d-err
+              (atan2 (sin (- d (elt diffrot 2)))
+                     (cos (- d (elt diffrot 2)))))
+        (when (< (abs d-err) rotation-threshold)
+          (when stop (send self :send-cmd-vel-raw 0 0 0)) ;; stop
+          (return))
+        (let ((d-vel (* rotation-gain d-err)))
+          (send self :send-cmd-vel-raw 0 0 d-vel))
+        (ros::sleep))
+      (ros::rate 10))
+    t)
   )
 
 ;; initialize *pr2*
@@ -288,6 +330,31 @@
     (setq diff-pos (norm (v- (send pos1 :pos) (send pos0 :pos))))
     ;; diff in 1cm
     (assert (< diff-pos 10) (format nil "go-stop does not stop: ~A > 10" diff-pos))))
+
+(deftest test-go-pos-unsafe
+  (let ((x 0.3) (y 0.3) (d 1.57)
+        pos0 pos1 pos2)
+    (pr2-tuckarm-pose)
+    (setq pos0 (send *ri* :state :worldcoords "map"))
+    (send *ri* :go-pos-unsafe x y d)
+    (unix:sleep 1)
+    (setq pos1 (send *ri* :state :worldcoords "map"))
+    (setq diffpos (send pos0 :difference-position pos1))
+    (setq diffrot (send pos0 :difference-rotation pos1))
+    ;; diff in 10cm
+    (assert (< (abs (- (elt diffpos 0) (* 1000 x))) 100)
+            (format nil "go-pos-unsafe moves incorrectly in x axis: ~A != ~A" (* 1000 x) (elt diffpos 0)))
+    (assert (< (abs (- (elt diffpos 1) (* 1000 y))) 100)
+            (format nil "go-pos-unsafe moves incorrectly in y axis: ~A != ~A" (* 1000 y) (elt diffpos 1)))
+    (assert (< (abs (atan2 (sin (- d (elt diffrot 2))) (cos (- d (elt diffrot 2))))) 0.3)
+            (format nil "go-pos-unsafe moves incorrectly in d axis: ~A != ~A" d (elt diffrot 2)))
+    (send *ri* :go-stop)
+    (unix:sleep 1)
+    (setq pos2 (send *ri* :state :worldcoords "map"))
+    (setq diff-pos (norm (v- (send pos2 :pos) (send pos1 :pos))))
+    ;; diff in 10cm
+    (assert (< diff-pos 100) (format nil "go-stop does not stop: ~A" diff-pos))
+    ))
 
 (deftest test-go-velocity
   (let ((vel-x 1) (vel-y 1) (vel-d 1.57)
