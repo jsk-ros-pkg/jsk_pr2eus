@@ -350,9 +350,9 @@ Example: (send self :gripper :rarm :position) => 0.00"
      ))
 
   (:stop-grasp
-   (&optional (arm :arms) &key (wait nil))
+   (&optional (arm :arms) &key ((:gain g) 0.03) (wait nil))
    (prog1
-       (send self :move-gripper arm 0.09 :wait wait)
+       (send self :move-gripper arm 0.09 :effort (* 2000 g) :wait wait)
      (unless joint-action-enable
        (dolist (a (if (eq arm :arms) '(:larm :rarm) (list arm)))
          (dolist (obj (send robot a :end-coords :descendants))
