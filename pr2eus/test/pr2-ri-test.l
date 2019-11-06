@@ -332,7 +332,7 @@
     (assert (< diff-pos 10) (format nil "go-stop does not stop: ~A > 10" diff-pos))))
 
 (deftest test-go-pos-unsafe
-  (let ((x 0.3) (y 0.3) (d 1.57)
+  (let ((x 0.3) (y 0.3) (d 90)
         pos0 pos1 pos2)
     (pr2-tuckarm-pose)
     (setq pos0 (send *ri* :state :worldcoords "map"))
@@ -346,7 +346,8 @@
             (format nil "go-pos-unsafe moves incorrectly in x axis: ~A != ~A" (* 1000 x) (elt diffpos 0)))
     (assert (< (abs (- (elt diffpos 1) (* 1000 y))) 100)
             (format nil "go-pos-unsafe moves incorrectly in y axis: ~A != ~A" (* 1000 y) (elt diffpos 1)))
-    (assert (< (abs (atan2 (sin (- d (elt diffrot 2))) (cos (- d (elt diffrot 2))))) 0.3)
+    (assert (< (abs (atan2 (sin (- (deg2rad d) (elt diffrot 2)))
+                           (cos (- (deg2rad d) (elt diffrot 2))))) 0.3)
             (format nil "go-pos-unsafe moves incorrectly in d axis: ~A != ~A" d (elt diffrot 2)))
     (send *ri* :go-stop)
     (unix:sleep 1)
