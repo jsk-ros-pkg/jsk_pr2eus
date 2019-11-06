@@ -86,8 +86,8 @@
         (setq cur-cds (send self :state :odom :pose))
         (setq diffrot (send org-cds :difference-rotation cur-cds))
         (setq d-err
-              (atan2 (sin (- d (elt diffrot 2)))
-                     (cos (- d (elt diffrot 2)))))
+              (atan2 (sin (- (deg2rad d) (elt diffrot 2)))
+                     (cos (- (deg2rad d) (elt diffrot 2)))))
         (when (< (abs d-err) rotation-threshold)
           (when stop (send self :send-cmd-vel-raw 0 0 0)) ;; stop
           (return))
@@ -331,31 +331,6 @@
     ;; diff in 1cm
     (assert (< diff-pos 10) (format nil "go-stop does not stop: ~A > 10" diff-pos))))
 
-(deftest test-go-pos-unsafe
-  (let ((x 0.3) (y 0.3) (d 90)
-        pos0 pos1 pos2)
-    (pr2-tuckarm-pose)
-    (setq pos0 (send *ri* :state :worldcoords "map"))
-    (send *ri* :go-pos-unsafe x y d)
-    (unix:sleep 1)
-    (setq pos1 (send *ri* :state :worldcoords "map"))
-    (setq diffpos (send pos0 :difference-position pos1))
-    (setq diffrot (send pos0 :difference-rotation pos1))
-    ;; diff in 10cm
-    (assert (< (abs (- (elt diffpos 0) (* 1000 x))) 100)
-            (format nil "go-pos-unsafe moves incorrectly in x axis: ~A != ~A" (* 1000 x) (elt diffpos 0)))
-    (assert (< (abs (- (elt diffpos 1) (* 1000 y))) 100)
-            (format nil "go-pos-unsafe moves incorrectly in y axis: ~A != ~A" (* 1000 y) (elt diffpos 1)))
-    (assert (< (abs (atan2 (sin (- (deg2rad d) (elt diffrot 2)))
-                           (cos (- (deg2rad d) (elt diffrot 2))))) 0.3)
-            (format nil "go-pos-unsafe moves incorrectly in d axis: ~A != ~A" d (elt diffrot 2)))
-    (send *ri* :go-stop)
-    (unix:sleep 1)
-    (setq pos2 (send *ri* :state :worldcoords "map"))
-    (setq diff-pos (norm (v- (send pos2 :pos) (send pos1 :pos))))
-    ;; diff in 10cm
-    (assert (< diff-pos 100) (format nil "go-stop does not stop: ~A" diff-pos))
-    ))
 
 (deftest test-go-pos
   (let ((x 0.3) (y 0.3) (d 90)
@@ -374,7 +349,33 @@
             (format nil "go-pos moves incorrectly in y axis: ~A != ~A" (* 1000 y) (elt diffpos 1)))
     (assert (< (abs (atan2 (sin (- (deg2rad d) (elt diffrot 2)))
                            (cos (- (deg2rad d) (elt diffrot 2))))) 0.3)
-            (format nil "go-pos moves incorrectly in d axis: ~A != ~A" d (elt diffrot 2)))
+            (format nil "go-pos moves incorrectly in d axis: ~A != ~A" (deg2rad d) (elt diffrot 2)))
+    (send *ri* :go-stop)
+    (unix:sleep 1)
+    (setq pos2 (send *ri* :state :worldcoords "map"))
+    (setq diff-pos (norm (v- (send pos2 :pos) (send pos1 :pos))))
+    ;; diff in 10cm
+    (assert (< diff-pos 100) (format nil "go-stop does not stop: ~A" diff-pos))
+    ))
+
+(deftest test-go-pos-unsafe
+  (let ((x -0.3) (y -0.3) (d -90)
+        pos0 pos1 pos2)
+    (pr2-tuckarm-pose)
+    (setq pos0 (send *ri* :state :worldcoords "map"))
+    (send *ri* :go-pos-unsafe x y d)
+    (unix:sleep 1)
+    (setq pos1 (send *ri* :state :worldcoords "map"))
+    (setq diffpos (send pos0 :difference-position pos1))
+    (setq diffrot (send pos0 :difference-rotation pos1))
+    ;; diff in 10cm
+    (assert (< (abs (- (elt diffpos 0) (* 1000 x))) 100)
+            (format nil "go-pos-unsafe moves incorrectly in x axis: ~A != ~A" (* 1000 x) (elt diffpos 0)))
+    (assert (< (abs (- (elt diffpos 1) (* 1000 y))) 100)
+            (format nil "go-pos-unsafe moves incorrectly in y axis: ~A != ~A" (* 1000 y) (elt diffpos 1)))
+    (assert (< (abs (atan2 (sin (- (deg2rad d) (elt diffrot 2)))
+                           (cos (- (deg2rad d) (elt diffrot 2))))) 0.3)
+            (format nil "go-pos-unsafe moves incorrectly in d axis: ~A != ~A" (deg2rad d) (elt diffrot 2)))
     (send *ri* :go-stop)
     (unix:sleep 1)
     (setq pos2 (send *ri* :state :worldcoords "map"))
