@@ -334,7 +334,7 @@
 
 
 (deftest test-go-pos
-  (let ((x 0.3) (y 0.3) (d 90)
+  (let ((x 0.3) (y 0.3) (d 90)  ;; [m] [m] [degree]
         pos0 pos1 pos2)
     (pr2-tuckarm-pose)
     (setq pos0 (send *ri* :state :worldcoords "map"))
@@ -345,21 +345,24 @@
     (setq diffrot (send pos0 :difference-rotation pos1))
     ;; diff in 10cm
     (assert (< (abs (- (elt diffpos 0) (* 1000 x))) 100)
-            (format nil "go-pos moves incorrectly in x axis: ~A != ~A" (* 1000 x) (elt diffpos 0)))
+            (format nil "go-pos moves incorrectly in x axis: ~A != ~A"
+                    (* 1000 x) (elt diffpos 0)))
     (assert (< (abs (- (elt diffpos 1) (* 1000 y))) 100)
-            (format nil "go-pos moves incorrectly in y axis: ~A != ~A" (* 1000 y) (elt diffpos 1)))
+            (format nil "go-pos moves incorrectly in y axis: ~A != ~A"
+                    (* 1000 y) (elt diffpos 1)))
     (assert (< (abs (shortest-angle (deg2rad d) (elt diffrot 2))) 0.3)
-            (format nil "go-pos moves incorrectly in d axis: ~A != ~A" (deg2rad d) (elt diffrot 2)))
+            (format nil "go-pos moves incorrectly in d axis: ~A != ~A"
+                    (deg2rad d) (elt diffrot 2)))
     (send *ri* :go-stop)
     (unix:sleep 1)
     (setq pos2 (send *ri* :state :worldcoords "map"))
     (setq diff-pos (norm (v- (send pos2 :pos) (send pos1 :pos))))
     ;; diff in 10cm
-    (assert (< diff-pos 100) (format nil "go-stop does not stop: ~A" diff-pos))
+    (assert (< diff-pos 100) (format nil "go-stop does not stop: ~A > 100" diff-pos))
     ))
 
 (deftest test-go-pos-unsafe
-  (let ((x -0.3) (y -0.3) (d -90)
+  (let ((x -0.3) (y 0.3) (d -90)  ;; [m] [m] [degree]
         pos0 pos1 pos2)
     (pr2-tuckarm-pose)
     (setq pos0 (send *ri* :state :worldcoords "map"))
@@ -370,21 +373,24 @@
     (setq diffrot (send pos0 :difference-rotation pos1))
     ;; diff in 10cm
     (assert (< (abs (- (elt diffpos 0) (* 1000 x))) 100)
-            (format nil "go-pos-unsafe moves incorrectly in x axis: ~A != ~A" (* 1000 x) (elt diffpos 0)))
+            (format nil "go-pos-unsafe moves incorrectly in x axis: ~A != ~A"
+                    (* 1000 x) (elt diffpos 0)))
     (assert (< (abs (- (elt diffpos 1) (* 1000 y))) 100)
-            (format nil "go-pos-unsafe moves incorrectly in y axis: ~A != ~A" (* 1000 y) (elt diffpos 1)))
+            (format nil "go-pos-unsafe moves incorrectly in y axis: ~A != ~A"
+                    (* 1000 y) (elt diffpos 1)))
     (assert (< (abs (shortest-angle (deg2rad d) (elt diffrot 2))) 0.3)
-            (format nil "go-pos-unsafe moves incorrectly in d axis: ~A != ~A" (deg2rad d) (elt diffrot 2)))
+            (format nil "go-pos-unsafe moves incorrectly in d axis: ~A != ~A"
+                    (deg2rad d) (elt diffrot 2)))
     (send *ri* :go-stop)
     (unix:sleep 1)
     (setq pos2 (send *ri* :state :worldcoords "map"))
     (setq diff-pos (norm (v- (send pos2 :pos) (send pos1 :pos))))
     ;; diff in 10cm
-    (assert (< diff-pos 100) (format nil "go-stop does not stop: ~A" diff-pos))
+    (assert (< diff-pos 100) (format nil "go-stop does not stop: ~A > 100" diff-pos))
     ))
 
 (deftest test-go-velocity
-  (let ((vel-x 1) (vel-y 1) (vel-d 1.57)
+  (let ((vel-x 1) (vel-y 1) (vel-d 1.57)  ;; [m/s] [m/s] [rad/s]
         pos0 pos1 pos2 pos3 tm0 tm1 diff-pos vel-diff-pos)
     (pr2-tuckarm-pose)
     (setq pos0 (send *ri* :state :worldcoords "map"))
@@ -407,13 +413,13 @@
     (ros::ros-info "(after :go-stop)    current location ~A" pos2)
     (setq diff-pos (norm (v- (send pos2 :pos) (send pos1 :pos))))
     ;; diff in 10cm
-    (assert (< diff-pos 100) (format nil "go-stop does not stop: ~A" diff-pos))
+    (assert (< diff-pos 100) (format nil "go-stop does not stop: ~A > 100" diff-pos))
     (unix:sleep 1)
     (setq pos3 (send *ri* :state :worldcoords "map"))
     (ros::ros-info "(after 1 sec )      current location ~A" pos3)
     (setq diff-pos (norm (v- (send pos3 :pos) (send pos2 :pos))))
     ;; diff in 10cm
-    (assert (< diff-pos 100) (format nil "go-stop does not stop: ~A" diff-pos))
+    (assert (< diff-pos 100) (format nil "go-stop does not stop: ~A > 100" diff-pos))
     ))
 
 (run-all-tests)
