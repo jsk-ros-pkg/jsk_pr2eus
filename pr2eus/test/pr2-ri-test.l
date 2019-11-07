@@ -23,6 +23,9 @@
      joint-angle))
   )
 
+(defun shortest-angle (d0 d1)
+  (atan2 (sin (- d0 d1)) (cos (- d0 d1))))
+
 ;; support :go-velocity in pr2-interface because pr2_move_base_controller is released under jsk_robot and could not used in pr2eus package
 (defmethod pr2-interface
   (:send-cmd-vel-raw (x y d &key (topic-name "/base_controller/command"))
@@ -85,9 +88,7 @@
         (send self :spin-once)
         (setq cur-cds (send self :state :odom :pose))
         (setq diffrot (send org-cds :difference-rotation cur-cds))
-        (setq d-err
-              (atan2 (sin (- (deg2rad d) (elt diffrot 2)))
-                     (cos (- (deg2rad d) (elt diffrot 2)))))
+        (setq d-err (shortest-angle (deg2rad d) (elt diffrot 2)))
         (when (< (abs d-err) rotation-threshold)
           (when stop (send self :send-cmd-vel-raw 0 0 0)) ;; stop
           (return))
@@ -347,8 +348,7 @@
             (format nil "go-pos moves incorrectly in x axis: ~A != ~A" (* 1000 x) (elt diffpos 0)))
     (assert (< (abs (- (elt diffpos 1) (* 1000 y))) 100)
             (format nil "go-pos moves incorrectly in y axis: ~A != ~A" (* 1000 y) (elt diffpos 1)))
-    (assert (< (abs (atan2 (sin (- (deg2rad d) (elt diffrot 2)))
-                           (cos (- (deg2rad d) (elt diffrot 2))))) 0.3)
+    (assert (< (abs (shortest-angle (deg2rad d) (elt diffrot 2))) 0.3)
             (format nil "go-pos moves incorrectly in d axis: ~A != ~A" (deg2rad d) (elt diffrot 2)))
     (send *ri* :go-stop)
     (unix:sleep 1)
@@ -373,8 +373,7 @@
             (format nil "go-pos-unsafe moves incorrectly in x axis: ~A != ~A" (* 1000 x) (elt diffpos 0)))
     (assert (< (abs (- (elt diffpos 1) (* 1000 y))) 100)
             (format nil "go-pos-unsafe moves incorrectly in y axis: ~A != ~A" (* 1000 y) (elt diffpos 1)))
-    (assert (< (abs (atan2 (sin (- (deg2rad d) (elt diffrot 2)))
-                           (cos (- (deg2rad d) (elt diffrot 2))))) 0.3)
+    (assert (< (abs (shortest-angle (deg2rad d) (elt diffrot 2))) 0.3)
             (format nil "go-pos-unsafe moves incorrectly in d axis: ~A != ~A" (deg2rad d) (elt diffrot 2)))
     (send *ri* :go-stop)
     (unix:sleep 1)
