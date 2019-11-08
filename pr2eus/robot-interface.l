@@ -1433,7 +1433,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
            (if (< diff-len 200) ;; move_base thre = 200mm
              (let* ((x (/ (elt (send diff :worldpos) 0) 1000))
                     (y (/ (elt (send diff :worldpos) 1) 1000))
-                    (d (elt (car (rpy-angle (send diff :worldrot))) 0)))
+                    (d (rad2deg (elt (car (rpy-angle (send diff :worldrot))) 0))))
                (unless (send self :go-pos-unsafe x y d)
                  (setq move-base-goal-msg nil)
                  (return-from :move-to-wait nil)))
