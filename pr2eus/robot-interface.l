@@ -1434,8 +1434,8 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
              (return-from :move-to-wait nil))
            (ros::ros-warn ":move-to current-coords  ~A" current-coords)
            (ros::ros-warn "         mapgoal-coords  ~A" map-goal-coords)
-           (ros::ros-warn "          error-coords   ~A" diff)
-           (ros::ros-warn "         target-coords   ~A" coords)
+           (ros::ros-warn "           error-coords  ~A" diff)
+           (ros::ros-warn "          target-coords  ~A" coords)
            (if (< diff-len 200) ;; move_base thre = 200mm
              (let* ((x (/ (elt (send diff :worldpos) 0) 1000))
                     (y (/ (elt (send diff :worldpos) 1) 1000))
