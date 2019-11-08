@@ -1374,7 +1374,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
      (send move-base-action :send-goal move-base-goal-msg)
      move-base-goal-msg))
   (:move-to-wait
-   (&rest args &key (retry 10) (frame-id "world") &allow-other-keys)
+   (&rest args &key (retry 10) (frame-id "world") (correction t) &allow-other-keys)
    (let (ret (count 0) (tm (ros::time-now))
 	     (map-to-frame move-base-goal-map-to-frame)
              (coords move-base-goal-coords))
@@ -1401,7 +1401,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
        (incf count))
      (ros::ros-info "move-to : ~A" (if ret 'succeeded 'failed))
      ;;
-     (when ret
+     (when (and ret correction)
        (let (diff diff-len current-coords lret map-goal-coords)
          ;;
          (setq map-goal-coords
