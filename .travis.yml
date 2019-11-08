@@ -21,12 +21,20 @@ env:
     - USE_DOCKER=true
   matrix:
     - ROS_DISTRO=indigo  USE_DEB=true EXTRA_DEB="ros-indigo-pr2-gazebo ros-indigo-pr2-arm-kinematics"
+    - ROS_DISTRO=indigo  USE_DEB=true EXTRA_DEB="ros-indigo-pr2-gazebo ros-indigo-pr2-arm-kinematics" TEST_PKGS="pr2eus"
+    - ROS_DISTRO=indigo  USE_DEB=true EXTRA_DEB="ros-indigo-pr2-gazebo ros-indigo-pr2-arm-kinematics" TEST_PKGS="pr2eus_moveit pr2eus_tutorials"
     - ROS_DISTRO=kinetic USE_DEB=true
+    - ROS_DISTRO=kinetic USE_DEB=true TEST_PKGS="pr2eus"
+    - ROS_DISTRO=kinetic USE_DEB=true TEST_PKGS="pr2eus_moveit pr2eus_tutorials"
     - ROS_DISTRO=melodic USE_DEB=true
+    - ROS_DISTRO=melodic USE_DEB=true TEST_PKGS="pr2eus"
+    - ROS_DISTRO=melodic USE_DEB=true TEST_PKGS="pr2eus_moveit pr2eus_tutorials"
 matrix:
   fast_finish: true
-  # allow_failures:
-  #   - env: ROS_DISTRO=melodic USE_DEB=true
+  allow_failures:
+    - env: ROS_DISTRO=indigo  USE_DEB=true EXTRA_DEB="ros-indigo-pr2-gazebo ros-indigo-pr2-arm-kinematics"
+    - env: ROS_DISTRO=kinetic USE_DEB=true
+    - env: ROS_DISTRO=melodic USE_DEB=true
 script: source .travis/travis.sh
 after_success:
   - TRAVIS_JOB_SUBNUMBER="${TRAVIS_JOB_NUMBER##*.}"
