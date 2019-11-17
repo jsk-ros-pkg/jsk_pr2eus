@@ -49,7 +49,11 @@ if(CATKIN_ENABLE_TESTING)
     add_rostest(test/make-pr2-model-file-test.launch)
     find_package(pr2_gazebo QUIET)
     if(pr2_gazebo_FOUND AND (NOT pr2_gazebo_VERSION VERSION_LESS 2.0.7)) # test only supports indigo
-      add_rostest(test/pr2-ri-test.launch)
+      if(pr2_gazebo_VERSION VERSION_LESS 2.0.11) # indigo deos not have KINECT1 / KINETCT2 arg in pr2_gazebo/pr2.launch
+	add_rostest(test/pr2-ri-test.launch ARGS use_kinect_env:=false)
+      else()
+	add_rostest(test/pr2-ri-test.launch)
+      endif()
     endif()
     add_rostest(test/pr2-ri-test-simple.launch)
     add_rostest(test/robot-init-test.test) # this uses pr2
