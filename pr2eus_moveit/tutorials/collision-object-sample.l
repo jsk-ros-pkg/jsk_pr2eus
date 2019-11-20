@@ -28,7 +28,7 @@
                          (intern (format nil "~A_LK" (string-upcase link-name))
                                  *keyword-package*) :worldcoords)
                    :transformation (send obj :worldcoords))))
-    (send *co* :add-object obj :frame_id link-name :relative-pose cds)
+    (send *co* :add-object obj :frame-id link-name :relative-pose cds)
     obj))
 
 (warn "
