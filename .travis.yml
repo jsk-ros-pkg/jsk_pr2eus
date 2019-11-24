@@ -17,7 +17,6 @@ env:
     - ROSWS=wstool
     - BUILDER=catkin
     - CATKIN_PARALLEL_TEST_JOBS="-j1 -p1"
-    - ROS_PARALLEL_TEST_JOBS="-j1"
     - USE_DOCKER=true
   matrix:
     - ROS_DISTRO=indigo  USE_DEB=true EXTRA_DEB="ros-indigo-pr2-gazebo ros-indigo-pr2-arm-kinematics" TEST_PKGS="pr2eus" NOT_TEST_INSTALL=true
