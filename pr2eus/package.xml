@@ -36,6 +36,7 @@
   <run_depend>sound_play</run_depend>
 
   <!-- Dependencies needed only for running tests. -->
+  <test_depend>fake_localization</test_depend>
   <test_depend>rostest</test_depend>
   <test_depend>pr2_gazebo</test_depend>
   <test_depend>pr2_navigation_slam</test_depend>
