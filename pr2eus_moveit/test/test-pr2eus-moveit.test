@@ -4,6 +4,9 @@
 
   <env name="DISPLAY" value="$(arg DISPLAY)" />
 
+  <env name="ROSCONSOLE_CONFIG_FILE"
+       value="$(find pr2eus_moveit)/test/rosconsole.conf"/>
+
   <include file="$(find pr2_gazebo)/launch/pr2_empty_world.launch" >
     <arg name="gui" default="$(arg gui)"/>
     <arg name="paused" default="false"/>
