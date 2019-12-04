@@ -243,6 +243,19 @@
     (assert (< tm-diff 2) (format nil "end-coords-interpolation takes too long time ~A" tm-diff))
     ))
 
+(deftest test-go-stop
+  (let ((x 0.3) (y 0.3) (d 90)
+        pos0 pos1)
+    (pr2-tuckarm-pose)
+    (setq pos0 (send *ri* :state :worldcoords "map"))
+    (send *ri* :go-pos-unsafe x y d)
+    (send *ri* :go-stop)
+    (unix:sleep 1)
+    (setq pos1 (send *ri* :state :worldcoords "map"))
+    (setq diff-pos (norm (v- (send pos1 :pos) (send pos0 :pos))))
+    ;; diff in 1cm
+    (assert (< diff-pos 10) (format nil "go-stop does not stop: ~A > 10" diff-pos))))
+
 (run-all-tests)
 (exit)
 
