@@ -1239,7 +1239,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
   :slots (move-base-action move-base-trajectory-action
           move-base-goal-msg move-base-goal-coords  move-base-goal-map-to-frame
           base-frame-id
-          odom-topic move-base-trajectory-joint-names
+          cmd-vel-topic odom-topic move-base-trajectory-joint-names
           go-pos-unsafe-goal-msg
           current-goal-coords)) ;; for simulation-callback
 (defmethod robot-move-base-interface
@@ -1248,10 +1248,12 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
           (move-base-action-name "move_base") ((:base-frame-id base-frame-id-name) "base_footprint")
           (base-controller-action-name "/base_controller/follow_joint_trajectory")
           (base-controller-joint-names (list "base_link_x" "base_link_y" "base_link_pan"))
+          ((:cmd-vel-topi cmd-vel-topic-name) "/base_controller/command")
 	  ((:odom-topic odom-topic-name) "/base_odometry/odom") &allow-other-keys)
    (prog1 (send-super* :init args)
      (setq base-frame-id base-frame-id-name)
      (setq odom-topic odom-topic-name)
+     (setq cmd-vel-topic cmd-vel-topic-name)
      (setq move-base-action (instance ros::simple-action-client :init
                                       move-base-action-name move_base_msgs::MoveBaseAction
                                       :groupname groupname))
@@ -1505,6 +1507,18 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
    (let ()
      (send self :move-to-wait :retry 1 :frame-id base-frame-id :no-wait nil)
      ))
+  (:send-cmd-vel-raw
+   (x y d) ;; [m] [m] [degree]
+   (when (send self :simulation-modep)
+     (return-from :send-cmd-vel-raw t))
+   (unless (ros::get-topic-publisher cmd-vel-topic)
+     (ros::advertise cmd-vel-topic geometry_msgs::Twist 1)
+     (unix:sleep 1))
+   (let ((msg (instance geometry_msgs::Twist :init)))
+     (send msg :linear :x x)
+     (send msg :linear :y y)
+     (send msg :angular :z d)
+     (ros::publish cmd-vel-topic msg)))
   (:go-velocity
    (x y d ;; [m/sec] [m/sec] [rad/sec]
     &optional (msec 1000) ;; msec is total animation time [msec]
@@ -1520,8 +1534,18 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
 	 (if viewer (send self :draw-objects))))
      (return-from :go-velocity t))
    (unless move-base-trajectory-action
-     (ros::ros-warn ":go-velocity is disabled. (move-base-trajectory-action is not found)")
-     (return-from :go-velocity t))
+     (unless wait
+       (ros::ros-error ":go-velocity :wait nil requries move-base-trajectory-action, call :go-velocity with :wait t"))
+     (ros::rate 100)
+     (let ((start-time (ros::time-now)))
+       (while (and (ros::ok)
+                   (< (* 1000.0 (send (ros::time- (ros::time-now) start-time) :to-sec)) msec))
+         (send self :spin-once)
+         (send self :send-cmd-vel-raw x y d)
+         (ros::sleep)))
+     (when stop
+       (send self :send-cmd-vel-raw 0 0 0))
+     (return-from :go-velocity t)) ;; when move-base-trajectory-action not found
    (setq x (* x (/ msec 1000.0))
          y (* y (/ msec 1000.0))
          d (* d (/ msec 1000.0)))
@@ -1547,8 +1571,41 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
          (if viewer (send self :draw-objects))))
      (return-from :go-pos-unsafe-no-wait t))
    (unless move-base-trajectory-action
-     (ros::ros-warn ":go-pose-unsafe-no-wait is disabled. (move-base-trajectory-action is not found)")
-     (return-from :go-pos-unsafe-no-wait t))
+     (ros::ros-warn "pseudo :go-pose-unsafe-no-wait is called because move-base-trajectory-action is not found")
+     (ros::rate 100)
+     (let (org-cds cur-cds diffpos diffrot x-err y-err d-err
+                   (translation-threshold 0.05) (rotation-threshold (deg2rad 5))
+                   (translation-gain 1.0) (rotation-gain 1.0)
+                   (stop t))
+       (send self :spin-once)
+       (setq org-cds (send self :state :odom :pose))
+       (while (ros::ok)
+         (send self :spin-once)
+         (setq cur-cds (send self :state :odom :pose))
+         (setq diffpos (send org-cds :difference-position cur-cds))
+         (setq x-err (- x (* 0.001 (elt diffpos 0))))
+         (setq y-err (- y (* 0.001 (elt diffpos 1))))
+         (when (and (< (abs x-err) translation-threshold)
+                    (< (abs y-err) translation-threshold))
+           (when stop (send self :send-cmd-vel-raw 0 0 0)) ;; stop
+           (return))
+         (let ((x-vel (* translation-gain x-err))
+               (y-vel (* translation-gain y-err)))
+           (send self :send-cmd-vel-raw x-vel y-vel 0))
+         (ros::sleep))
+       (while (ros::ok)
+         (send self :spin-once)
+         (setq cur-cds (send self :state :odom :pose))
+         (setq diffrot (send org-cds :difference-rotation cur-cds))
+         (setq d-err (shortest-angle (deg2rad d) (elt diffrot 2)))
+         (when (< (abs d-err) rotation-threshold)
+           (when stop (send self :send-cmd-vel-raw 0 0 0)) ;; stop
+           (return))
+         (let ((d-vel (* rotation-gain d-err)))
+           (send self :send-cmd-vel-raw 0 0 d-vel))
+         (ros::sleep))
+       (ros::rate 10))
+     (return-from :go-pos-unsafe-no-wait t)) ;; unless move-base-trajectory-action
    (let ((maxvel 0.295) (maxrad 0.495)
          msec)
      ;; package://pr2_base_trajectory_action/config/pr2_base_link.yaml
