@@ -2,26 +2,12 @@
 (load "package://pr2eus/pr2-interface.l")
 
 ;; avoid print violate max/min-angle that exceeds 4M log limit
-(unless (assoc :joint-angle-org (send rotational-joint :methods))
-        (rplaca (assoc :joint-angle (send rotational-joint :methods)) :joint-angle-org))
-(defmethod rotational-joint
-  (:joint-angle
-   (&optional v &key relative &allow-other-keys)
-   (let ()
-     (when v
-       (when (and joint-min-max-table joint-min-max-target)
-         (setq min-angle (send self :joint-min-max-table-min-angle)
-               max-angle (send self :joint-min-max-table-max-angle)))
-       (if relative (setq v (+ v joint-angle)))
-       (cond ((> v max-angle)
-	      (setq v max-angle)))
-       (cond ((< v min-angle)
-	      (setq v min-angle)))
-       (setq joint-angle v)
-       (send child-link :replace-coords default-coords)
-       (send child-link :rotate (deg2rad joint-angle) axis))
-     joint-angle))
-  )
+(setf (symbol-function 'warning-message-org)
+      (symbol-function 'warning-message))
+(defun warning-message (color format &rest mesg)
+  (unless (or (substringp "violate min-angle" format)
+              (substringp "violate max-angle" format))
+    (apply #'warning-message-org color format mesg)))
 
 (defun shortest-angle (d0 d1)
   (atan2 (sin (- d0 d1)) (cos (- d0 d1))))
