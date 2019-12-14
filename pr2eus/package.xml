@@ -43,6 +43,7 @@
   <test_depend>pr2_navigation_slam</test_depend>
   <test_depend>pr2_navigation_config</test_depend>
   <test_depend>robot_state_publisher</test_depend>
+  <test_depend>dwa_local_planner</test_depend>
 
   <export>
     <pr2eus robot-name="pr2" interface-file="${prefix}/pr2-interface.l" />
