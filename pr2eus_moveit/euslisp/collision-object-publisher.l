@@ -65,8 +65,8 @@
                         (instance shape_msgs::SolidPrimitive
                                   :init :type shape_msgs::SolidPrimitive::*CYLINDER*
                                   :dimensions (float-vector
-                                               (/ (radius-of-cylinder obj) 1000.0)
-                                               (/ (height-of-cylinder obj) 1000.0))))))
+                                               (/ (height-of-cylinder obj) 1000.0)
+                                               (/ (radius-of-cylinder obj) 1000.0))))))
          (send colobj :primitive_poses
                (append pose
                        (list
