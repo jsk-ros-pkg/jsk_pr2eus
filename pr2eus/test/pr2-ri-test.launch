@@ -8,6 +8,9 @@
   <env name="DISPLAY" value=":0.0" if="$(arg gui)"/>
   <env name="DISPLAY" value="" unless="$(arg gui)"/>
 
+  <arg name="launch_pr2_base_trajectory_action" default="false"
+       doc="launch pr2_base_trajectory_action for debugging" />
+
   <!-- start empty world -->
   <node name="gazebo" pkg="gazebo_ros" type="gzserver" args="-r worlds/empty.world" respawn="true" output="log"/>
   <group if="$(arg gui)">
@@ -135,7 +138,12 @@
     </rosparam>
   </node>
 
+  <include if="$(arg launch_pr2_base_trajectory_action)"
+           file="$(find pr2_base_trajectory_action)/launch/pr2_base_trajectory_action.launch" />
+
   <!-- start test -->
-  <test test-name="pr2_ri_test" pkg="roseus" type="roseus" retry="1"
-	args="$(find pr2eus)/test/pr2-ri-test.l" time-limit="800" />
+  <test test-name="pr2_ri_test_arm" pkg="roseus" type="roseus" retry="1"
+        args="$(find pr2eus)/test/pr2-ri-test-arm.l" time-limit="800" />
+  <test test-name="pr2_ri_test_base" pkg="roseus" type="roseus" retry="1"
+        args="$(find pr2eus)/test/pr2-ri-test-base.l" time-limit="800" />
 </launch>
