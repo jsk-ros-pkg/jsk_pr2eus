@@ -2,26 +2,12 @@
 (load "package://pr2eus/pr2-interface.l")
 
 ;; avoid print violate max/min-angle that exceeds 4M log limit
-(unless (assoc :joint-angle-org (send rotational-joint :methods))
-        (rplaca (assoc :joint-angle (send rotational-joint :methods)) :joint-angle-org))
-(defmethod rotational-joint
-  (:joint-angle
-   (&optional v &key relative &allow-other-keys)
-   (let ()
-     (when v
-       (when (and joint-min-max-table joint-min-max-target)
-         (setq min-angle (send self :joint-min-max-table-min-angle)
-               max-angle (send self :joint-min-max-table-max-angle)))
-       (if relative (setq v (+ v joint-angle)))
-       (cond ((> v max-angle)
-	      (setq v max-angle)))
-       (cond ((< v min-angle)
-	      (setq v min-angle)))
-       (setq joint-angle v)
-       (send child-link :replace-coords default-coords)
-       (send child-link :rotate (deg2rad joint-angle) axis))
-     joint-angle))
-  )
+(setf (symbol-function 'warning-message-org)
+      (symbol-function 'warning-message))
+(defun warning-message (color format &rest mesg)
+  (unless (or (substringp "violate min-angle" format)
+              (substringp "violate max-angle" format))
+    (apply #'warning-message-org color format mesg)))
 
 ;; initialize *pr2*
 
@@ -39,14 +25,14 @@
 (deftest test-wait-interpolation
   (ros::ros-info "send reset-pose and wait-interpolation")
   (assert (send *pr2* :reset-pose))
-  (assert (send *ri* :angle-vector (send *pr2* :angle-vector) 2000))
+  (assert (send *ri* :angle-vector (send *pr2* :angle-vector) 1000))
   (assert (every #'null (send *ri* :wait-interpolation))
           ":wait-interpolation must be list of nil")
   (assert (null (send *ri* :interpolatingp)))
 
   (ros::ros-info "send reset-pose, cancel goal and wait-interpolation")
   (send *pr2* :arms :shoulder-p :joint-angle 0)
-  (send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
+  (send *ri* :angle-vector (send *pr2* :angle-vector) 1000)
   (unix:sleep 2)
   ;; emulate someone stops controller from outside of *ri**
   (let* ((ca (car (*ri* . controller-actions)))
@@ -59,7 +45,7 @@
   ;;
   (ros::ros-info "send reset-pose, cancel goal and wait-interpolation-smooth")
   (send *pr2* :reset-pose)
-  (send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
+  (send *ri* :angle-vector (send *pr2* :angle-vector) 1000)
   (unix:sleep 2)
   ;; emulate someone stops controller from outside of *ri**
   (let* ((ca (car (*ri* . controller-actions)))
@@ -133,7 +119,7 @@
       (ros::ros-warn "                   : this is rotation motion, check with angle-vector-with-constraint")
       (send *ri* :angle-vector av0 500)
       (send *ri* :wait-interpolation)
-      (assert (send *ri* :angle-vector-with-constraint av1 2000 arm :rotation-axis :z) ":anlge-vector-with-constraint ~A" av1)
+      (assert (send *ri* :angle-vector-with-constraint av1 500 arm :rotation-axis :z) ":anlge-vector-with-constraint ~A" av1)
       (send *ri* :wait-interpolation)
       (return-from check-arm-rotation nil))
 
@@ -141,7 +127,7 @@
 
     (send *ri* :angle-vector av0 500)
     (send *ri* :wait-interpolation)
-    (send *ri* :angle-vector av1 2000)
+    (send *ri* :angle-vector av1 500)
     (setq c0 (send *tfl* :lookup-transform "/base_footprint" frame_id (ros::time 0)))
     (ros::ros-info "        end-coords : ~A" c0)
     (while (null (some #'identity (send-all (*ri* . controller-actions) :wait-for-result :timeout 0.01)))
@@ -156,7 +142,6 @@
   (check-arm-rotation :larm
                       #f(167.707 29.4094 -11.5979 30.2555 -21.9039 170.135 -32.6374 158.616 -30.7465 10.2422 -59.3904 -105.095 -89.2577 -28.9264 174.513 34.683 15.5661)
                       #f(167.707 25.5906 28.6932 5.78789 -16.8607 -32.6516 -13.3686 26.8255 -30.7465 10.2422 -59.3904 -105.095 -89.2577 -28.9264 174.513 34.6855 39.3216))
-
 
   (check-arm-rotation :larm
                       #f(78.892 122.143 16.5724 128.784 -118.564 -86.9813 -53.4699 32.4022 -30.746 10.2413 -59.3886 -105.093 -89.2534 -28.9254 174.516 70.999 54.714)
@@ -179,7 +164,7 @@
   (dolist (arm '(:larm :rarm :arms))
     (send *ri* :angle-vector #f(67.7477 42.8826 4.27682 59.283 -33.9308 71.4826 -18.4835 225.439 -60.0 74.0 -70.0 -120.0 -20.0 -30.0 180.0 0.0 0.0) 500)
     (send *ri* :wait-interpolation)
-    (send *ri* :angle-vector-with-constraint #f(67.7477 106.511 -17.9604 97.431 -118.365 225.343 -17.2478 30.768 -60.0 74.0 -70.0 -120.0 -20.0 -30.0 180.0 0.0 0.0) 5000 arm)
+    (send *ri* :angle-vector-with-constraint #f(67.7477 106.511 -17.9604 97.431 -118.365 225.343 -17.2478 30.768 -60.0 74.0 -70.0 -120.0 -20.0 -30.0 180.0 0.0 0.0) 1000 arm)
     (send *ri* :wait-interpolation))
   )
 
@@ -228,7 +213,7 @@
 (deftest test-end-coords-interpolation
   (let (tm-0 tm-1 tm-diff)
     (send *pr2* :reset-manip-pose)
-    (send *ri* :angle-vector (send *pr2* :angle-vector))
+    (send *ri* :angle-vector (send *pr2* :angle-vector) 1000)
     (send *ri* :wait-interpolation)
     (send *pr2* :larm :move-end-pos #f(50 0 0) :world)
     (send *pr2* :rarm :move-end-pos #f(50 0 0) :world)
