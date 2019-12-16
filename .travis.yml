@@ -1,5 +1,9 @@
 sudo: false
 language: c++
+cache:
+  apt: true
+  directories:
+    - $HOME/apt-cacher-ng
 python:
   - "2.7"
 compiler:
