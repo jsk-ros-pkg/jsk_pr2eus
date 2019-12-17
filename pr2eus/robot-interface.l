@@ -626,6 +626,7 @@ return t if interpolating"
              (setq cacts (gethash ctype controller-table)))
             (t
              (setq cacts controller-actions)))
+      (send self :spin-once)  ;; update interpolatingp
       (some #'(lambda (a) (send a :interpolatingp)) cacts)))
   (:wait-interpolation-smooth (time-to-finish &optional (ctype))
 "Return time-to-finish [msec] before the sent command is finished. Example code are:
@@ -665,16 +666,19 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
               (send-all cacts :time-to-finish)))
            (t
             (send-all controller-actions :time-to-finish)))))
-  (:stop-motion (&key (stop-time 0))
-   "Stop current executing motion"
-   (let ((av (send self :state :potentio-vector)))
-     (send self :angle-vector av stop-time)
-     (send self :wait-interpolation)))
+  (:stop-motion (&key (stop-time 0) (wait t))
+   "Smoothly stops the motion being executed by sending the current joint state to the joint trajectory action goal in stop-time [ms]. Please note that if stop-time is smaller than the :angle-vector min-time (defaulting to 1000 [ms]) the actual interpolation uses min-time instead. Refer to :cancel-angle-vector for a faster stop"
+   (when (send self :interpolatingp)
+     (let ((av (send self :state :potentio-vector)))
+       (send self :angle-vector av stop-time)
+       (if wait
+           (send self :wait-interpolation)
+           t))))
   (:cancel-angle-vector
    (&key ((:controller-actions ca))
          ((:controller-type ct))
          (wait))
-   "Cancel current joint trajectory action"
+   "Cancels the current joint trajectory action, causing an abrupt stop"
    (when (null (or ca ct)) (setq ca controller-actions))
    (when ca (send-all ca :cancel-all-goals))
    (when ct (send-all (gethash ct controller-table) :cancel-all-goals))
