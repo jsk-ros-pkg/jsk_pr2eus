@@ -239,7 +239,7 @@
           "Prerequisites did not meet at test-angle-vector-fast")
   ;; check for integer-expected errors when time is `:fast` and
   ;; `:check-continuous-joint-move-over-180' is true.
-  (send *ri* :angle-vector (send *pr2* :angle-vector) :fast nil 0 :min-time 500)
+  (send *ri* :angle-vector (send *pr2* :angle-vector) :fast)
   (send *ri* :wait-interpolation))
 
 (run-all-tests)
