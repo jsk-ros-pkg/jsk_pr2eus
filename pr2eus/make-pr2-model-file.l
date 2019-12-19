@@ -8,7 +8,7 @@
 
 (defun get-pr2-names ()
   ;; get list of rosparam
-  (reverse (mapcan #'(lambda (x) (if (substringp "robot_description" x) (list (string-left-trim "/" (string-right-trim "/robot_description" x)))))
+  (reverse (mapcan #'(lambda (x) (if (and (substringp "robot_description" x) (> (length x) (+ (length "robot_description") 1))) (list (subseq x 1 (- (length x) (length "/robot_description"))))))
                    (ros::list-param))))
 
 (defun make-pr2-robot-model (robot robot-description)
