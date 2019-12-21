@@ -7,8 +7,9 @@
     ret))
 
 (defun get-pr2-names ()
-  ;; get list of rosparam
-  (reverse (mapcan #'(lambda (x) (if (and (substringp "robot_description" x) (> (length x) (+ (length "robot_description") 1))) (list (subseq x 1 (- (length x) (length "/robot_description"))))))
+  ;; get list of rosparam, if /robot_description found, returns (list "")
+  (reverse (mapcan #'(lambda (x) (if (substringp "robot_description" x)
+                                     (if (> (length x) (+ (length "robot_description") 1)) (list (subseq x 1 (- (length x) (length "/robot_description")))) (list ""))))
                    (ros::list-param))))
 
 (defun make-pr2-robot-model (robot robot-description)
@@ -47,7 +48,7 @@
      (format f ";; make-camera-from-ros-camera-info-aux is defined in roseus since 1.0.1, but to use this code in jskeus, we re-define here~%")
      (format f "~A~%" (nconc (list 'defun 'make-camera-from-ros-camera-info-aux) (cddddr #'make-camera-from-ros-camera-info-aux)))
      (format f ";;~%")
-     (format f "(defun pr2 (&optional (name :~A)) (setq *pr2* (instance pr2-sensor-robot :init name)))~%" (car robot-names))
+     (format f "(defun pr2 (&optional (name :~A)) (setq *pr2* (instance pr2-sensor-robot :init name)))~%" (if (string= (car robot-names) "") "pr2" (car robot-names)))
      (format f "~%")
      ;;
      (format f "(defclass ~A-sensor-robot~%" robot)
@@ -71,7 +72,7 @@
      (dolist (robot-name robot-names)
        (setq valid-cameras (cdr (assoc robot-name robot-camera-map :test #'string=)))
        (format f "     ;; define cameras for ~A~%" robot-name)
-       (format f "     (:~A~%" robot-name)
+       (format f "     (:~A~%" (if (string= robot-name "") "pr2" robot-name))
        (dolist (valid-camera valid-cameras)
          (let* ((camera-path (cdr (assoc :camera-path valid-camera)))
                 (camera-name (cdr (assoc :camera-name valid-camera)))
@@ -148,7 +149,6 @@
                   (push (list (cons :camera-path camera-path) (cons :camera-name camera-name) (cons :camera-info camera-info) (cons :frame-id frame-id)) valid-cameras))
               (ros::ros-error "could not receive ~A ~A" camera-info var))
             )) ;; dolist (let *
-        (setq robot-name (if (string= robot-name "") "pr2" robot-name)) ;; for blank robot name
         (push (cons robot-name valid-cameras) robot-camera-map)
         ))
     (setq robot-camera-map (reverse robot-camera-map))
