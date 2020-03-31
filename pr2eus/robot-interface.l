@@ -10,6 +10,9 @@
 (ros::roseus-add-msgs "nav_msgs")
 (require :speak "package://pr2eus/speak.l")
 
+(defun shortest-angle (d0 d1)
+  (atan2 (sin (- d0 d1)) (cos (- d0 d1))))
+
 ;; add ros-joint-angle method using meter/radian
 (defmethod rotational-joint
   (:ros-joint-angle
