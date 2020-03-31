@@ -1,5 +1,9 @@
 sudo: false
 language: c++
+cache:
+  apt: true
+  directories:
+    - $HOME/apt-cacher-ng
 python:
   - "2.7"
 compiler:
@@ -17,12 +21,14 @@ env:
     - ROSWS=wstool
     - BUILDER=catkin
     - CATKIN_PARALLEL_TEST_JOBS="-j1 -p1"
-    - ROS_PARALLEL_TEST_JOBS="-j1"
     - USE_DOCKER=true
   matrix:
-    - ROS_DISTRO=indigo  USE_DEB=true EXTRA_DEB="ros-indigo-pr2-gazebo ros-indigo-pr2-arm-kinematics"
-    - ROS_DISTRO=kinetic USE_DEB=true
-    - ROS_DISTRO=melodic USE_DEB=true
+    - ROS_DISTRO=indigo  USE_DEB=true EXTRA_DEB="ros-indigo-pr2-gazebo ros-indigo-pr2-arm-kinematics" TEST_PKGS="pr2eus" NOT_TEST_INSTALL=true
+    - ROS_DISTRO=indigo  USE_DEB=true EXTRA_DEB="ros-indigo-pr2-gazebo ros-indigo-pr2-arm-kinematics" TEST_PKGS="pr2eus_moveit pr2eus_tutorials" NOT_TEST_INSTALL=true
+    - ROS_DISTRO=kinetic USE_DEB=true TEST_PKGS="pr2eus"
+    - ROS_DISTRO=kinetic USE_DEB=true TEST_PKGS="pr2eus_moveit pr2eus_tutorials"
+    - ROS_DISTRO=melodic USE_DEB=true TEST_PKGS="pr2eus"
+    - ROS_DISTRO=melodic USE_DEB=true TEST_PKGS="pr2eus_moveit pr2eus_tutorials"
 matrix:
   fast_finish: true
   # allow_failures:

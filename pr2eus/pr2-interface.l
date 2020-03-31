@@ -267,7 +267,8 @@ Example: (send self :gripper :rarm :position) => 0.00"
    (send self :move-gripper arm 0.0 :effort (* 2000 g) :wait wait)
    (unless joint-action-enable
      (dolist (a (if (eq arm :arms) '(:larm :rarm) (list arm)))
-       (let ((grasp-convex
+       (when objs
+         (let ((grasp-convex
 	      (convex-hull-3d
 	       (flatten
 		(mapcar
@@ -280,7 +281,7 @@ Example: (send self :gripper :rarm :position) => 0.00"
                (and (find-method obj :faces)
                     (not (= (pqp-collision-check grasp-convex obj) 0))))
 	     (if (send obj :parent) (send (send obj :parent) :dissoc obj))
-	     (send robot a :end-coords :assoc obj)))))
+	     (send robot a :end-coords :assoc obj))))))
      ;; (send self :update-robot-state) ;; update state of 'robot' for real robot
      (return-from :start-grasp
        (case arm
@@ -349,9 +350,9 @@ Example: (send self :gripper :rarm :position) => 0.00"
      ))
 
   (:stop-grasp
-   (&optional (arm :arms) &key (wait nil))
+   (&optional (arm :arms) &key ((:gain g) 0.03) (wait nil))
    (prog1
-       (send self :move-gripper arm 0.09 :wait wait)
+       (send self :move-gripper arm 0.09 :effort (* 2000 g) :wait wait)
      (unless joint-action-enable
        (dolist (a (if (eq arm :arms) '(:larm :rarm) (list arm)))
          (dolist (obj (send robot a :end-coords :descendants))
@@ -741,5 +742,5 @@ Example: (send self :gripper :rarm :position) => 0.00"
 (defun use-tilt-laser-obstacle-cloud (enable)
   ;; check if we have service call
   (let ((req (instance topic_tools::MuxSelectRequest :init
-                       :topic (if enable "ground_object_cloud" "empty_cloud"))))
+                       :topic (if enable "tilt_scan_filtered" "empty_cloud"))))
     (ros::service-call "/tilt_laser_mux/select" req)))

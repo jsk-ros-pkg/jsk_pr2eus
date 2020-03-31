@@ -377,7 +377,7 @@
 - tm : (time to goal in [msec])
    if designated tm is faster than fastest speed, use fastest speed
    if not specified, it will use 1/scale of the fastest speed .
-   if :fastest is specified use fastest speed calculated from max speed
+   if :fast is specified use fastest speed calculated from max speed
 - ctype : controller method name
 - start-time : time to start moving
 - scale : if tm is not specified, it will use 1/scale of the fastest speed
@@ -402,7 +402,7 @@
       ((numberp tm)
        (if (< tm fastest-tm)
            (setq tm fastest-tm)))
-      ;;Safe Mode (Speed will be 5 * fastest-time)
+      ;;Safe Mode (Speed will be 5 * fastest-tm)
       ((null tm)
        (setq tm (* 5 fastest-tm)))
       ;;Error Not Good Input
@@ -434,7 +434,7 @@
    if tms is atom, then use (list (make-list (length avs) :initial-element tms))) for tms
    if designated each tmn is faster than fastest speed, use fastest speed
    if tmn is nil, then it will use 1/scale of the fastest speed .
-   if :fastest is specified, use fastest speed calculated from max speed
+   if :fast is specified, use fastest speed calculated from max speed
 - ctype : controller method name
 - start-time : time to start moving
 - scale : if tms is not specified, it will use 1/scale of the fastest speed
@@ -626,6 +626,7 @@ return t if interpolating"
              (setq cacts (gethash ctype controller-table)))
             (t
              (setq cacts controller-actions)))
+      (send self :spin-once)  ;; update interpolatingp
       (some #'(lambda (a) (send a :interpolatingp)) cacts)))
   (:wait-interpolation-smooth (time-to-finish &optional (ctype))
 "Return time-to-finish [msec] before the sent command is finished. Example code are:
@@ -665,16 +666,19 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
               (send-all cacts :time-to-finish)))
            (t
             (send-all controller-actions :time-to-finish)))))
-  (:stop-motion (&key (stop-time 0))
-   "Stop current executing motion"
-   (let ((av (send self :state :potentio-vector)))
-     (send self :angle-vector av stop-time)
-     (send self :wait-interpolation)))
+  (:stop-motion (&key (stop-time 0) (wait t))
+   "Smoothly stops the motion being executed by sending the current joint state to the joint trajectory action goal in stop-time [ms]. Please note that if stop-time is smaller than the :angle-vector min-time (defaulting to 1000 [ms]) the actual interpolation uses min-time instead. Refer to :cancel-angle-vector for a faster stop"
+   (when (send self :interpolatingp)
+     (let ((av (send self :state :potentio-vector)))
+       (send self :angle-vector av stop-time)
+       (if wait
+           (send self :wait-interpolation)
+           t))))
   (:cancel-angle-vector
    (&key ((:controller-actions ca))
          ((:controller-type ct))
          (wait))
-   "Cancel current joint trajectory action"
+   "Cancels the current joint trajectory action, causing an abrupt stop"
    (when (null (or ca ct)) (setq ca controller-actions))
    (when ca (send-all ca :cancel-all-goals))
    (when ct (send-all (gethash ct controller-table) :cancel-all-goals))
@@ -722,7 +726,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
    (when (send self :simulation-modep)
      (return-from :send-ros-controller nil))
    (if (and warningp
-	    (yes-or-no-p (format nil "~C[3~CmAre you sure to move the real robot? (~A) ~C[0m" #x1b 49 (send action :name) #x1b)))
+	    (not (yes-or-no-p (format nil "~C[3~CmAre you sure to move the real robot? (~A) ~C[0m" #x1b 49 (send action :name) #x1b))))
        (return-from :send-ros-controller nil))
    (let* ((goal (send action :make-goal-instance))
 	  (goal-points nil)
@@ -1239,7 +1243,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
   :slots (move-base-action move-base-trajectory-action
           move-base-goal-msg move-base-goal-coords  move-base-goal-map-to-frame
           base-frame-id
-          odom-topic move-base-trajectory-joint-names
+          cmd-vel-topic odom-topic move-base-trajectory-joint-names
           go-pos-unsafe-goal-msg
           current-goal-coords)) ;; for simulation-callback
 (defmethod robot-move-base-interface
@@ -1248,10 +1252,12 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
           (move-base-action-name "move_base") ((:base-frame-id base-frame-id-name) "base_footprint")
           (base-controller-action-name "/base_controller/follow_joint_trajectory")
           (base-controller-joint-names (list "base_link_x" "base_link_y" "base_link_pan"))
+          ((:cmd-vel-topi cmd-vel-topic-name) "/base_controller/command")
 	  ((:odom-topic odom-topic-name) "/base_odometry/odom") &allow-other-keys)
    (prog1 (send-super* :init args)
      (setq base-frame-id base-frame-id-name)
      (setq odom-topic odom-topic-name)
+     (setq cmd-vel-topic cmd-vel-topic-name)
      (setq move-base-action (instance ros::simple-action-client :init
                                       move-base-action-name move_base_msgs::MoveBaseAction
                                       :groupname groupname))
@@ -1283,9 +1289,12 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
   ;;
   (:go-stop (&optional (force-stop t))
    (when joint-action-enable
-     (send move-base-action :cancel-all-goals)
      (prog1
-         (send move-base-trajectory-action :cancel-all-goals)
+       (if move-base-trajectory-action
+         (and
+           (send move-base-action :cancel-all-goals)
+           (send move-base-trajectory-action :cancel-all-goals))
+         (send move-base-action :cancel-all-goals))
        (if force-stop (send self :go-velocity 0 0 0)))
      ))
 
@@ -1374,7 +1383,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
      (send move-base-action :send-goal move-base-goal-msg)
      move-base-goal-msg))
   (:move-to-wait
-   (&rest args &key (retry 10) (frame-id "world") &allow-other-keys)
+   (&rest args &key (retry 10) (frame-id "world") (correction t) &allow-other-keys)
    (let (ret (count 0) (tm (ros::time-now))
 	     (map-to-frame move-base-goal-map-to-frame)
              (coords move-base-goal-coords))
@@ -1401,7 +1410,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
        (incf count))
      (ros::ros-info "move-to : ~A" (if ret 'succeeded 'failed))
      ;;
-     (when ret
+     (when (and ret correction)
        (let (diff diff-len current-coords lret map-goal-coords)
          ;;
          (setq map-goal-coords
@@ -1414,7 +1423,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
          (when (null lret)
            (ros::ros-error ":move-to wait-for transform map to ~A failed" base-frame-id)
            (setq move-base-goal-msg nil)
-           (return-from :move-to-no-wait nil))
+           (return-from :move-to-wait nil))
          (setq current-coords (send *tfl* :lookup-transform "map" base-frame-id (ros::time 0)))
          (setq diff (send current-coords :transformation map-goal-coords))
          (ros::ros-warn ":move-to current-coords  ~A" current-coords)
@@ -1502,6 +1511,18 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
    (let ()
      (send self :move-to-wait :retry 1 :frame-id base-frame-id :no-wait nil)
      ))
+  (:send-cmd-vel-raw
+   (x y d) ;; [m] [m] [degree]
+   (when (send self :simulation-modep)
+     (return-from :send-cmd-vel-raw t))
+   (unless (ros::get-topic-publisher cmd-vel-topic)
+     (ros::advertise cmd-vel-topic geometry_msgs::Twist 1)
+     (unix:sleep 1))
+   (let ((msg (instance geometry_msgs::Twist :init)))
+     (send msg :linear :x x)
+     (send msg :linear :y y)
+     (send msg :angular :z d)
+     (ros::publish cmd-vel-topic msg)))
   (:go-velocity
    (x y d ;; [m/sec] [m/sec] [rad/sec]
     &optional (msec 1000) ;; msec is total animation time [msec]
@@ -1517,8 +1538,18 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
 	 (if viewer (send self :draw-objects))))
      (return-from :go-velocity t))
    (unless move-base-trajectory-action
-     (ros::ros-warn ":go-velocity is disabled. (move-base-trajectory-action is not found)")
-     (return-from :go-velocity t))
+     (unless wait
+       (ros::ros-error ":go-velocity :wait nil requries move-base-trajectory-action, call :go-velocity with :wait t"))
+     (ros::rate 100)
+     (let ((start-time (ros::time-now)))
+       (while (and (ros::ok)
+                   (< (* 1000.0 (send (ros::time- (ros::time-now) start-time) :to-sec)) msec))
+         (send self :spin-once)
+         (send self :send-cmd-vel-raw x y d)
+         (ros::sleep)))
+     (when stop
+       (send self :send-cmd-vel-raw 0 0 0))
+     (return-from :go-velocity t)) ;; when move-base-trajectory-action not found
    (setq x (* x (/ msec 1000.0))
          y (* y (/ msec 1000.0))
          d (* d (/ msec 1000.0)))
@@ -1544,8 +1575,41 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
          (if viewer (send self :draw-objects))))
      (return-from :go-pos-unsafe-no-wait t))
    (unless move-base-trajectory-action
-     (ros::ros-warn ":go-pose-unsafe-no-wait is disabled. (move-base-trajectory-action is not found)")
-     (return-from :go-pos-unsafe-no-wait t))
+     (ros::ros-warn "pseudo :go-pose-unsafe-no-wait is called because move-base-trajectory-action is not found")
+     (ros::rate 100)
+     (let (org-cds cur-cds diffpos diffrot x-err y-err d-err
+                   (translation-threshold 0.05) (rotation-threshold (deg2rad 5))
+                   (translation-gain 1.0) (rotation-gain 1.0)
+                   (stop t))
+       (send self :spin-once)
+       (setq org-cds (send self :state :odom :pose))
+       (while (ros::ok)
+         (send self :spin-once)
+         (setq cur-cds (send self :state :odom :pose))
+         (setq diffpos (send org-cds :difference-position cur-cds))
+         (setq x-err (- x (* 0.001 (elt diffpos 0))))
+         (setq y-err (- y (* 0.001 (elt diffpos 1))))
+         (when (and (< (abs x-err) translation-threshold)
+                    (< (abs y-err) translation-threshold))
+           (when stop (send self :send-cmd-vel-raw 0 0 0)) ;; stop
+           (return))
+         (let ((x-vel (* translation-gain x-err))
+               (y-vel (* translation-gain y-err)))
+           (send self :send-cmd-vel-raw x-vel y-vel 0))
+         (ros::sleep))
+       (while (ros::ok)
+         (send self :spin-once)
+         (setq cur-cds (send self :state :odom :pose))
+         (setq diffrot (send org-cds :difference-rotation cur-cds))
+         (setq d-err (shortest-angle (deg2rad d) (elt diffrot 2)))
+         (when (< (abs d-err) rotation-threshold)
+           (when stop (send self :send-cmd-vel-raw 0 0 0)) ;; stop
+           (return))
+         (let ((d-vel (* rotation-gain d-err)))
+           (send self :send-cmd-vel-raw 0 0 d-vel))
+         (ros::sleep))
+       (ros::rate 10))
+     (return-from :go-pos-unsafe-no-wait t)) ;; unless move-base-trajectory-action
    (let ((maxvel 0.295) (maxrad 0.495)
          msec)
      ;; package://pr2_base_trajectory_action/config/pr2_base_link.yaml
@@ -1741,11 +1805,10 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
    )
   (:clear-costmap
    ()
-   "Send signal to clear costmap for obstacle avoidance to move_base."
+   "Send signal to clear costmap for obstacle avoidance to move_base and return t if succeeded."
    (let ((srv-name (format nil "~A/clear_costmaps" (send move-base-action :name))))
-     (if (ros::wait-for-service srv-name 0)
-         (call-empty-service srv-name)))
-   t)
+     (call-empty-service srv-name))
+   )
   (:change-inflation-range
    (&optional (range 0.2)
     &key (node-name "/move_base_node")
@@ -1879,14 +1942,13 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
 ;;
 
 (defun clear-costmap (&key (node-name "/move_base_node"))
-  "reset local costmap and clear unknown grid around robot"
-  (if (and (boundp '*ri*) (derivedp *ri* robot-move-base-interface))
-      (send *ri* :clear-costmap)
+  "reset local costmap, clear unknown grid around robot and return t if succeeded"
+  (if (and (and (boundp '*ri*) (derivedp *ri* robot-move-base-interface))
+           (send *ri* :clear-costmap))
+      t
       ;; for backward compatibility
       (let ((srv-name (format nil "/~A/clear_costmaps" node-name)))
-        (if (ros::wait-for-service srv-name 0)
-            (call-empty-service srv-name))))
-  t)
+        (call-empty-service srv-name))))
 
 (defun change-inflation-range (&optional (range 0.2)
                                          &key (node-name "/move_base_node")

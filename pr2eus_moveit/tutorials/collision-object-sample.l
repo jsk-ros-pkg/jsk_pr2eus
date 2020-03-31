@@ -7,11 +7,12 @@
 
   (setq *table* (instance foldable-desk-object :init))
   (setq *bottle* (instance petbottle-object :init))
-  (send *bottle* :translate #f(-100.0 140.0 705.0))
+  (send *table* :translate #f(1000.0 0.0 0.0))
+  (send *bottle* :translate #f(900.0 140.0 705.0))
 
   (setq *robot* robot)
   (setq *link-name* link-name)
-  (objects (list *table* *bottle*))
+  (objects (list *robot* *table* *bottle*))
   )
 
 (defun pub-objects ()
@@ -26,9 +27,9 @@
 (defun pub-obj (obj &optional (robot *robot*) (link-name *link-name*)) ;; need link
   (let ((cds (send (send robot
                          (intern (format nil "~A_LK" (string-upcase link-name))
-                                 *keyword-package*) :worldcoords)
+                                 *keyword-package*) :copy-worldcoords)
                    :transformation (send obj :worldcoords))))
-    (send *co* :add-object obj :frame_id link-name :relative-pose cds)
+    (send *co* :add-object obj :frame-id link-name :relative-pose cds)
     obj))
 
 (warn "
