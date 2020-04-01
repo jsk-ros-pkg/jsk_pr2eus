@@ -4,50 +4,41 @@ This is a repository for tutorials of pr2eus
 
 ## Installation
 
-To play with this package, you can choose from two installation methods.
-We assume the ROS environment is `kinetic`.
-If you use ROS `indigo` distribution, please replace the word `kinetic` with `indigo` (or appropriate distributions).
+To play with this package, you can choose from two installation methods. We assume you already installed ROS. If you have not installed yet, for **kinetic user** follow the instuction [here](http://wiki.ros.org/kinetic/Installation/Ubuntu) and for **melodic user** follow the instruction [here](http://wiki.ros.org/melodic/Installation/Ubuntu) to install the ROS.
 
 ### Using pre-built package
 
-#### Install ROS
-
-Follow the [instruction of ROS installation](http://wiki.ros.org/kinetic/Installation/Ubuntu)
-
 #### Install the package
-
 ```bash
-sudo apt install ros-kinetic-pr2eus-tutorials
+sudo apt install ros-$ROS_DISTRO-pr2eus-tutorials
 ```
 
-#### Load ROS Environment
+
+#### Load ROS Environment 
 
 ```bash
-source /opt/ros/kinetic/setup.bash
+source /opt/ros/$ROS_DISTRO/setup.bash
 ```
+
 
 ### Using source package
-
-#### Install ROS
-
-Follow the [instruction of ROS installation](http://wiki.ros.org/kinetic/Installation/Ubuntu)
 
 #### Setup catkin workspace
 
 ```bash
-source /opt/ros/kinetic/setup.bash
+source /opt/ros/$ROS_DISTRO/setup.bash
 sudo apt install python-catkin-tools python-wstool python-rosdep git
 sudo rosdep init
 rosdep update
 # Create catkin workspace and download source repository
-mkdir -p ~/ros/kinetic/src && cd ~/ros/kinetic/src
+mkdir -p ~/catkin_ws/src && cd ~/catkin_ws/src
 wstool init
 wstool set jsk-ros-pkg/jsk_pr2eus --git https://github.com/jsk-ros-pkg/jsk_pr2eus.git -v master
 wstool update
 # Install dependencies for building the package
 rosdep install --from-paths . -i -r -n -y
 # Build the package
-cd ~/ros/kinetic
+cd ~/catkin_ws
 catkin init
 catkin build
 ```
@@ -55,7 +46,7 @@ catkin build
 #### Load ROS Environment
 
 ```bash
-source ~/ros/kinetic/devel/setup.bash
+source ~/catkin_ws/devel/setup.bash
 ```
 
 ## Tabletop Object Grasping Demo
