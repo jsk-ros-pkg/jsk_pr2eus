@@ -31,15 +31,14 @@ sudo apt install python-catkin-tools python-wstool python-rosdep git
 sudo rosdep init
 rosdep update
 # Create catkin workspace and download source repository
-mkdir -p ~/catkin_ws/src && cd ~/catkin_ws/src
-wstool init
-wstool set jsk-ros-pkg/jsk_pr2eus --git https://github.com/jsk-ros-pkg/jsk_pr2eus.git -v master
-wstool update
-# Install dependencies for building the package
-rosdep install --from-paths . -i -r -n -y
-# Build the package
-cd ~/catkin_ws
+mkdir -p ~/catkin_ws/src && cd ~/catkin_ws
 catkin init
+wstool init src
+wstool merge -t src https://raw.githubusercontent.com/jsk-ros-pkg/jsk_pr2eus/tree/master/pr2eus_tutorials/pr2eus_tutorials.rosinstall
+wstool update -t src
+# Install dependencies for building the package
+rosdep install --from-paths src --ignore-src -r -n -y
+# Build the package
 catkin build
 ```
 
