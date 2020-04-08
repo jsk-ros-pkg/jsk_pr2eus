@@ -59,6 +59,7 @@
     (assert (send *ri* :go-waitp) "(send *ri* :go-waitp)")
     (assert (send *ri* :go-wait) "(send *ri* :go-wait)")
     (assert (eps-v= (send (send *ri* :worldcoords ) :worldpos) #f(0 0 0)))
+    (assert (send *ri* :go-pos-unsafe-no-wait -1 1 -90) "(send *ri* :go-pos-unsafe-no-wait -1 1 -90)")
     ))
 
 (deftest test-move-to
