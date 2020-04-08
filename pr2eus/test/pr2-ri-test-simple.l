@@ -131,9 +131,9 @@
             (format nil "*ri* ~A, *pr2* ~A ~A~%"
                     (elt (send *ri* :state :potentio-vector) 5)
                     (elt (send *pr2* :angle-vector) 5)
-                    (eps= (elt (send *ri* :state :potentio-vector) 5) 60.0)))
+                    (eps= (elt (send *ri* :state :potentio-vector) 5) 60.0 1.0)))
       (warning-message 2 msg)
-      (assert (eps= (elt (send *ri* :state :potentio-vector) 5) 60.0) msg)
+      (assert (eps= (elt (send *ri* :state :potentio-vector) 5) 60.0 1.0) msg)
       )
     ))
 
@@ -149,9 +149,9 @@
             (format nil "*ri* ~A, *pr2* ~A ~A~%"
                     (elt (send *ri* :state :potentio-vector) 5)
                     (elt (send *pr2* :angle-vector) 5)
-                    (eps= (elt (send *ri* :state :potentio-vector) 5) -60.0)))
+                    (eps= (elt (send *ri* :state :potentio-vector) 5) -60.0 1.0)))
       (warning-message 2 msg)
-      (assert (eps= (elt (send *ri* :state :potentio-vector) 5) -60.0) msg)
+      (assert (eps= (elt (send *ri* :state :potentio-vector) 5) -60.0 1.0) msg)
       )
     ))
 
