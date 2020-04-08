@@ -55,6 +55,7 @@
     (assert (send *ri* :go-pos 1 0 0) "(send *ri* :go-pos 1 0 0)") ;; go-pos is relative to current position
     (assert (send *ri* :go-pos 0 1 90) "(send *ri* :go-pos 0 1 90)")
     (assert (send *ri* :go-pos-no-wait -1 1 -90) "(send *ri* :go-pos-no-wait -1 1 -90)")
+    (ros::sleep 1) ;; wait for 1 sec to activate goal status...
     (assert (send *ri* :go-waitp) "(send *ri* :go-waitp)")
     (assert (send *ri* :go-wait) "(send *ri* :go-wait)")
     (assert (eps-v= (send (send *ri* :worldcoords ) :worldpos) #f(0 0 0)))
