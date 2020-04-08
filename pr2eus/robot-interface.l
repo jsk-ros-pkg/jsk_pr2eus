@@ -728,6 +728,10 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
    (if (and warningp
 	    (not (yes-or-no-p (format nil "~C[3~CmAre you sure to move the real robot? (~A) ~C[0m" #x1b 49 (send action :name) #x1b))))
        (return-from :send-ros-controller nil))
+   (dolist (name joint-names)
+     (unless (send robot :joint name)
+       (warning-message 1 "[robot-interface.l] (send-ros-controller) could not find joint-name '~A' (~A)~%" name (send robot :joint name))
+       (return-from :send-ros-controller nil)))
    (let* ((goal (send action :make-goal-instance))
 	  (goal-points nil)
 	  (st (if (numberp starttime)
@@ -1487,7 +1491,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
    (cond
     ((or
       (equal (send move-base-action :get-state) ros::*simple-goal-state-active*)
-      (equal (send move-base-trajectory-action :get-state) ros::*simple-goal-state-active*))
+      (and move-base-trajectory-action (equal (send move-base-trajectory-action :get-state) ros::*simple-goal-state-active*)))
      (return-from :go-waitp t))
     (t
      (return-from :go-waitp nil))))
