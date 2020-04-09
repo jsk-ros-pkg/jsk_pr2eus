@@ -6,21 +6,6 @@ This is a repository for tutorials of pr2eus
 
 To play with this package, you can choose from two installation methods. We assume you already installed ROS. If you have not installed yet, for **kinetic user** follow the instuction [here](http://wiki.ros.org/kinetic/Installation/Ubuntu) and for **melodic user** follow the instruction [here](http://wiki.ros.org/melodic/Installation/Ubuntu) to install the ROS.
 
-### Using pre-built package
-
-#### Install the package
-```bash
-sudo apt install ros-$ROS_DISTRO-pr2eus-tutorials
-```
-
-
-#### Load ROS Environment 
-
-```bash
-source /opt/ros/$ROS_DISTRO/setup.bash
-```
-
-
 ### Using source package
 
 #### Setup catkin workspace
