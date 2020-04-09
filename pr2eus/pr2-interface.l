@@ -429,6 +429,13 @@ Example: (send self :gripper :rarm :position) => 0.00"
             (max-av (fill (instantiate float-vector len-av)  180))
             (min-av (fill (instantiate float-vector len-av) -180))
             diff-av (l 0) dist div)
+       (if (atom tms) (setq tms (make-list (length avs) :initial-element tms)))
+       (cond
+	((< (length tms) (length avs))
+         (nconc tms (make-list (- (length avs) (length tms)) :initial-element (car (last tms)))))
+	((> (length tms) (length avs))
+	 (ros::ros-warn "length of tms should be the same or smaller than avs")
+	 (setq tms (subseq tms 0 (length avs)))))
        (dolist (av avs)
          ;; check if joint move more than 180 degree which has -inf/inf limit
          (setq diff-av (v- av prev-av))

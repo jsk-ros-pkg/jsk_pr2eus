@@ -55,9 +55,11 @@
     (assert (send *ri* :go-pos 1 0 0) "(send *ri* :go-pos 1 0 0)") ;; go-pos is relative to current position
     (assert (send *ri* :go-pos 0 1 90) "(send *ri* :go-pos 0 1 90)")
     (assert (send *ri* :go-pos-no-wait -1 1 -90) "(send *ri* :go-pos-no-wait -1 1 -90)")
+    (ros::sleep 1) ;; wait for 1 sec to activate goal status...
     (assert (send *ri* :go-waitp) "(send *ri* :go-waitp)")
     (assert (send *ri* :go-wait) "(send *ri* :go-wait)")
     (assert (eps-v= (send (send *ri* :worldcoords ) :worldpos) #f(0 0 0)))
+    (assert (send *ri* :go-pos-unsafe-no-wait -1 1 -90) "(send *ri* :go-pos-unsafe-no-wait -1 1 -90)")
     ))
 
 (deftest test-move-to
@@ -131,9 +133,9 @@
             (format nil "*ri* ~A, *pr2* ~A ~A~%"
                     (elt (send *ri* :state :potentio-vector) 5)
                     (elt (send *pr2* :angle-vector) 5)
-                    (eps= (elt (send *ri* :state :potentio-vector) 5) 60.0)))
+                    (eps= (elt (send *ri* :state :potentio-vector) 5) 60.0 1.0)))
       (warning-message 2 msg)
-      (assert (eps= (elt (send *ri* :state :potentio-vector) 5) 60.0) msg)
+      (assert (eps= (elt (send *ri* :state :potentio-vector) 5) 60.0 1.0) msg)
       )
     ))
 
@@ -149,9 +151,9 @@
             (format nil "*ri* ~A, *pr2* ~A ~A~%"
                     (elt (send *ri* :state :potentio-vector) 5)
                     (elt (send *pr2* :angle-vector) 5)
-                    (eps= (elt (send *ri* :state :potentio-vector) 5) -60.0)))
+                    (eps= (elt (send *ri* :state :potentio-vector) 5) -60.0 1.0)))
       (warning-message 2 msg)
-      (assert (eps= (elt (send *ri* :state :potentio-vector) 5) -60.0) msg)
+      (assert (eps= (elt (send *ri* :state :potentio-vector) 5) -60.0 1.0) msg)
       )
     ))
 
