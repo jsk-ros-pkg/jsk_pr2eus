@@ -481,10 +481,13 @@
          (dolist (av avs)
            (send robot :angle-vector av)
            (setq end-coords-current (mapcar #'(lambda (limb) (send robot limb :end-coords :copy-worldcoords)) limbs))
-	   (setq diff (v- (v- av (setq av (v+ av-prev (send self :sub-angle-vector av av-prev)))) diff-prev))
+           (setq diff (v- (v- av (setq av (v+ av-prev (send self :sub-angle-vector av av-prev)))) diff-prev))
            (setq target-limbs nil)
-	   (setq tm (elt tms i))
-	   (setq pass-tm (/ tm (float end-coords-interpolation-steps)))
+           (setq tm (elt tms i))
+           (if (equal tm :fast)
+               (setq tm (* 1000 (send self :angle-vector-duration
+                                      av-prev av scale min-time ctype))))
+           (setq pass-tm (/ tm (float end-coords-interpolation-steps)))
            (dotimes (l (length limbs))
              (setq ec-prev (elt end-coords-prev l) ec-current (elt end-coords-current l))
              (when (and ec-prev ec-current
