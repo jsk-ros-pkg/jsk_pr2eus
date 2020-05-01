@@ -266,22 +266,8 @@ Example: (send self :gripper :rarm :position) => 0.00"
    (&optional (arm :arms) &key ((:gain g) 0.01) ((:objects objs) objects) force-assoc ((:wait wait) t))
    (send self :move-gripper arm 0.0 :effort (* 2000 g) :wait wait)
    (unless joint-action-enable
-     (dolist (a (if (eq arm :arms) '(:larm :rarm) (list arm)))
-       (when objs
-         (let ((grasp-convex
-	      (convex-hull-3d
-	       (flatten
-		(mapcar
-		 #'(lambda (l)
-		     (send-all (send l :bodies) :worldcoords)
-		     (send-all (send l :bodies) :vertices))
-		 (send robot a :gripper :links))))))
-	 (dolist (obj objs)
-	   (when (or force-assoc
-               (and (find-method obj :faces)
-                    (not (= (pqp-collision-check grasp-convex obj) 0))))
-	     (if (send obj :parent) (send (send obj :parent) :dissoc obj))
-	     (send robot a :end-coords :assoc obj))))))
+     (send self :assoc-objects-in-gripper
+           (if (eq arm :arms) '(:larm :rarm) (list arm)) :objects objs :force-assoc force-assoc)
      ;; (send self :update-robot-state) ;; update state of 'robot' for real robot
      (return-from :start-grasp
        (case arm
@@ -354,9 +340,8 @@ Example: (send self :gripper :rarm :position) => 0.00"
    (prog1
        (send self :move-gripper arm 0.09 :effort (* 2000 g) :wait wait)
      (unless joint-action-enable
-       (dolist (a (if (eq arm :arms) '(:larm :rarm) (list arm)))
-         (dolist (obj (send robot a :end-coords :descendants))
-           (send robot arm :end-coords :dissoc obj))))))
+       (send self :dissoc-objects-in-gripper
+             (if (eq arm :arms) '(:larm :rarm) (list arm))))))
   ;;
   (:pr2-gripper-state-callback
    (arm msg)
