@@ -10,6 +10,9 @@
 (ros::roseus-add-msgs "nav_msgs")
 (require :speak "package://pr2eus/speak.l")
 
+(defun shortest-angle (d0 d1)
+  (atan2 (sin (- d0 d1)) (cos (- d0 d1))))
+
 ;; add ros-joint-angle method using meter/radian
 (defmethod rotational-joint
   (:ros-joint-angle
@@ -478,10 +481,13 @@
          (dolist (av avs)
            (send robot :angle-vector av)
            (setq end-coords-current (mapcar #'(lambda (limb) (send robot limb :end-coords :copy-worldcoords)) limbs))
-	   (setq diff (v- (v- av (setq av (v+ av-prev (send self :sub-angle-vector av av-prev)))) diff-prev))
+           (setq diff (v- (v- av (setq av (v+ av-prev (send self :sub-angle-vector av av-prev)))) diff-prev))
            (setq target-limbs nil)
-	   (setq tm (elt tms i))
-	   (setq pass-tm (/ tm (float end-coords-interpolation-steps)))
+           (setq tm (elt tms i))
+           (if (equal tm :fast)
+               (setq tm (* 1000 (send self :angle-vector-duration
+                                      av-prev av scale min-time ctype))))
+           (setq pass-tm (/ tm (float end-coords-interpolation-steps)))
            (dotimes (l (length limbs))
              (setq ec-prev (elt end-coords-prev l) ec-current (elt end-coords-current l))
              (when (and ec-prev ec-current
@@ -728,6 +734,10 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
    (if (and warningp
 	    (not (yes-or-no-p (format nil "~C[3~CmAre you sure to move the real robot? (~A) ~C[0m" #x1b 49 (send action :name) #x1b))))
        (return-from :send-ros-controller nil))
+   (dolist (name joint-names)
+     (unless (send robot :joint name)
+       (warning-message 1 "[robot-interface.l] (send-ros-controller) could not find joint-name '~A' (~A)~%" name (send robot :joint name))
+       (return-from :send-ros-controller nil)))
    (let* ((goal (send action :make-goal-instance))
 	  (goal-points nil)
 	  (st (if (numberp starttime)
@@ -1464,7 +1474,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
    (cond
     ((or
       (equal (send move-base-action :get-state) ros::*simple-goal-state-active*)
-      (equal (send move-base-trajectory-action :get-state) ros::*simple-goal-state-active*))
+      (and move-base-trajectory-action (equal (send move-base-trajectory-action :get-state) ros::*simple-goal-state-active*)))
      (return-from :go-waitp t))
     (t
      (return-from :go-waitp nil))))
