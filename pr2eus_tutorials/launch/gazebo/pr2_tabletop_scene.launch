@@ -19,5 +19,15 @@
       lazy: true
     </rosparam>
   </node>
+  <!-- publish /kinect_head/rgb/throttled/image_rect_color like real PR2 robot -->
+  <group ns="head_mount_kinect/rgb">
+    <node name="image_proc" pkg="image_proc" type="image_proc" />
+  </group>
+  <node name="kinect_throttled_rgb" pkg="topic_tools" type="throttle"
+        args="messages /head_mount_kinect/rgb/image_rect_color 5.0 /kinect_head/rgb/throttled/image_rect_color">
+    <rosparam>
+      lazy: true
+    </rosparam>
+  </node>
 
 </launch>
