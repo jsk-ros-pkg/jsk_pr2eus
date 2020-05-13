@@ -6,9 +6,12 @@
 (defvar *grasp-status-topic* "/tabletop_object_grasp_status")
 (defvar *base-frame-id* "/base_footprint")
 (defvar *camera-frame-id* "/head_mount_kinect_rgb_optical_frame")
+(defvar *click-point-topic* "/kinect_head/rgb/throttled/image_rect_color/screenpoint")
+(defvar *image-marker-topic* "/image_marker")
 (defvar *screenpoint-output-topic* "/pointcloud_screenpoint_nodelet/output_point")
 
 (ros::load-ros-manifest "geometry_msgs")
+(ros::load-ros-manifest "image_view2")
 (ros::load-ros-manifest "jsk_recognition_msgs")
 (ros::load-ros-manifest "jsk_rviz_plugins")
 
@@ -80,11 +83,23 @@
 (defun grasp-target-callback (msg)
   (grasp (send (bounding-box->cube msg) :worldpos)))
 
-(defun grasp-target-2d-callback (msg) (print "callback!!")
+(defun grasp-target-2d-callback (msg)
   (let ((base-to-camera (send *tfl* :lookup-transform *base-frame-id* *camera-frame-id* (ros::time 0)))
         (coords (make-coords :pos (ros::tf-point->pos (send msg :point)))))
     (send coords :transform base-to-camera :world)
     (grasp (send coords :pos))))
+
+(defun click-point-callback (msg)
+  (let ((mrk (instance image_view2::ImageMarker2 :init))
+        (x (send (send msg :point) :x))
+        (y (send (send msg :point) :y)))
+    (send mrk :type image_view2::ImageMarker2::*CIRCLE*)
+    (send mrk :id 0)
+    (send mrk :position (instance geometry_msgs::Point :init :x x :y y))
+    (send mrk :outline_color (instance std_msgs::ColorRGBA :init :r 0.0 :g 1.0 :b 0.0 :a 1.0))
+    (send mrk :lifetime (ros::Time 3))
+    (send mrk :scale 20.0)
+    (ros::publish *image-marker-topic* mrk)))
 
 (defun grasp (pos)
   (if *grasping-object-p*
@@ -174,8 +189,11 @@
   (publish-info "click tabletop object in Rviz!"))
 
 (defun wait-for-grasp-target-2d ()
+  (ros::advertise *image-marker-topic* image_view2::ImageMarker2 1)
   (ros::subscribe *screenpoint-output-topic*
                   geometry_msgs::PointStamped #'grasp-target-2d-callback)
+  (ros::subscribe *click-point-topic*
+                  geometry_msgs::PointStamped #'click-point-callback)
   (publish-info "click tabletop object in image_view2!"))
 
 (defun publish-grasp-state ()
