@@ -7,6 +7,7 @@
 (defvar *base-frame-id* "/base_footprint")
 (defvar *camera-frame-id* "/head_mount_kinect_rgb_optical_frame")
 (defvar *click-point-topic* "/kinect_head/rgb/throttled/image_rect_color/screenpoint")
+(defvar *ray-marker-topic* "/ray_marker_array")
 (defvar *image-marker-topic* "/image_marker")
 (defvar *screenpoint-output-topic* "/pointcloud_screenpoint_nodelet/output_point")
 
@@ -80,12 +81,39 @@
           (send (send base->parent :copy-worldcoords)
                 :transform cds))))
 
+;; Mainly copied from https://github.com/jsk-ros-pkg/jsk_recognition/blob/master/jsk_pcl_ros/euslisp/pointcloud_screenpoint.l
+(defun show-marker (frame p1)
+  "publish markers
+@param frame frame id
+@param p1 position of clicked point"
+  (let* ((header (instance std_msgs::header :init
+                           :stamp (ros::time-now) :frame_id frame))
+         (p0 (float-vector 0 0 0))
+         (sp (make-sphere 30 :pos p1))
+         ;; Marker::SPHERE
+         (sp-msg (sphere->marker-msg sp header
+                                     :color (float-vector 1 0 1) :alpha 1.0))
+         ;; Marker::LINE
+         (li-msg (line->marker-msg (list p0 p1) header :scale 15
+                                   :color (float-vector 0 1 1) :alpha 0.5))
+         ;; MarkerArray msg
+         (msg (instance visualization_msgs::MarkerArray :init))
+         )
+    (send sp-msg :ns "test_sphere")
+    (send li-msg :ns "test_line")
+    (send sp-msg :lifetime (ros::time 5))
+    (send li-msg :lifetime (ros::time 5))
+    (send msg :markers (list sp-msg li-msg))
+    (ros::publish *ray-marker-topic* msg)
+    ))
+
 (defun grasp-target-callback (msg)
   (grasp (send (bounding-box->cube msg) :worldpos)))
 
 (defun grasp-target-2d-callback (msg)
   (let ((base-to-camera (send *tfl* :lookup-transform *base-frame-id* *camera-frame-id* (ros::time 0)))
         (coords (make-coords :pos (ros::tf-point->pos (send msg :point)))))
+    (show-marker *camera-frame-id* (ros::tf-point->pos (send msg :point)))
     (send coords :transform base-to-camera :world)
     (grasp (send coords :pos))))
 
@@ -97,7 +125,7 @@
     (send mrk :id 0)
     (send mrk :position (instance geometry_msgs::Point :init :x x :y y))
     (send mrk :outline_color (instance std_msgs::ColorRGBA :init :r 0.0 :g 1.0 :b 0.0 :a 1.0))
-    (send mrk :lifetime (ros::Time 3))
+    (send mrk :lifetime (ros::Time 5))
     (send mrk :scale 20.0)
     (ros::publish *image-marker-topic* mrk)))
 
@@ -190,6 +218,7 @@
 
 (defun wait-for-grasp-target-2d ()
   (ros::advertise *image-marker-topic* image_view2::ImageMarker2 1)
+  (ros::advertise *ray-marker-topic* visualization_msgs::MarkerArray 10)
   (ros::subscribe *screenpoint-output-topic*
                   geometry_msgs::PointStamped #'grasp-target-2d-callback)
   (ros::subscribe *click-point-topic*
