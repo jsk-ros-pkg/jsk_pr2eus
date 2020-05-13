@@ -108,7 +108,11 @@
     ))
 
 (defun grasp-target-callback (msg)
-  (grasp (send (bounding-box->cube msg) :worldpos)))
+  (let ((camera-to-base (send *tfl* :lookup-transform *camera-frame-id* *base-frame-id* (ros::time 0)))
+        (coords (make-coords :pos (send (bounding-box->cube msg) :worldpos))))
+    (send coords :transform camera-to-base :world)
+    (show-marker *camera-frame-id* (send coords :pos))
+    (grasp (send (bounding-box->cube msg) :worldpos))))
 
 (defun grasp-target-2d-callback (msg)
   (let ((base-to-camera (send *tfl* :lookup-transform *base-frame-id* *camera-frame-id* (ros::time 0)))
@@ -144,7 +148,7 @@
                          :rpy #f(0 0 0))
             :rotation-axis t)
     (publish-error "out of reach...")
-    (return-from grasp-target-callback nil))
+    (return-from grasp nil))
   (publish-info "openning gripper...")
 
   (setq *grasp-state* "reaching")
@@ -173,7 +177,7 @@
       (send *ri* :stop-grasp *arm* :wait t)
       (publish-info "back to pre grasp...")
       (pr2-pregrasp-pose)
-      (return-from grasp-target-callback nil)))
+      (return-from grasp nil)))
 
   (setq *grasp-state* "picking")
   (publish-grasp-state)
