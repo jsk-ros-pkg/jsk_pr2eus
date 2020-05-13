@@ -136,7 +136,7 @@ You can click any pixels that you want the robot to pick up.
 rosrun image_view2 image_view2 image:=/kinect_head/rgb/throttled/image_rect_color camera_info:=/head_mount_kinect/rgb/camera_info
 ```
 
-![pr2_interactive](https://user-images.githubusercontent.com/19769486/81714599-2f7c8280-94b2-11ea-8f92-ca8057c32525.png)
+![pr2_interactive](https://user-images.githubusercontent.com/19769486/81817136-3913f200-9567-11ea-800a-f95bd4057cb5.png)
 
 
 ### Step-by-step Description of Demo program
