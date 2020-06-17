@@ -9,9 +9,6 @@
               (substringp "violate max-angle" format))
     (apply #'warning-message-org color format mesg)))
 
-(defun shortest-angle (d0 d1)
-  (atan2 (sin (- d0 d1)) (cos (- d0 d1))))
-
 ;; initialize *pr2*
 
 (setq *pr2* (pr2))

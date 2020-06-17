@@ -19,7 +19,26 @@
     <arg name="publish_tf" value="$(arg publish_objects_tf)" />
   </include>
 
-  <node if="$(arg run_rviz)"
-        pkg="rviz" name="pr2_rviz" type="rviz"
-        args="-d $(find pr2eus_tutorials)/config/pr2_tabletop.rviz" />
+  <node name="pointcloud_screenpoint_nodelet" pkg="nodelet" type="nodelet"
+        args="load jsk_pcl/PointcloudScreenpoint $(arg manager)"
+        output="screen" clear_params="true" respawn="true"
+        machine="$(arg machine)">
+    <remap from="~points" to="/kinect_head/depth_registered/throttled/points" />
+    <remap from="~point" to="/kinect_head/rgb/throttled/image_rect_color/screenpoint" />
+    <rosparam>
+      queue_size: 10
+      crop_size: 10
+      search_size: 16
+    </rosparam>
+  </node>
+
+  <group if="$(arg run_rviz)">
+    <node pkg="rviz" name="pr2_rviz" type="rviz"
+          args="-d $(find pr2eus_tutorials)/config/pr2_tabletop.rviz" />
+    <node name="pr2_interactive_object_grasp_2d_node" pkg="image_view2" type="image_view2" >
+      <remap from="image" to="/kinect_head/rgb/throttled/image_rect_color" />
+      <remap from="camera_info" to="/head_mount_kinect/rgb/camera_info" />
+    </node>
+  </group>
+
 </launch>

@@ -229,6 +229,19 @@
     (assert (< tm-diff 2) (format nil "end-coords-interpolation takes too long time ~A" tm-diff))
     ))
 
+(deftest test-angle-vector-fast
+  (send *pr2* :angle-vector (send *ri* :state :reference-vector))
+  (send *pr2* :r_wrist_roll_joint :joint-angle
+        (- (send *pr2* :r_wrist_roll_joint :joint-angle) 200))
+  ;; make sure :check-continuous-joint-move-over-180 is true
+  (assert (send *ri* :check-continuous-joint-move-over-180
+                (v- (send *ri* :state :reference-vector) (send *pr2* :angle-vector)))
+          "Prerequisites did not meet at test-angle-vector-fast")
+  ;; check for integer-expected errors when time is `:fast` and
+  ;; `:check-continuous-joint-move-over-180' is true.
+  (send *ri* :angle-vector (send *pr2* :angle-vector) :fast)
+  (send *ri* :wait-interpolation))
+
 (run-all-tests)
 (exit)
 

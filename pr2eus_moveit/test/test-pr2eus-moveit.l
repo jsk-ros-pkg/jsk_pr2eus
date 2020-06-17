@@ -263,6 +263,38 @@
     (assert (< tm-diff 7) (format nil "start-offset-time is considered multiple times. Traj finishes at ~A" tm-diff))
     ))
 
+;; send target coords between blocks
+(deftest test-collision-object-publisher ()
+  (let ((l (make-cube 500 100 500))
+        (r (make-cube 500 100 500))
+        (co (instance collision-object-publisher :init))
+        (collision-check-result nil))
+    (send *ri* :angle-vector (send *pr2* :reset-pose))
+    (send *ri* :wait-interpolation)
+    (send l :locate #f(800 -200 700) :world)
+    (send r :locate #f(800 200 700) :world)
+    (send co :wipe-all)
+    (send co :add-object l)
+    (send co :add-object r)
+    ;; move left arm between blocks
+    (send *ri* :move-end-coords-plan (make-coords :pos #f(700 0 700)) :move-arm :larm)
+    (ros::rate 10)
+    (while (not (send *ri* :interpolatingp))
+      (send *ri* :spin-once)
+      (ros::sleep))
+    ;; check collision during interpolation
+    (while (send *ri* :interpolatingp)
+      (send *ri* :spin-once)
+      (send *pr2* :angle-vector
+            (send *ri* :state :potentio-vector :wait-until-update t))
+      (setq collision-check-result
+            (or collision-check-result
+                (pqp-collision-check-objects (send *pr2* :links) (list l r))))
+      (ros::sleep))
+    (ros::ros-info "collision occurred? -> ~A~%" collision-check-result)
+    (assert (not collision-check-result) "Collision occurred between pr2 and cubes")
+    ))
+
 (run-all-tests)
 (exit)
 
