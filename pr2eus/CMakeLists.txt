@@ -50,6 +50,7 @@ if(CATKIN_ENABLE_TESTING)
     find_package(pr2_gazebo QUIET)
     if(pr2_gazebo_FOUND AND (NOT pr2_gazebo_VERSION VERSION_LESS 2.0.7)) # test only supports indigo
       add_rostest(test/pr2-ri-test.launch)
+      add_rostest(test/pr2-ri-test-namespace.launch)
     endif()
     add_rostest(test/pr2-ri-test-simple.launch)
     add_rostest(test/robot-init-test.test) # this uses pr2
