@@ -25,7 +25,7 @@
   <include file="$(find pr2_description)/robots/upload_pr2.launch" />
 
   <!-- push robot_description to factory and spawn robot in gazebo -->
-  <node name="spawn_pr2_model" pkg="gazebo_ros" type="spawn_model" args="$(optenv ROBOT_INITIAL_POSE) -unpause -urdf -param robot_description -model pr2" respawn="false" output="screen" />
+  <node name="spawn_pr2_model" pkg="gazebo_ros" type="spawn_model" args="$(optenv ROBOT_INITIAL_POSE) -unpause -urdf -param /$(optenv ROS_NAMESPACE)/robot_description -gazebo_namespace /$(optenv ROS_NAMESPACE)/gazebo -model pr2" respawn="false" output="screen" />
 
   <!-- default bringup script -->
   <!-- <include file="$(find pr2_gazebo)/launch/pr2_bringup.launch" /> -->
