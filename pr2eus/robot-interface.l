@@ -672,6 +672,35 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
               (send-all cacts :time-to-finish)))
            (t
             (send-all controller-actions :time-to-finish)))))
+  (:wait-interpolation-until-func
+   (func &optional ctype
+         &key (check-interval 0.01) (method-when-func :cancel-angle-vector) method-when-func-args)
+   "Wait until last sent motion is finished or given function (func) returns t. Return value is a list of interpolatingp for all controllers as with :wait-interpolation.
+E.g., (send *ri* :wait-interpolation-until-func #'(lambda () (> (abs (aref (send *ri* :state :torque-vector) 1)) 5)))
+- ctype : controller to be wait
+- check-interval : interval for checking given function [sec]
+- method-when-func : if this argument is not nil, method specified by this argument is called just after func returns t. This is useful when you want to stop robot motion just after a condition is satisfied. E.g., robot stops abruptly when this argument is :cancel-angle-vector, robot stops smoothly when this argument is :stop-motion
+- method-when-func-args : list of additional arguments to pass to method-when-func, e.g., (list :wait t) for waiting until robot actually stops when method-when-func is :cancel-angle-vector. Note that you do not have to set :controller-actions or :controller-type if method-when-func is :cancel-angle-vector. :controller-type is automatically set from ctype
+"
+   (while
+     (progn
+       (when (funcall func)
+         (ros::ros-info
+           "wait-interpolation-until-func : Waiting finished because given function returned t")
+         (unless (null method-when-func)
+           (when (eq method-when-func :cancel-angle-vector)
+             (push ctype method-when-func-args)
+             (push :controller-type method-when-func-args))
+           (ros::ros-info "wait-interpolation-until-func : Calling ~A..." method-when-func)
+           (send* self method-when-func method-when-func-args))
+         (return))
+       (if (send self :simulation-modep)  ;; Continuation condition starts
+           (when (send self :interpolatingp)  ;; Simulated robot
+             (unix:usleep (round (* check-interval 1000 1000)))
+             (send self :robot-interface-simulation-callback)
+             (send self :interpolatingp))
+         (some #'identity (send self :wait-interpolation ctype check-interval)))))  ;; Continuation condition ends
+   (send-all controller-actions :interpolatingp))
   (:stop-motion (&key (stop-time 0) (wait t))
    "Smoothly stops the motion being executed by sending the current joint state to the joint trajectory action goal in stop-time [ms]. Please note that if stop-time is smaller than the :angle-vector min-time (defaulting to 1000 [ms]) the actual interpolation uses min-time instead. Refer to :cancel-angle-vector for a faster stop"
    (when (send self :interpolatingp)
