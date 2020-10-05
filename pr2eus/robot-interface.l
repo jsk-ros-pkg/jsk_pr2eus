@@ -695,11 +695,13 @@ E.g., (send *ri* :wait-interpolation-until-func #'(lambda () (> (abs (aref (send
            (send* self method-when-func method-when-func-args))
          (return))
        (if (send self :simulation-modep)  ;; Continuation condition starts
-           (when (send self :interpolatingp)  ;; Simulated robot
+           (when (send self :interpolatingp ctype)  ;; Simulated robot
              (unix:usleep (round (* check-interval 1000 1000)))
              (send self :robot-interface-simulation-callback)
-             (send self :interpolatingp))
-         (some #'identity (send self :wait-interpolation ctype check-interval)))))  ;; Continuation condition ends
+             (send self :interpolatingp ctype))
+         (progn  ;; Real robot
+           (send self :wait-interpolation ctype check-interval)
+           (send self :interpolatingp ctype)))))  ;; Continuation condition ends
    (send-all controller-actions :interpolatingp))
   (:stop-motion (&key (stop-time 0) (wait t))
    "Smoothly stops the motion being executed by sending the current joint state to the joint trajectory action goal in stop-time [ms]. Please note that if stop-time is smaller than the :angle-vector min-time (defaulting to 1000 [ms]) the actual interpolation uses min-time instead. Refer to :cancel-angle-vector for a faster stop"
