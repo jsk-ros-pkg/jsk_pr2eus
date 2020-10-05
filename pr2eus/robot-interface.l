@@ -699,8 +699,14 @@ E.g., (send *ri* :wait-interpolation-until-func #'(lambda () (> (abs (aref (send
              (unix:usleep (round (* check-interval 1000 1000)))
              (send self :robot-interface-simulation-callback)
              (send self :interpolatingp ctype))
-         (progn  ;; Real robot
-           (send self :wait-interpolation ctype check-interval)
+         (let (cacts each-timeout)  ;; Real robot
+           (cond (ctype
+                   (setq cacts (gethash ctype controller-table)))
+                 (t
+                   (setq cacts controller-actions)))
+           (setq each-timeout (/ check-interval (float (length cacts))))
+           (send-all cacts :wait-for-result :timeout each-timeout
+                     :wait-rate (max 100 (/ 1.0 each-timeout)))
            (send self :interpolatingp ctype)))))  ;; Continuation condition ends
    (send-all controller-actions :interpolatingp))
   (:stop-motion (&key (stop-time 0) (wait t))
