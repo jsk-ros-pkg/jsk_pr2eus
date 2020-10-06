@@ -249,6 +249,16 @@
     (assert (< tm-diff 0.5) "robot should stop immediately")
 
     (send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
+    (setq ret (send *ri* :wait-interpolation-until-func func nil :return-post-process-ret t))
+    (ros::ros-warn ":wait-interpolation-until-func :return-post-process-ret t returns ~A (= t)"
+                   ret)
+    (warning-message 3 ":wait-interpolation-until-func :return-post-process-ret t returns ~A (= t)~%"
+                     ret)
+    (assert (or (not (listp ret)) (null ret))
+            "return value of post-process (not a list of interpolatingp) should be returned")
+    (send *ri* :wait-interpolation)
+
+    (send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
     (setq ret
           (send *ri* :wait-interpolation-until-func func nil
                 :post-process #'(lambda () (send *ri* :stop-motion :wait nil))))

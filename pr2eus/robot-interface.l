@@ -675,12 +675,14 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
   (:wait-interpolation-until-func
    (func &optional ctype
          &key (check-interval 0.01)
-         (post-process #'(lambda () (send self :cancel-angle-vector :controller-type ctype))))
-   "Wait until last sent motion is finished or given function (func) returns t. Return value is a list of interpolatingp for all controllers as with :wait-interpolation.
+         (post-process #'(lambda () (send self :cancel-angle-vector :controller-type ctype)))
+         return-post-process-ret)
+   "Wait until last sent motion is finished or given function (func) returns t.
 E.g., (send *ri* :wait-interpolation-until-func #'(lambda () (> (abs (aref (send *ri* :state :torque-vector) 1)) 5)))
-- ctype : controller to be wait
-- check-interval : interval for checking given function [sec]
-- post-process : if this argument is not nil, function stored in this argument is called just after func returns t. This is useful when you want to stop robot motion just after a condition is satisfied. E.g., robot stops abruptly when this argument is #'(lambda () (send *ri* :cancel-angle-vector)), robot stops smoothly when this argument is #'(lambda () (send *ri* :stop-motion))
+- ctype : Controller to be waited
+- check-interval : Interval for checking given function [sec]
+- post-process : If this argument is not nil, function stored in this argument is called just after func returns t. This is useful when you want to stop robot motion just after a condition is satisfied. E.g., robot stops abruptly when this argument is #'(lambda () (send *ri* :cancel-angle-vector)), robot stops smoothly when this argument is #'(lambda () (send *ri* :stop-motion))
+- return-post-process-ret : If this argument is nil, this method returns a list of interpolatingp for all controllers as with :wait-interpolation. If this argument is t, this method returns return value of post-process
 "
    (while
      (progn
@@ -689,7 +691,9 @@ E.g., (send *ri* :wait-interpolation-until-func #'(lambda () (> (abs (aref (send
            "wait-interpolation-until-func : Waiting finished because given function returned t")
          (unless (null post-process)
            (ros::ros-info "wait-interpolation-until-func : Calling ~A..." post-process)
-           (funcall post-process))
+           (if return-post-process-ret
+               (return-from :wait-interpolation-until-func (funcall post-process))
+             (funcall post-process)))
          (return))
        (if (send self :simulation-modep)  ;; Continuation condition starts
            (when (send self :interpolatingp ctype)  ;; Simulated robot
