@@ -251,7 +251,7 @@
     (send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
     (setq ret
           (send *ri* :wait-interpolation-until-func func nil
-                :method-when-func :stop-motion :method-when-func-args (list :wait nil)))
+                :post-process #'(lambda () (send *ri* :stop-motion :wait nil))))
     (ros::ros-warn ":wait-interpolation-until-func :stop-motion returns ~A (= t)" ret)
     (warning-message 3 ":wait-interpolation-until-func :stop-motion returns ~A (= t)~%" ret)
     (assert (some #'identity ret) "robot should be interpolating")
@@ -265,9 +265,9 @@
 
     (send *pr2* :angle-vector init-av)
     (send *ri* :angle-vector (send *pr2* :angle-vector) 1000)
-    (setq ret (send *ri* :wait-interpolation-until-func func nil :method-when-func nil))
-    (ros::ros-warn ":wait-interpolation-until-func :method-when-func nil returns ~A (= t)" ret)
-    (warning-message 3 ":wait-interpolation-until-func :method-when-func nil returns ~A (= t)~%" ret)
+    (setq ret (send *ri* :wait-interpolation-until-func func nil :post-process nil))
+    (ros::ros-warn ":wait-interpolation-until-func :post-process nil returns ~A (= t)" ret)
+    (warning-message 3 ":wait-interpolation-until-func :post-process nil returns ~A (= t)~%" ret)
     (assert (some #'identity ret) "robot should be interpolating")
     (setq tm-0 (ros::time-now))
     (send *ri* :wait-interpolation)
