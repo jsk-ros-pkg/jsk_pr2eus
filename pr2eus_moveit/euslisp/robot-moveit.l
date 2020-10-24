@@ -390,7 +390,7 @@
      consts))
   (:planning-make-trajectory-to-coords ;; use-ik
    (cds confkey &rest args &key (end-coords) ;; (list :rarm :end-coords)
-        (planning-time 5.0) (scene) (frame-id default-frame-id)
+        (planning-time 5.0) (scene) (frame-id default-frame-id) (timeout 0.05)
         (planning-attempts 3) (retry) (use-scene t)
         (multi-dof-joint-constraints)
         &allow-other-keys)
@@ -398,7 +398,7 @@
    (let (ret consts)
      (unless scene (setq scene (send self :get-planning-scene)))
      (setq ret (send self :get-ik-for-pose cds confkey :end-coords end-coords
-                                                       :use-actual-seed t :retry retry :frame-id frame-id :scene scene :use-multi-dof t)) ;; (av . multi-dof-js) or nil
+                                                       :use-actual-seed t :retry retry :frame-id frame-id :scene scene :timeout timeout :use-multi-dof t)) ;; (av . multi-dof-js) or nil
      (unless ret (return-from :planning-make-trajectory-to-coords nil))
      (when multi-dof-joint-constraints
        (if (member :extra-goal-constraints args)
@@ -433,13 +433,14 @@
      ))
   (:planning-move-arm-to-coords
    (cds confkey &key (end-coords) ;; (list :rarm :end-coords)
-        (planning-time 5.0) (scene) (frame-id default-frame-id)
+        (planning-time 5.0) (scene) (frame-id default-frame-id) (timeout 0.05)
         (planning-attempts 3) (retry) (use-scene t) (wait t)
         &allow-other-keys)
    (let (ret)
      (unless scene (setq scene (send self :get-planning-scene)))
      (unless (send self :get-ik-for-pose cds confkey :end-coords end-coords
-                   :use-actual-seed t :retry retry :frame-id frame-id :scene scene)
+                   :use-actual-seed t :retry retry :frame-id frame-id :scene scene
+                   :timeout timeout)
        (return-from :planning-move-arm-to-coords nil))
      (send self :planning-move-arm confkey
            :planning-time planning-time :planning-attempts planning-attempts

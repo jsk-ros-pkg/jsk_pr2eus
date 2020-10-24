@@ -201,11 +201,11 @@
 
 ;; send target coords
 (deftest test-move-end-coords-plan ()
-  (let (tm-0 tm-1 tm-diff)
-    (send *ri* :move-end-coords-plan (make-coords :pos #f(700 0 750)) :move-arm :rarm)
-    (send *ri* :move-end-coords-plan (make-coords :pos #f(700 0 500)) :move-arm :larm)
+  (let (tm-0 tm-1 tm-diff (timeout 0.5))
+    (send *ri* :move-end-coords-plan (make-coords :pos #f(700 0 750)) :move-arm :rarm :timeout timeout)
+    (send *ri* :move-end-coords-plan (make-coords :pos #f(700 0 500)) :move-arm :larm :timeout timeout)
     (send *ri* :wait-interpolation)
-    (send *ri* :move-end-coords-plan (make-coords :pos #f(700 0 1000)) :move-arm :larm-torso)
+    (send *ri* :move-end-coords-plan (make-coords :pos #f(700 0 1000)) :move-arm :larm-torso :timeout timeout)
     (setq tm-0 (ros::time-now))
     (send *ri* :wait-interpolation)
     (setq tm-1 (ros::time-now))
