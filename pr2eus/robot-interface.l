@@ -1354,6 +1354,9 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
   ;;
   (:move-to
    (coords &rest args &key (no-wait nil) &allow-other-keys)
+   "move the robot to coordinates in reference defined in :frame-id keyword. The default frame is \"world\"
+    Return t if the robot reached the goal. By default, it blocks until the robot reached the goal.
+    if :no-wait t is set, it returns immediately. Use :go-stop to cancel all goals."
    (send* self :move-to-send coords args)
    (if (not no-wait)
        (send* self :move-to-wait args) t))
@@ -1491,6 +1494,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
 
   (:go-waitp
    ()
+   "Return t if :go-pos/:move-to is activated"
    (send self :spin-once) ;; update
    (when (send self :simulation-modep)
      (return-from :go-waitp (not (null current-goal-coords))))
@@ -1518,6 +1522,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
      ))
   (:go-wait
    ()
+   "Wait until :go-pos/:move-to reached the goal"
    (let ()
      (send self :move-to-wait :retry 1 :frame-id base-frame-id :no-wait nil)
      ))
