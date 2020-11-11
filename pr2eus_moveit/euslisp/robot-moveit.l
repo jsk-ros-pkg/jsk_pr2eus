@@ -689,20 +689,23 @@
          (send pt :time_from_start (ros::time (* time-scale (send (send pt :time_from_start) :to-sec))))))
        traj))
   (:check-state-validity ()
-    (let ((res
-           (send self :planning-environment
-                 :check-state-validity
-                 (+ moveit_msgs::PlanningSceneComponents::*ROBOT_STATE*
-                    moveit_msgs::PlanningSceneComponents::*ROBOT_STATE_ATTACHED_OBJECTS*))))
+    (let ((res (send self :planning-environment
+                     :check-state-validity
+                     (+ moveit_msgs::PlanningSceneComponents::*ROBOT_STATE*
+                        moveit_msgs::PlanningSceneComponents::*ROBOT_STATE_ATTACHED_OBJECTS*)))
+          (contacts-log "Collision is found in the current state."))
       (when (not (send res :valid))
-        (warn ";; collision is found in the current state.~%"))
-      ;; contacts are not returned in indigo and earlier versions
-      ;; https://github.com/ros-planning/moveit/pull/2355
-      (when (send res :contacts)
-        (warn ";; contact object pairs:~%")
-        (dolist (c (send res :contacts))
-          (warn ";; ~A~%" (list (send c :contact_body_1) (send c :contact_body_2)))))
-      res))
+        ;; contacts are not returned in indigo and earlier versions
+        ;; https://github.com/ros-planning/moveit/pull/2355
+        (when (send res :contacts)
+          (setq contacts-log (format nil "~A~%~A~%" contacts-log "Contact object pairs:"))
+          (dolist (c (send res :contacts))
+            (setq contacts-log
+                  (format nil "~A~A~%"
+                          contacts-log
+                          (list (send c :contact_body_1) (send c :contact_body_2))))))
+        (ros::ros-warn (string-right-trim '(#\Newline) contacts-log)))
+      res)
   ) ;; robot-interface
 
 (defmethod robot-move-base-interface
