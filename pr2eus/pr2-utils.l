@@ -142,9 +142,12 @@
                     :thre thre
                     :stop stop
                     :additional-weight-list
-                    (list
-                     (list (send self :torso_lift_joint :child-link)
-                           (if (numberp use-torso) use-torso 0.005))
+                    (append
+                     (list
+                      (list (send self :torso_lift_joint :child-link)
+                            (if (numberp use-torso) use-torso 0.005))
+                      )
+                     additional-weight-list
                      )
                     :link-list link-list
                     :move-target move-target
