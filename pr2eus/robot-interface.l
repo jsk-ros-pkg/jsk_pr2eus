@@ -417,13 +417,13 @@
    ;; for simulation mode
    (when (send self :simulation-modep)
      (if av (send self :angle-vector-simulation av tm ctype)))
-   ;; minjerk interpolation, 0.01 [sec] inverval
+   ;; minjerk interpolation, 0.001 [sec] inverval
    (let (r trajpoints)
      (if minjerk-interpolation
        (progn
          (setq r (pos-list-interpolation (list (send robot :angle-vector) av)
                                          (list (/ tm 1000.0))
-                                         0.01))
+                                         0.001))
          (setq trajpoints
                (mapcar #'(lambda (pos vel tim acc) (list pos vel tim acc))
                        (cadr (memq :data r))           ;; positions
@@ -552,12 +552,12 @@
          ))
      (prog1 ;; angle-vector-sequence returns avs
          avs
-       ;; minjerk interpolation, 0.01 [sec] inverval
+       ;; minjerk interpolation, 0.001 [sec] inverval
        (if minjerk-interpolation
          (let (r)
            (setq r (pos-list-interpolation (append (list (send robot :angle-vector)) avs)
                                            (mapcar #'(lambda (x) (/ x 1000.0)) tms)
-                                           0.01))
+                                           0.001))
            (setq traj-points
                  (mapcar #'(lambda (pos vel tim acc) (list pos vel tim acc))
                          (cadr (memq :data r))           ;; positions
