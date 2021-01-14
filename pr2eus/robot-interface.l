@@ -1018,7 +1018,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
   (:warningp (&optional (w :dummy)) "When in warning mode, it wait for user's key input before sending angle-vector to the robot" (if (not (eq w :dummy)) (setq warningp w)) warningp)
   (:spin-once () (ros::spin-once groupname))
   (:send-trajectory (joint-trajectory-msg
-                     &key ((:controller-type ct) controller-type) (starttime 1) &allow-other-keys)
+                     &key ((:controller-type ct) controller-type) (starttime 1) (minjerk-interpolation nil) &allow-other-keys)
    (unless (gethash ct controller-table)
      (warn ";; controller-type: ~A not found" ct)
      (return-from :send-trajectory))
@@ -1027,10 +1027,11 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
         (send self :send-trajectory-each
               action (cdr (assoc :joint-names param)) ;; action server and joint-names
               joint-trajectory-msg
-              starttime))
+              starttime
+              minjerk-interpolation))
     (gethash ct controller-table) (send self ct)))
   (:send-trajectory-each
-   (action joint-names traj &optional (starttime 0.2))
+   (action joint-names traj &optional (starttime 0.2) (minjerk-interpolation nil))
    (let* ((jnames (send traj :joint_names))
           (ilst (mapcar #'(lambda (jn) (position jn jnames :test #'string=)) joint-names))
           points-lst)
@@ -1041,30 +1042,52 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
                                   (setq p (send robot (intern (string-upcase jn) *keyword-package*))))
                                 p))
                           joint-names))
-       (dolist (p (send traj :points))
-         (let ((poss (send p :positions))
-               (vels (send p :velocities))
-               (effs (send p :accelerations))
-               plst vlst elst)
-           (dolist (i ilst)
-             (cond
-              ((numberp i)
-               (push (elt poss i) plst)
-               (if (and vels (> (length vels) i)) (push (elt vels i) vlst))
-               (if (and effs (> (length effs) i)) (push (elt effs i) elst)))
-              (t
-               (push (send i :ros-joint-angle) plst)
-               (if vels (push 0 vlst))
-               (if effs (push 0 elst))
-               (ros::ros-warn ";; trajectory contains lacking joint names")
-               )))
-           (push
-            (instance trajectory_msgs::JointTrajectoryPoint :init
-                      :positions (coerce (nreverse plst) float-vector)
-                      :velocities (if vels (coerce (nreverse vlst) float-vector))
-                      :accelerations (if effs (coerce (nreverse elst) float-vector))
-                      :time_from_start (send p :time_from_start)) points-lst)
-           ))
+       (if minjerk-interpolation
+         ;; minjerk interpolation, 0.001 [sec] inverval
+         (let ((points (send traj :points)) (tm-prev 0.0) avs tms r)
+           (setq avs (mapcar #'(lambda (x) (send x :positions)) points))
+           (dolist (tm (mapcar #'(lambda (x) (send (send x :time_from_start) :to-sec)) points))
+             (setq tms (append tms (list (- tm tm-prev))))
+             (setq tm-prev tm))
+           (setq r (pos-list-interpolation avs (cdr tms) 0.001))
+           (setq points-lst
+                 (mapcar #'(lambda (pos vel acc tim)
+                             (instance trajectory_msgs::JointTrajectoryPoint :init
+                                       :positions pos
+                                       :velocities vel
+                                       :accelerations acc
+                                       :time_from_start (ros::time tim)))
+                         (cadr (memq :data r))
+                         (cadr (memq :velocity r))
+                         (cadr (memq :acceleration r))
+                         (cadr (memq :time r))))
+           (nreverse points-lst)
+           )
+         (dolist (p (send traj :points))
+           (let ((poss (send p :positions))
+                 (vels (send p :velocities))
+                 (effs (send p :accelerations))
+                 plst vlst elst)
+             (dolist (i ilst)
+               (cond
+                ((numberp i)
+                 (push (elt poss i) plst)
+                 (if (and vels (> (length vels) i)) (push (elt vels i) vlst))
+                 (if (and effs (> (length effs) i)) (push (elt effs i) elst)))
+                (t
+                 (push (send i :ros-joint-angle) plst)
+                 (if vels (push 0 vlst))
+                 (if effs (push 0 elst))
+                 (ros::ros-warn ";; trajectory contains lacking joint names")
+                 )))
+             (push
+              (instance trajectory_msgs::JointTrajectoryPoint :init
+                        :positions (coerce (nreverse plst) float-vector)
+                        :velocities (if vels (coerce (nreverse vlst) float-vector))
+                        :accelerations (if effs (coerce (nreverse elst) float-vector))
+                        :time_from_start (send p :time_from_start)) points-lst)
+             ))
+         )
        (let ((goal (send action :make-goal-instance))
              (st (ros::time+ (ros::time-now) (ros::time starttime))))
          (send goal :header :stamp (ros::time-now))
