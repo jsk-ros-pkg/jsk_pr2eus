@@ -2010,8 +2010,8 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
           (intern (string-upcase (format nil "~A-init" robot-name)))) args)
   (setq *robot* (eval (intern (string-upcase (format nil "*~A*" robot-name))))))
 
-;; Copied from
-;; https://github.com/euslisp/jskeus/pull/595/files#diff-6fdfc8da096760ef59c60a985c9bc11fbacff4f7fd59eef0ea39d2192c660063
+;; Copied from below except (format t )
+;; https://github.com/euslisp/jskeus/pull/596
 (defun pos-list-interpolation
   (pos-list ;; (list pos_1 pos_2 ... pos_N), pos_i is float-vector
    time-list ;; (list dtime_1 dtime_2 ... dtime_{N-1}), dtime_i is time[s] between time at pos_{i+1} - pos_i
@@ -2020,12 +2020,46 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
         ((:interpolator ip) (instance interpolator-class :init))
         (initial-time 0.0) (neglect-first) (vel-vector-list) (acc-vector-list))
   (let* ((data-list) (tm-list) (vel-data-list) (acc-data-list))
+    (assert (= (length pos-list) (1+ (length time-list)))
+            (format nil "check length of pos-list(~A) and tm-list(~A)"
+                    (length pos-list) (length time-list)))
+    (setq vel-vector-list
+          (reverse
+           (do ((i 0 (1+ i)) (vel-list))
+               ((> i (length time-list)) vel-list)
+               (if (or (= i 0) (= i (length time-list)))
+                   (push (instantiate float-vector (length (car pos-list))) vel-list)
+                 (let* ((v0 (scale (/ 1.0  (elt time-list (1- i)))
+                                   (v- (elt pos-list i) (elt pos-list (1- i)))))
+                        (v1 (scale (/ 1.0 (elt time-list i))
+                                   (v- (elt pos-list (1+ i)) (elt pos-list i))))
+                        (v (scale 0.5 (v+ v0 v1))))
+                   (dotimes (i (length v)) (if (< (* (elt v0 i) (elt v1 i)) 0) (setf (elt v i) 0)))
+                   (push v vel-list))))))
+    (setq acc-vector-list
+          (reverse
+           (do ((i 0 (1+ i)) (acc-list))
+               ((> i (length time-list)) acc-list)
+               (if (or (= i 0) (= i (length time-list)))
+                   (push (instantiate float-vector (length (car vel-vector-list))) acc-list)
+                 (let* ((v0 (scale (/ 1.0  (elt time-list (1- i)))
+                                   (v- (elt vel-vector-list i) (elt vel-vector-list (1- i)))))
+                        (v1 (scale (/ 1.0 (elt time-list i))
+                                   (v- (elt vel-vector-list (1+ i)) (elt vel-vector-list i))))
+                        (v (scale 0.5 (v+ v0 v1))))
+                   (dotimes (i (length v)) (if (< (* (elt v0 i) (elt v1 i)) 0) (setf (elt v i) 0)))
+                   (push v acc-list))))))
+    ;; (format t "=INPUT~%")
+    ;; (format t "time ~A~%" time-list)
+    ;; (format t " pos ~A~%" pos-list)
+    ;; (format t " vel ~A~%" vel-vector-list)
+    ;; (format t " acc ~A~%" acc-vector-list)
     (send* ip :reset
            :position-list pos-list
            :time-list (let (r) (dolist (n time-list) (push (+ n (if r (car r) 0)) r)) (nreverse r)) ;; list of time[sec] from start for each control point
            (append
-            (if vel-vector-list (list :vel-vector-list vel-vector-list))
-            (if acc-vector-list (list :acc-vector-list acc-vector-list))))
+            (if vel-vector-list (list :velocity-list vel-vector-list))
+            (if acc-vector-list (list :acceleration-list acc-vector-list))))
     (send ip :start-interpolation)
     (while (send ip :interpolatingp)
       (push (if (send ip :interpolatingp)
@@ -2036,6 +2070,13 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
       (if (find-method ip :velocity) (push (send ip :velocity) vel-data-list))
       (if (find-method ip :acceleration) (push (send ip :acceleration) acc-data-list))
       )
+    ;; (format t "=OUTPUT~%")
+    (if (and vel-data-list acc-data-list)
+        (mapcar #'(lambda (tm pos vel acc)
+                    ;; (format t "~7,5f ~7,3f ~13,1f ~13,1f~%"
+                    ;;         tm (elt pos 0) (elt vel 0) (elt acc 0))
+                    )
+                (reverse tm-list) (reverse data-list) (reverse vel-data-list) (reverse acc-data-list)))
     (append
      (list :data (if neglect-first (cdr (reverse data-list)) (reverse data-list))
            :time (if neglect-first (cdr (reverse tm-list)) (reverse tm-list)))
@@ -2044,6 +2085,91 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
      (if (find-method ip :acceleration)
          (list :acceleration (if neglect-first (cdr (reverse acc-data-list)) (reverse acc-data-list))))
      )))
+
+;; This method can be removed if below is merged
+;; https://github.com/euslisp/jskeus/pull/596
+(defmethod interpolator
+  (:pass-time
+   (dt)
+   "process interpolation for dt[sec]"
+   (when interpolatingp
+     (setq position (send self :interpolation))
+     (incf time dt)
+     (setq segment-time (- time (if (= segment 0) 0 (nth (1- segment) time-list))))
+     (when (eps> time (nth segment time-list) (* 0.1 dt))
+       ;; if time-segment is not aligned, need to fix the data (see https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/457)
+       (while (and (< segment segment-num) (eps> time (nth segment time-list) (* 0.1 dt)))
+         (setq segment-time (- time (nth segment time-list)))
+         (incf segment)))
+     (when (>= segment segment-num)
+       ;; adjust time and segment-time to exact position
+       (setq segment (1- segment-num))
+       (setq time (car (last time-list)))
+       (setq segment-time (- time (if (= segment 0) 0 (nth (1- segment) time-list))))
+       ;; re-calculate :interpolation
+       (setq position (send self :interpolation))
+       (send self :reset))
+     position))
+  )
+
+;; This method can be removed if below is merged
+;; https://github.com/euslisp/jskeus/pull/596
+(defmethod minjerk-interpolator
+  (:interpolation
+   ()
+   "Minjerk interpolator, a.k.a Hoff & Arbib
+    Example code is:
+(setq l (instance minjerk-interpolator :init))
+(send l :reset :position-list (list #f(1 2 3) #f(3 4 5) #f(1 2 3)) :time-list (list 0.1 0.18))
+(send l :start-interpolation)
+(while (send l :interpolatingp) (send l :pass-time 0.02) (print (send l :position)))
+"
+   (let* ((xi (nth segment position-list))
+          (xf (nth (1+ segment) position-list))
+          (vi (nth segment velocity-list))
+          (vf (nth (1+ segment) velocity-list))
+          (ai (nth segment acceleration-list))
+          (af (nth (1+ segment) acceleration-list))
+          ;;
+          (t1+t2 (- (nth segment time-list) (if (> segment 0) (nth (1- segment) time-list) 0))) ;; total time of segment
+          ;; A=(gx-(x+v*t+(a/2.0)*t*t))/(t*t*t)
+          ;; B=(gv-(v+a*t))/(t*t)
+          ;; C=(ga-a)/t
+          (A  (scale (/ 1.0 (* t1+t2 t1+t2 t1+t2)) (v- xf (reduce #'v+ (list xi (scale t1+t2 vi) (scale (* t1+t2 t1+t2) (scale 0.5 ai)))))))
+          (B  (scale (/ 1.0 (* t1+t2 t1+t2))      (v- vf (v+ vi (scale t1+t2 ai)))))
+          (C  (scale (/ 1.0 (* t1+t2))           (v- af ai)))
+          ;; a0=x
+          ;; a1=v
+          ;; a2=a/2.0
+          ;; a3=10*A-4*B+0.5*C
+          ;;; a4=(-15*A+7*B-C)/t
+          ;; a5=(6*A-3*B+0.5*C)/(t*t)
+          (a0 xi)
+          (a1 vi)
+          (a2 (scale 0.5 ai))
+          (a3 (v+ (v- (scale 10 A) (scale 4 B)) (scale 0.5 C)))
+          (a4 (scale (/ 1.0 t1+t2) (v- (v+ (scale -15 A) (scale 7 B)) C)))
+          (a5 (scale (/ 1.0 t1+t2 t1+t2) (v+ (v+ (scale 6 A) (scale -3 B)) (scale 0.5 C))))
+          )
+     ;; x=a0+a1*t+a2*t*t+a3*t*t*t+a4*t*t*t*t+a5*t*t*t*t*t
+     ;; v=a1+2*a2*t+3*a3*t*t+4*a4*t*t*t+5*a5*t*t*t*t
+     ;; a=2*a2+6*a3*t+12*a4*t*t+20*a5*t*t*t
+     (setq position
+           (reduce #'v+ (list a0
+                              (scale (expt segment-time 1) a1) (scale (expt segment-time 2) a2)
+                              (scale (expt segment-time 3) a3) (scale (expt segment-time 4) a4)
+                              (scale (expt segment-time 5) a5)))
+           velocity
+           (reduce #'v+ (list a1
+                              (scale (* 2 (expt segment-time 1)) a2) (scale (* 3 (expt segment-time 2)) a3)
+                              (scale (* 4 (expt segment-time 3)) a4) (scale (* 5 (expt segment-time 4)) a5)))
+           acceleration
+           (reduce #'v+ (list (scale 2 a2)
+                              (scale (* 6 (expt segment-time 1)) a3) (scale (* 12 (expt segment-time 2)) a4)
+                              (scale (* 20 (expt segment-time 3)) a5))))
+     position))
+  ;
+  )
 
 ;;
 ;; navigation-client.l
