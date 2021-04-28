@@ -423,8 +423,8 @@ Example: (send self :gripper :rarm :position) => 0.00"
      ))
   (:angle-vector-sequence
    (avs &optional (tms (list 3000)) &rest args)
-   (unless (or (send self :simulation-modep) (cadr (memq :end-coords-interpolation args)))
-     (let* ((prev-av (send robot :angle-vector (send self :state :reference-vector)))
+   (unless (cadr (memq :end-coords-interpolation args))
+     (let* ((prev-av (send robot :angle-vector (if (send self :simulation-modep) (send self :state :potentio-vector) (send self :state :reference-vector))))
             (len-av (length prev-av))
             (max-av (fill (instantiate float-vector len-av)  180))
             (min-av (fill (instantiate float-vector len-av) -180))

@@ -157,6 +157,48 @@
       )
     ))
 
+(deftest test-angle-vector-unlimited-robot-interface
+  (let (msg)
+    (dolist (inc (list 10 -10))
+      (do ((i 0.0 (incf i inc)))
+          ((if (> inc 0) (<= 1000 i) (>= -1000 i)))
+        (send *pr2* :reset-manip-pose)
+        (send *ri* :robot :reset-manip-pose)
+        (send *ri* :robot-interface-simulation-callback) ;; publish robot-state
+        (let ((initial-angle (elt (send *ri* :state :potentio-vector) 5)))
+          (send *pr2* :larm :elbow-r :joint-angle i)
+          (send-message *ri* robot-interface :angle-vector (send *pr2* :angle-vector) 500)
+          (send *ri* :wait-interpolation)
+          (setq msg
+                (format nil "initial ~A, *ri* ~A, *pr2* ~A ~A~%"
+                        initial-angle
+                        (elt (send *ri* :state :potentio-vector) 5)
+                        (elt (send *pr2* :angle-vector) 5)
+                        (eps<= (abs (- (elt (send *ri* :state :potentio-vector) 5) initial-angle)) 180.0 1.0)))
+          (warning-message 2 msg)
+          (assert (eps<= (abs (- (elt (send *ri* :state :potentio-vector) 5) initial-angle)) 180.0 1.0) msg))))))
+
+(deftest test-angle-vector-unlimited-pr2-interface
+  (let (msg)
+    (dolist (inc (list 10 -10))
+      (do ((i 0.0 (incf i inc)))
+          ((if (> inc 0) (<= 1000 i) (>= -1000 i)))
+        (send *pr2* :reset-manip-pose)
+        (send *ri* :robot :reset-manip-pose)
+        (send *ri* :robot-interface-simulation-callback) ;; publish robot-state
+        (let ((initial-angle (elt (send *ri* :state :potentio-vector) 5)))
+          (send *pr2* :larm :elbow-r :joint-angle i)
+          (send-message *ri* pr2-interface :angle-vector (send *pr2* :angle-vector) 500)
+          (send *ri* :wait-interpolation)
+          (setq msg
+                (format nil "initial ~A, *ri* ~A, *pr2* ~A ~A~%"
+                        initial-angle
+                        (elt (send *ri* :state :potentio-vector) 5)
+                        (elt (send *pr2* :angle-vector) 5)
+                        (eps= (elt (send *ri* :state :potentio-vector) 5) (elt (send *pr2* :angle-vector) 5) 1.0)))
+          (warning-message 2 msg)
+          (assert (eps= (elt (send *ri* :state :potentio-vector) 5) (elt (send *pr2* :angle-vector) 5) 1.0) msg))))))
+
 
 (run-all-tests)
 (exit)
