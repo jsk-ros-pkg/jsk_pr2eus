@@ -7,13 +7,18 @@
 
 (defmethod collision-object-publisher
   (:init (&key (service-name "apply_planning_scene")
-               (scene-service "get_planning_scene"))
+               (scene-service "get_planning_scene")
+	       (service-wait-time -1))
    (unless (ros::ok) (ros::roseus "publish_collision_eusobj"))
-   (setq servicename service-name
-         scene-srv scene-service)
-   (ros::wait-for-service servicename)
    (setq object-list (make-hash-table))
    (setq attached-object-list (make-hash-table))
+   (ros::ros-warn ";; collision-object-publisher wait for ~A service for ~A sec~%" service-name service-wait-time)
+   (unless (ros::wait-for-service service-name service-wait-time)
+     (ros::ros-warn ";; collision-object-publisher ~A service could not found within ~A sec~%" service-name service-wait-time)
+     (return-from :init self))
+   ;; when servicename is not nil, then we could call "apply_planning_scene" and "get_planning_scene"
+   (setq servicename service-name
+         scene-srv scene-service)
    self)
   (:add-object (obj &rest args)
    (let ((objmsg (send* self :make-object obj args))
@@ -21,6 +26,9 @@
      (setf (gethash obj object-list) objmsg)
      (send req :scene :world :collision_objects (list objmsg))
      (send req :scene :is_diff t)
+     (unless servicename
+       (ros::ros-warn ";; collision-object-publisher ~A service could not found, so skipping calling service" servicename)
+       (return-from :add-object obj))
      (ros::service-call servicename req)
      obj))
   (:add-attached-object (obj link-name &rest args
@@ -40,6 +48,9 @@
      (send req :scene :robot_state :attached_collision_objects (list attached-objmsg))
      (send req :scene :is_diff t)
      (send req :scene :robot_state :is_diff t)
+     (unless servicename
+       (ros::ros-warn ";; collision-object-publisher ~A service could not found, so skipping calling service" servicename)
+       (return-from :add-attached-object obj))
      (ros::service-call servicename req)
      obj))
   (:make-object
@@ -190,6 +201,9 @@
                          msg)
                      (send scene :world :collision_objects)))
        (send req :scene :is_diff t)
+       (unless servicename
+	 (ros::ros-warn ";; collision-object-publisher ~A service could not found, so skipping calling service" servicename)
+	 (return-from :wipe-all-object t))
        (ros::service-call servicename req)
        (setq object-list (make-hash-table))
        t)))
@@ -209,6 +223,9 @@
                      (send scene :robot_state :attached_collision_objects)))
        (send req :scene :is_diff t)
        (send req :scene :robot_state :is_diff t)
+       (unless servicename
+	 (ros::ros-warn ";; collision-object-publisher ~A service could not found, so skipping calling service" servicename)
+	 (return-from :wipe-all-attached-object t))
        (ros::service-call servicename req)
        (setq attached-object-list (make-hash-table))
        t)))
@@ -227,6 +244,9 @@
       (send msg :operation moveit_msgs::CollisionObject::*REMOVE*)
       (send req :scene :world :collision_objects (list msg))
       (send req :scene :is_diff t)
+      (unless servicename
+	(ros::ros-warn ";; collision-object-publisher ~A service could not found, so skipping calling service" servicename)
+	(return-from :delete-object-by-msg))
       (ros::service-call servicename req)))
   (:delete-attached-object (obj)
    (let ((msg (gethash obj attached-object-list)))
@@ -245,6 +265,9 @@
      (send req :scene :robot_state :attached_collision_objects (list msg))
      (send req :scene :is_diff t)
      (send req :scene :robot_state :is_diff t)
+     (unless servicename
+       (ros::ros-warn ";; collision-object-publisher ~A service could not found, so skipping calling service" servicename)
+       (return-from :delete-attached-object-by-msg))
      (ros::service-call servicename req)))
   )
 
@@ -263,6 +286,9 @@
   (let ((req (instance moveit_msgs::GetPlanningSceneRequest :init))
         ret)
     (send req :components :components components)
+    (unless scene-service
+      (ros::ros-warn ";; get-planning-scene ~A service could not found, so skipping calling service" scene-service)
+      (return-from get-planning-scene nil))
     (setq ret (ros::service-call scene-service req))
     (if ret (send ret :scene))
     ))
