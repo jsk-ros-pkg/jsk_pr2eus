@@ -373,8 +373,19 @@
    (av tm ctype)
    (let* ((prev-av (send robot :angle-vector)))
      (send-all (gethash ctype controller-table) :push-angle-vector-simulation av tm prev-av)))
+  (:check-continuous-joint-move-over-180
+   (diff-av)
+   (let ((i 0) add-new-trajectory-point)
+     (dolist (j (send robot :joint-list))
+       ;; for continuous rotational joint
+       (when (and (> (- (send j :max-angle) (send j :min-angle)) 360)
+                  (> (abs (elt diff-av i)) 180))
+         (ros::ros-warn "continuous joint (~A) moves ~A degree, commanded joint differs from original trajectory to avoid unintentional 360 rotation" (send j :name) (elt diff-av i))
+         (setq add-new-trajectory-point t))
+       (incf i (send j :joint-dof)))
+     add-new-trajectory-point))
   (:angle-vector
-   (av &optional (tm nil) (ctype controller-type) (start-time 0) &key (scale 1) (min-time 1.0) (end-coords-interpolation nil) (end-coords-interpolation-steps 10))
+   (av &optional (tm nil) (ctype controller-type) (start-time 0) &key (scale 1) (min-time 1.0) (end-coords-interpolation nil) (end-coords-interpolation-steps 10) (limit-rotation nil))
    "Send joint angle to robot, this method returns immediately, so use :wait-interpolation to block until the motion stops.
 - av : joint angle vector [deg]
 - tm : (time to goal in [msec])
@@ -387,9 +398,14 @@
 - min-time : minimum time for time to goal
 - end-coords-interpolation : set t if you want to move robot in cartesian space interpolation
 - end-coords-interpolation-steps : number of divisions when interpolating end-coords
+- limit-rotation : set t if you want to restrict upper/lower limit angle of unlimited rotational joint
 "
    (if end-coords-interpolation
      (return-from :angle-vector (send self :angle-vector-sequence (list av) (list tm) ctype start-time :scale scale :min-time min-time :end-coords-interpolation t :end-coords-interpolation-steps end-coords-interpolation-steps)))
+   ;; when ther robot have continuous joint
+   ;; workaround for unintentional 360 joint rotation problem [https://github.com/jsk-ros-pkg/jsk_pr2eus/commit/ed5c6dffe19f3cdf7a7f9b253c9172e120065ef8]
+   (if limit-rotation
+     (return-from :angle-vector (send self :angle-vector-sequence (list av) (list tm) ctype start-time :scale scale :min-time min-time :limit-rotation t)))
    (setq ctype (or ctype controller-type))  ;; use default controller-type if ctype is nil
    (unless (gethash ctype controller-table)
      (warn ";; controller-type: ~A not found" ctype)
@@ -430,7 +446,7 @@
       cacts (send self ctype)))
    av)
   (:angle-vector-sequence
-   (avs &optional (tms (list 3000)) (ctype controller-type) (start-time 0.1) &key (scale 1) (min-time 0.0) (end-coords-interpolation nil) (end-coords-interpolation-steps 10))
+   (avs &optional (tms (list 3000)) (ctype controller-type) (start-time 0.1) &key (scale 1) (min-time 0.0) (end-coords-interpolation nil) (end-coords-interpolation-steps 10) (limit-rotation nil))
    "Send sequence of joint angle to robot, this method returns immediately, so use :wait-interpolation to block until the motion stops.
 - avs: sequence of joint angles(float-vector) [deg],  (list av0 av1 ... avn)
 - tms: sequence of duration(float) from previous angle-vector to next goal [msec],  (list tm0 tm1 ... tmn)
@@ -444,6 +460,7 @@
 - min-time : minimum time for time to goal
 - end-coords-interpolation : set t if you want to move robot in cartesian space interpolation
 - end-coords-interpolation-steps : number of divisions when interpolating end-coords
+- limit-rotation : set t if you want to restrict upper/lower limit angle of unlimited rotational joint
    "
    (setq ctype (or ctype controller-type))  ;; use default controller-type if ctype is nil
    (unless (gethash ctype controller-table)
@@ -530,6 +547,43 @@
          (unless ret
            (warning-message 1 ":angle-vector-sequence failed to generate end-coords-interpolation motion~%")
            (return-from :angle-vector-sequence nil))
+         ))
+     (when limit-rotation
+       (let* ((prev-av av-prev) (j 0) tm
+             avs-ret tms-ret)
+         (dolist (av avs)
+           (setq tm (nth j tms))
+           (setq j (+ j 1))
+           (let* ((scale-av (send self :sub-angle-vector av prev-av)) (diff-av scale-av)
+                  (minjerk (instance minjerk-interpolator :init))
+                  dist div
+                  (i 0) (over-180 0))
+             ;; if joint rotation pass through 180(-180) degree, change direction of rotation.
+             (dolist (joint (send robot :joint-list))
+               (setq over-180 0)
+               (when (and (= (send joint :min-angle) *-inf*) (= (send joint :max-angle) *inf*))
+                 (setq over-180 (- (floor (/ (+ (aref prev-av i) (aref scale-av i) 180) 360.0)) (floor (/ (+ (aref prev-av i) 180) 360.0))))
+                 (setf (aref diff-av i) (+ (* -360 over-180) (aref diff-av i))))
+               (setq i (+ i 1)))
+             ;; if rotation angle exceeds 180, divide it into sequence.
+             (if (send self :check-continuous-joint-move-over-180 diff-av)
+                 (progn
+                   (setq dist (abs (geo::find-extream (coerce diff-av cons) #'abs #'>=)))
+                   (setq div (round (/ dist 60.0)))
+                   (send minjerk :reset
+                         :position-list (list prev-av (v+ prev-av diff-av))
+                         :time-list (list tm))
+                   (send minjerk :start-interpolation)
+                   (send minjerk :pass-time (/ tm div))
+                   (dotimes (i div)
+                     (setq avs-ret (append avs-ret (list (send minjerk :pass-time (/ tm div))))))
+                   (setq tms-ret (append tms-ret (make-list div :initial-element (/ tm div)))))
+                 (progn
+                   (setq avs-ret (append avs-ret (list av)))
+                   (setq tms-ret (append tms-ret (list tm))))))
+           (setq prev-av av))
+         (setq avs avs-ret)
+         (setq tms tms-ret)
          ))
      (prog1 ;; angle-vector-sequence returns avs
          avs
