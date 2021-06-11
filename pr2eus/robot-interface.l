@@ -612,8 +612,8 @@
        )))
   (:wait-interpolation (&optional (ctype) (timeout 0)) ;; controller-type
    "Wait until last sent motion is finished
-- ctype : controller to be wait
-- timeout : max time of for waiting
+- ctype : controller to be waited
+- timeout : max time to wait for each controller (so (send *ri* :wait-interpolation nil 0.1) with real PR2 takes up to 0.4 sec because four controllers are registered)
 - return values is a list of interpolatingp for all controllers, so (null (some #'identity (send *ri* :wait-interpolation))) -> t if all interpolation has stopped"
    (if (send self :simulation-modep)
        (while (send self :interpolatingp)
