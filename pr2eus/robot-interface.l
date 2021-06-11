@@ -29,6 +29,8 @@
    (* 0.001 v))
   )
 
+(defun controller-result-error-to-string (i)
+  (elt '(SUCCESSFUL INVALID_GOAL INVALID_JOINTS OLD_HEADER_TIMESTAMP PATH_TOLERANCE_VIOLATED GOAL_TOLERANCE_VIOLATED) (* -1 i)))
 (defclass controller-action-client
   :super ros::simple-action-client
   :slots (time-to-finish last-feedback-msg-stamp
@@ -46,34 +48,13 @@
     time-to-finish)
   (:action-result-cb
    (msg)
-   ;; This error msg below will not appear for the first movement
-   ;; To display it from the first movement, use wait-inter-polation or ros::spin-once
-   (if (< (send (send msg :result) :error_code) 0)
-       (ros::ros-error "~A" (send (send msg :result) :error_string)))
-   (let (dummy-msg)
-     (ros::ros-debug "[~A] reuslt-cb ~A ~A" name-space (send msg :status :goal_id :id) (goal-status-to-string (send msg :status :status)))
-     (unless (send comm-state :update-result msg)
-       (ros::ros-warn "[~A] action-result-cb may recieved old client's goal" name-space)
-       (ros::ros-warn "     expected goal id ~A" (and (send comm-state :action-goal) (send (send comm-state :action-goal) :goal_id :id)))
-       (ros::ros-warn "     recieved goal id ~A" (send msg :status :goal_id :id))
-       ;; https://github.com/jsk-ros-pkg/jsk_roseus/pull/519
-       ;; look for exiting objects make from simple-goal-client
-       (do-symbols (s (find-package "ROSACTIONLIB"))
-         (let ((c (eval s)))
-           (when (and (send (send c :comm-state) :action-goal)
-                      (string= (send msg :status :goal_id :id)
-                               (send (send (send c :comm-state) :action-goal) :goal_id :id)))
-             (send c :action-result-cb msg)
-             (ros::ros-warn "[~A] reuslt-cb ~A -> state ~A" name-space (send msg :status :goal_id :id) (send (send c :comm-state) :state))
-             )))
-       (return-from :action-result-cb nil))
-     (ros::ros-debug "[~A] reuslt-cb ~A -> state ~A" name-space (send msg :status :goal_id :id) (send comm-state :state))
-     ;; transition to goal state
-     (setq dummy-msg (instance actionlib_msgs::GoalStatusArray :init))
-     (send dummy-msg :status_list (list (send msg :status)))
-     (send dummy-msg :header (send msg :header))
-     (send self :goal-status-cb dummy-msg)
-     ))
+   ;; The following error messages will not appear for the first (send *ri* :angle-vector)
+   ;; To display it, use :wait-interpolation or (ros::spin-once groupname)
+   (let ((error-code (send (send msg :result) :error_code)))
+     (when (< error-code 0)
+       (ros::ros-error "~A~%" (send (send msg :result) :error_string))
+       (ros::ros-error "error_code: ~A~%" (cons error-code (controller-result-error-to-string error-code)))))
+   (send-super :action-result-cb msg))
   (:action-feedback-cb (msg)
    (let ((finish-time) (current-time))
      (ros::ros-debug "[~A] feedback-cb ~A" ros::name-space msg)
