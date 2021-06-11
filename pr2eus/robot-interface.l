@@ -47,7 +47,7 @@
   (:action-result-cb
    (msg)
    ;; This error msg below will not appear for the first movement
-   ;; To display it from the first movement, use wait-inter-poloation or ros::spin-once
+   ;; To display it from the first movement, use wait-inter-polation or ros::spin-once
    (if (< (send (send msg :result) :error_code) 0)
        (ros::ros-error "~A" (send (send msg :result) :error_string)))
    (let (dummy-msg)
