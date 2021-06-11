@@ -29,6 +29,8 @@
    (* 0.001 v))
   )
 
+(defun controller-result-error-to-string (i)
+  (elt '(SUCCESSFUL INVALID_GOAL INVALID_JOINTS OLD_HEADER_TIMESTAMP PATH_TOLERANCE_VIOLATED GOAL_TOLERANCE_VIOLATED) (* -1 i)))
 (defclass controller-action-client
   :super ros::simple-action-client
   :slots (time-to-finish last-feedback-msg-stamp
@@ -44,6 +46,15 @@
   (:time-to-finish ()
     (ros::ros-debug "[~A] time-to-finish ~A" ros::name-space time-to-finish)
     time-to-finish)
+  (:action-result-cb
+   (msg)
+   ;; The following error messages will not appear for the first (send *ri* :angle-vector)
+   ;; To display it, use :wait-interpolation or (ros::spin-once groupname)
+   (let ((error-code (send (send msg :result) :error_code)))
+     (when (< error-code 0)
+       (ros::ros-error "~A~%" (send (send msg :result) :error_string))
+       (ros::ros-error "error_code: ~A~%" (cons error-code (controller-result-error-to-string error-code)))))
+   (send-super :action-result-cb msg))
   (:action-feedback-cb (msg)
    (let ((finish-time) (current-time))
      (ros::ros-debug "[~A] feedback-cb ~A" ros::name-space msg)
