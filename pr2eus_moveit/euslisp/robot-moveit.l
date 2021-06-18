@@ -569,6 +569,11 @@
 - use-send-angle-vector : whether to use :angle-vector in robot-interface for sending trajectory
 - scale : if :fast is specified as total-time, it will use 'scale' times of the planned time
 "
+   (if (send self :simulation-modep)
+     (return-from :angle-vector-motion-plan
+                  (if (listp av)
+                    (send* self :angle-vector-sequence av total-time ctype start-offset-time args)
+                    (send* self :angle-vector av total-time ctype start-offset-time args))))
    (let (traj ret orig-total-time sent-controllers other-joints)
      (setq ctype (or ctype controller-type))
      (unless (gethash ctype controller-table)
@@ -774,6 +779,11 @@
    (av &rest args &key (ctype controller-type) (start-offset-time 0) (total-time) (use-base)
        (move-arm :larm) (reset-total-time 5000.0) (use-send-angle-vector) (scale 1.0)
        &allow-other-keys)
+   (if (send self :simulation-modep)
+     (return-from :angle-vector-motion-plan
+                  (if (listp av)
+                    (send* self :angle-vector-sequence av total-time ctype start-offset-time args)
+                    (send* self :angle-vector av total-time ctype start-offset-time args))))
    (let ((ret (send-super* :angle-vector-motion-plan av
                            :ctype ctype
                            :start-offset-time start-offset-time
