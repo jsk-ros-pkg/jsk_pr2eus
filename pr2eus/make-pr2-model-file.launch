@@ -1,0 +1,11 @@
+<launch>
+  <!-- launch scriept to generate pr2.l from urdf and sensor message -->
+  <rosparam command="load" file="$(find pr2eus)/test/pr1012_urdf.yaml" param="/pr1012/robot_description"/>
+  <rosparam command="load" file="$(find pr2eus)/test/pr1040_urdf.yaml" param="/pr1040/robot_description"/>
+  <node name="pr1012_camera_info" pkg="rosbag" type="play"
+	    args="--prefix=/pr1012 -l $(find pr2eus)/test/pr1012_camera_info.bag" />
+  <node name="pr1040_camera_info" pkg="rosbag" type="play"
+	    args="--prefix=/pr1040 -l $(find pr2eus)/test/pr1040_camera_info.bag" />
+  <node name="make_pr2_model_file" pkg="roseus" type="roseus" required="true" output="screen"
+        args="$(find pr2eus)/make-pr2-model-file.l &quot;(progn (ros::roseus \&quot;make-pr2-modle-file\&quot;) (make-pr2-model-file) (sys::exit 0))&quot;" />
+</launch>
