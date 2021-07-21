@@ -58,8 +58,6 @@
        (setf (gethash type controller-table) (list action))
        ))
    ;;
-   (ros::advertise "j_robotsound" sound_play::SoundRequest 5)
-   ;;
    (ros::subscribe (if namespace (format nil "~A/~A" namespace "pressure/r_gripper_motor") "/pressure/r_gripper_motor") pr2_msgs::PressureState
                    #'send self :pr2-fingertip-callback :rarm-pressure :groupname groupname)
    (ros::subscribe (if namespace (format nil "~A/~A" namespace "pressure/l_gripper_motor") "/pressure/l_gripper_motor") pr2_msgs::PressureState
