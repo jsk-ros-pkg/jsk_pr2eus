@@ -112,7 +112,7 @@ rviz -d $(rospack find pr2eus_tutorials)/config/pr2_tabletop.rviz
 If you try `roslaunch pr2eus_tutorials pr2_tabletop.launch` with `remote:=true`, meaning using compressed topic from the real PR2, execute this instead.
 ```bash
 # on local machine
-rviz -d $(rospack find pr2eus_tutorials)/config/pr2_tabletop.rviz
+rviz -d $(rospack find pr2eus_tutorials)/config/pr2_tabletop_remote.rviz
 ```
 
 ##### Additional setup for Kinetic local machine with a real robot
