@@ -14,6 +14,7 @@
   <arg name="DEPTH_IMAGE_REMOTE" value="/kinect_head_remote/depth_registered/image_rect" />
   <arg name="PROSILICA_CAMERA_INFO" value="/prosilica/camera_info" />
   <arg name="PROSILICA_IMAGE" value="/prosilica/image_raw" /> 
+  <arg name="PROSILICA_IMAGE_REMOTE" value="/prosilica_remote/image_raw" /> 
   <arg name="POINT_CLOUD_REMOTE" value="/kinect_head_remote/depth_registered/points" />
   
   <include file="$(find pr2_machine)/$(env ROBOT).machine" unless="$(arg load_machine)" />
@@ -43,7 +44,7 @@
   </node>
 
   <node name="prosilica_decompress" pkg="image_transport" type="republish"
-        args="compressed in:=$(arg PROSILICA_IMAGE) out:=$(arg PROSILICA_IMAGE)" />
+        args="compressed in:=$(arg PROSILICA_IMAGE) out:=$(arg PROSILICA_IMAGE_REMOTE)" />
   <node name="rgb_decompress" pkg="image_transport" type="republish"
         args="compressed in:=$(arg RGB_IMAGE) out:=$(arg RGB_IMAGE_REMOTE)" />
   <node name="depth_decompress" pkg="image_transport" type="republish"
