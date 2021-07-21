@@ -1236,17 +1236,17 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
 ;;
 ;; for text-to-speech services
 (defmethod robot-interface
-  (:play-sound (sound &key arg2 (topic-name "robotsound") wait)
-   (funcall #'play-sound sound :arg2 arg2 :topic-name topic-name :wait wait))
-  (:speak (text &key (lang "") (topic-name "robotsound") wait)
+  (:play-sound (&rest args) (apply #'play-sound args))
+  (:speak (text &key (lang "") (topic-name "robotsound") wait (volume 1.0))
    (send self :play-sound text
          :topic-name topic-name
          :wait wait
+         :volume volume
          :arg2 (if (keywordp lang) (string-downcase lang) lang)))
-  (:speak-en (text &key (topic-name "robotsound") wait)
-   (send self :speak text :topic-name topic-name :wait wait))
-  (:speak-jp (text &key (topic-name "robotsound_jp") wait)
-   (send self :speak text :lang :ja :topic-name topic-name :wait wait)))
+  (:speak-en (text &key (topic-name "robotsound") wait (volume 1.0))
+   (send self :speak text :topic-name topic-name :wait wait :volume volume))
+  (:speak-jp (text &key (topic-name "robotsound_jp") wait (volume 1.0))
+   (send self :speak text :lang :ja :topic-name topic-name :wait wait :volume volume)))
 ;;
 (defclass robot-move-base-interface
   :super robot-interface
