@@ -5,11 +5,25 @@
   <arg name="manager" default="pr2_tabletop_object_detector_nodelet_manager"/>
   <arg name="machine" default="c2" />
   <arg name="load_machine" default="false" />
+  <arg name="remote" default="false" />
+
+  <arg name="RGB_CAMERA_INFO" value="/kinect_head/rgb/camera_info" />
+  <arg name="RGB_IMAGE" value="/kinect_head/rgb/image_rect_color" />
+  <arg name="RGB_IMAGE_REMOTE" value="/kinect_head_remote/rgb/image_rect_color" />
+  <arg name="DEPTH_CAMERA_INFO" value="/kinect_head/depth_registered/camera_info" />
+  <arg name="DEPTH_IMAGE" value="/kinect_head/depth_registered/image_rect" />
+  <arg name="DEPTH_IMAGE_REMOTE" value="/kinect_head_remote/depth_registered/image_rect" />
+  <arg name="PROSILICA_CAMERA_INFO" value="/prosilica/camera_info" />
+  <arg name="PROSILICA_IMAGE" value="/prosilica/image_raw" /> 
+  <arg name="PROSILICA_IMAGE_REMOTE" value="/prosilica_remote/image_raw" /> 
+  <arg name="POINT_CLOUD" value="/kinect_head/depth_registered/throttled/points" />
+  <arg name="POINT_CLOUD_REMOTE" value="/kinect_head_remote/depth_registered/points" />
 
   <include file="$(find pr2_machine)/$(env ROBOT).machine" unless="$(arg load_machine)" />
 
   <include file="$(find jsk_pcl_ros)/sample/tabletop_object_detector.launch">
-    <arg name="input" value="/kinect_head/depth_registered/throttled/points" />
+    <arg name="input" value="$(arg POINT_CLOUD)" unless="$(arg remote)"/>
+    <arg name="input" value="$(arg POINT_CLOUD_REMOTE)" if="$(arg remote)"/>
     <arg name="sensor_frame" value="/head_mount_kinect_rgb_optical_frame" />
     <arg name="manager" value="$(arg manager)" />
     <arg name="machine" value="$(arg machine)" />
@@ -23,8 +37,10 @@
         args="load jsk_pcl/PointcloudScreenpoint $(arg manager)"
         output="screen" clear_params="true" respawn="true"
         machine="$(arg machine)">
-    <remap from="~points" to="/kinect_head/depth_registered/throttled/points" />
-    <remap from="~point" to="/kinect_head/rgb/throttled/image_rect_color/screenpoint" />
+    <remap from="~points" to="$(arg POINT_CLOUD)" unless="$(arg remote)" />
+    <remap from="~points" to="$(arg POINT_CLOUD_REMOTE)" if="$(arg remote)"/>
+    <remap from="~point" to="$(arg RGB_IMAGE)/screenpoint" unless="$(arg remote)" />
+    <remap from="~point" to="$(arg RGB_IMAGE_REMOTE)/screenpoint" if="$(arg remote)" />
     <rosparam>
       queue_size: 10
       crop_size: 10
@@ -32,12 +48,30 @@
     </rosparam>
   </node>
 
+  <node name="prosilica_decompress" pkg="image_transport" type="republish"
+        args="compressed in:=$(arg PROSILICA_IMAGE) out:=$(arg PROSILICA_IMAGE_REMOTE)" />
+  <node name="rgb_decompress" pkg="image_transport" type="republish"
+        args="compressed in:=$(arg RGB_IMAGE) out:=$(arg RGB_IMAGE_REMOTE)" />
+  <node name="depth_decompress" pkg="image_transport" type="republish"
+        args="compressedDepth in:=$(arg DEPTH_IMAGE) out:=$(arg DEPTH_IMAGE_REMOTE)" />
+  <node pkg="nodelet" type="nodelet" name="point_cloud_xyzrgb"
+        args="load depth_image_proc/point_cloud_xyzrgb $(arg manager)" output="screen" >
+    <remap from="rgb/camera_info" to="$(arg RGB_CAMERA_INFO)" />
+    <remap from="rgb/image_rect_color" to="$(arg RGB_IMAGE_REMOTE)" />
+    <remap from="depth_registered/image_rect" to="$(arg DEPTH_IMAGE_REMOTE)" />
+    <remap from="depth_registered/points" to="$(arg POINT_CLOUD_REMOTE)" />
+    <rosparam>
+      queue_size: 100
+    </rosparam>
+  </node>
+
   <group if="$(arg run_rviz)">
     <node pkg="rviz" name="pr2_rviz" type="rviz"
           args="-d $(find pr2eus_tutorials)/config/pr2_tabletop.rviz" />
     <node name="pr2_interactive_object_grasp_2d_node" pkg="image_view2" type="image_view2" >
-      <remap from="image" to="/kinect_head/rgb/throttled/image_rect_color" />
-      <remap from="camera_info" to="/head_mount_kinect/rgb/camera_info" />
+      <remap from="image" to="$(arg RGB_IMAGE)" unless="$(arg remote)" />
+      <remap from="image" to="$(arg RGB_IMAGE_REMOTE)" if="$(arg remote)" />
+      <remap from="camera_info" to="$(arg RGB_CAMERA_INFO)" />
     </node>
   </group>
 
