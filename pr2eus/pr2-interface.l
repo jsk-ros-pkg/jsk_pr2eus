@@ -754,3 +754,6 @@ Example: (send self :gripper :rarm :position) => 0.00"
   (let ((req (instance topic_tools::MuxSelectRequest :init
                        :topic (if enable "tilt_scan_filtered" "empty_cloud"))))
     (ros::service-call "/tilt_laser_mux/select" req)))
+
+
+(provide :pr2-interface "pr2-interface.l")
