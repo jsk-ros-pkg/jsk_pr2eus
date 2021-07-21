@@ -68,8 +68,10 @@
   </node>
 
   <group if="$(arg run_rviz)">
-    <node pkg="rviz" name="pr2_rviz" type="rviz"
+    <node unless="$(arg remote)" pkg="rviz" name="pr2_rviz" type="rviz"
           args="-d $(find pr2eus_tutorials)/config/pr2_tabletop.rviz" />
+    <node if="$(arg remote)" pkg="rviz" name="pr2_rviz" type="rviz"
+          args="-d $(find pr2eus_tutorials)/config/pr2_tabletop_remote.rviz" />
     <node name="pr2_interactive_object_grasp_2d_node" pkg="image_view2" type="image_view2" >
       <remap from="image" to="$(arg RGB_IMAGE)" unless="$(arg remote)" />
       <remap from="image" to="$(arg RGB_IMAGE_REMOTE)" if="$(arg remote)" />
