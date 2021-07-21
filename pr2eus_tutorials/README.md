@@ -127,6 +127,18 @@ You can click any object that you want the robot to pick up.
 
 ![pr2_tabletop_sim](https://gist.githubusercontent.com/furushchev/b3f3bb08953407966f80f4b0ac70c7dd/raw/pr2_tabletop_screen.png)
 
+
+##### Click object on image_view2
+
+You can click any pixels that you want the robot to pick up.
+
+```bash
+rosrun image_view2 image_view2 image:=/kinect_head/rgb/throttled/image_rect_color camera_info:=/head_mount_kinect/rgb/camera_info
+```
+
+![pr2_interactive](https://user-images.githubusercontent.com/19769486/81817136-3913f200-9567-11ea-800a-f95bd4057cb5.png)
+
+
 ### Step-by-step Description of Demo program
 
 In the bottom of the demo program `pr2-tabletop-object-grasp.l`, you can see a main function `demo`.
