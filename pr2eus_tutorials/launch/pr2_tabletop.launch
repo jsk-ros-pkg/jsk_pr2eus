@@ -3,9 +3,11 @@
   <arg name="publish_objects_tf" default="true" />
   <arg name="launch_tracking" default="false" />
   <arg name="manager" default="pr2_tabletop_object_detector_nodelet_manager"/>
-  <arg name="machine" default="c2" />
-  <arg name="load_machine" default="false" />
   <arg name="remote" default="false" />
+  <arg name="load_machine" default="false" unless="$(arg remote)"/>
+  <arg name="load_machine" default="true" if="$(arg remote)"/>
+  <arg name="machine" default="c2" unless="$(arg remote)"/>
+  <arg name="machine" default="localhost" if="$(arg remote)"/>
 
   <arg name="RGB_CAMERA_INFO" value="/kinect_head/rgb/camera_info" />
   <arg name="RGB_IMAGE" value="/kinect_head/rgb/image_rect_color" />
