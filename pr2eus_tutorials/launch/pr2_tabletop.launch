@@ -50,22 +50,24 @@
     </rosparam>
   </node>
 
-  <node name="prosilica_decompress" pkg="image_transport" type="republish"
-        args="compressed in:=$(arg PROSILICA_IMAGE) out:=$(arg PROSILICA_IMAGE_REMOTE)" />
-  <node name="rgb_decompress" pkg="image_transport" type="republish"
-        args="compressed in:=$(arg RGB_IMAGE) out:=$(arg RGB_IMAGE_REMOTE)" />
-  <node name="depth_decompress" pkg="image_transport" type="republish"
-        args="compressedDepth in:=$(arg DEPTH_IMAGE) out:=$(arg DEPTH_IMAGE_REMOTE)" />
-  <node pkg="nodelet" type="nodelet" name="point_cloud_xyzrgb"
-        args="load depth_image_proc/point_cloud_xyzrgb $(arg manager)" output="screen" >
-    <remap from="rgb/camera_info" to="$(arg RGB_CAMERA_INFO)" />
-    <remap from="rgb/image_rect_color" to="$(arg RGB_IMAGE_REMOTE)" />
-    <remap from="depth_registered/image_rect" to="$(arg DEPTH_IMAGE_REMOTE)" />
-    <remap from="depth_registered/points" to="$(arg POINT_CLOUD_REMOTE)" />
-    <rosparam>
-      queue_size: 100
-    </rosparam>
-  </node>
+  <group if="$(arg remote)"> 
+    <node name="prosilica_decompress" pkg="image_transport" type="republish"
+          args="compressed in:=$(arg PROSILICA_IMAGE) out:=$(arg PROSILICA_IMAGE_REMOTE)" />
+    <node name="rgb_decompress" pkg="image_transport" type="republish"
+          args="compressed in:=$(arg RGB_IMAGE) out:=$(arg RGB_IMAGE_REMOTE)" />
+    <node name="depth_decompress" pkg="image_transport" type="republish"
+          args="compressedDepth in:=$(arg DEPTH_IMAGE) out:=$(arg DEPTH_IMAGE_REMOTE)" />
+    <node pkg="nodelet" type="nodelet" name="point_cloud_xyzrgb"
+          args="load depth_image_proc/point_cloud_xyzrgb $(arg manager)" output="screen" >
+      <remap from="rgb/camera_info" to="$(arg RGB_CAMERA_INFO)" />
+      <remap from="rgb/image_rect_color" to="$(arg RGB_IMAGE_REMOTE)" />
+      <remap from="depth_registered/image_rect" to="$(arg DEPTH_IMAGE_REMOTE)" />
+      <remap from="depth_registered/points" to="$(arg POINT_CLOUD_REMOTE)" />
+      <rosparam>
+        queue_size: 100
+      </rosparam>
+    </node>
+  </group>
 
   <group if="$(arg run_rviz)">
     <node unless="$(arg remote)" pkg="rviz" name="pr2_rviz" type="rviz"
