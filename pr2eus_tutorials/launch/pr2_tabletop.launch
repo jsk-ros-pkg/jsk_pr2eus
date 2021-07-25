@@ -35,22 +35,20 @@
     <arg name="publish_tf" value="$(arg publish_objects_tf)" />
   </include>
 
-  <group if="$(arg remote)">
-    <node name="pointcloud_screenpoint_nodelet" pkg="nodelet" type="nodelet"
-          args="load jsk_pcl/PointcloudScreenpoint $(arg manager)"
-          output="screen" clear_params="true" respawn="true"
-          machine="$(arg machine)">
-      <remap from="~points" to="$(arg POINT_CLOUD)" unless="$(arg remote)" />
-      <remap from="~points" to="$(arg POINT_CLOUD_REMOTE)" if="$(arg remote)"/>
-      <remap from="~point" to="$(arg RGB_IMAGE)/screenpoint" unless="$(arg remote)" />
-      <remap from="~point" to="$(arg RGB_IMAGE_REMOTE)/screenpoint" if="$(arg remote)" />
-      <rosparam>
-        queue_size: 10
-        crop_size: 10
-        search_size: 16
-      </rosparam>
-    </node>
-  </group>
+  <node name="pointcloud_screenpoint_nodelet" pkg="nodelet" type="nodelet"
+        args="load jsk_pcl/PointcloudScreenpoint $(arg manager)"
+        output="screen" clear_params="true" respawn="true"
+        machine="$(arg machine)">
+    <remap from="~points" to="$(arg POINT_CLOUD)" unless="$(arg remote)" />
+    <remap from="~points" to="$(arg POINT_CLOUD_REMOTE)" if="$(arg remote)"/>
+    <remap from="~point" to="$(arg RGB_IMAGE)/screenpoint" unless="$(arg remote)" />
+    <remap from="~point" to="$(arg RGB_IMAGE_REMOTE)/screenpoint" if="$(arg remote)" />
+    <rosparam>
+      queue_size: 10
+      crop_size: 10
+      search_size: 16
+    </rosparam>
+  </node>
 
   <node name="prosilica_decompress" pkg="image_transport" type="republish"
         args="compressed in:=$(arg PROSILICA_IMAGE) out:=$(arg PROSILICA_IMAGE_REMOTE)" />
