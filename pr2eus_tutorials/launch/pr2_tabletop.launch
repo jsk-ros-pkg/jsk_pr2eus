@@ -53,11 +53,20 @@
 
   <group if="$(arg remote)"> 
     <node name="prosilica_decompress" pkg="image_transport" type="republish"
-          args="compressed in:=$(arg PROSILICA_IMAGE) out:=$(arg PROSILICA_IMAGE_REMOTE)" />
+	    args="compressed raw">
+	    <remap from="in" to="$(arg PROSILICA_IMAGE)" />
+	    <remap from="out" to="$(arg PROSILICA_IMAGE_REMOTE)" />
+    </node>
     <node name="rgb_decompress" pkg="image_transport" type="republish"
-          args="compressed in:=$(arg RGB_IMAGE) out:=$(arg RGB_IMAGE_REMOTE)" />
+	    args="compressed raw">
+	    <remap from="in" to="$(arg RGB_IMAGE)" />
+	    <remap from="out" to="$(arg RGB_IMAGE_REMOTE)" />
+    </node>
     <node name="depth_decompress" pkg="image_transport" type="republish"
-          args="compressedDepth in:=$(arg DEPTH_IMAGE) out:=$(arg DEPTH_IMAGE_REMOTE)" />
+	    args="compressedDepth raw">
+	    <remap from="in" to="$(arg DEPTH_IMAGE)" />
+	    <remap from="out" to="$(arg DEPTH_IMAGE_REMOTE)" />
+    </node>
     <node pkg="nodelet" type="nodelet" name="point_cloud_xyzrgb"
           args="load depth_image_proc/point_cloud_xyzrgb $(arg manager)" output="screen" >
       <remap from="rgb/camera_info" to="$(arg RGB_CAMERA_INFO)" />
