@@ -11,7 +11,7 @@
   <arg name="camera_name" default="kinect_head" />
 
   <arg name="RGB_CAMERA_INFO" value="/$(arg camera_name)/rgb/camera_info" />
-  <arg name="RGB_IMAGE" value="/$(arg camera_name)/rgb/image_rect_color" />
+  <arg name="RGB_IMAGE" value="/$(arg camera_name)/rgb/throttled/image_rect_color" />
   <arg name="RGB_IMAGE_REMOTE" value="/$(arg camera_name)_remote/rgb/image_rect_color" />
   <arg name="DEPTH_CAMERA_INFO" value="/$(arg camera_name)/depth_registered/camera_info" />
   <arg name="DEPTH_IMAGE" value="/$(arg camera_name)/depth_registered/image_rect" />
