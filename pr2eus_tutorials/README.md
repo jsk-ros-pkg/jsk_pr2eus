@@ -75,10 +75,10 @@ roslaunch pr2eus_tutorials pr2_tabletop.launch
 ```
 
 If you try using compressed topic from the real PR2,
-\```
+```
 # on local machine
 roslaunch pr2eus_tutorials pr2_tabletop.launch remote:=true
-\```
+```
 
 You can locate a desk in front of the robot and put any objects on it.
 
