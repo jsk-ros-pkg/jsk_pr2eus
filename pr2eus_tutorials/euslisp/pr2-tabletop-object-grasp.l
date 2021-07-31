@@ -210,15 +210,15 @@
   (setq *grasp-state* "returning")
   (publish-grasp-state)
   (pr2-pregrasp-pose)
-  (publish-info "click tabletop object in Rviz!")
-  (publish-info "click tabletop object in image_view2!")
+  (ros::ros-info "click tabletop object in Rviz or in image_view2!")
+  (publish-status 'info (concatenate string "click tabletop object" '(#\newline) "in Rviz or in image_view2!"))
   )
 
 
 (defun wait-for-grasp-target ()
   (ros::subscribe *grasp-target-bounding-box-topic*
                   jsk_recognition_msgs::BoundingBox #'grasp-target-callback)
-  (publish-info "click tabletop object in Rviz!"))
+  )
 
 (defun wait-for-grasp-target-2d ()
   (ros::advertise *image-marker-topic* image_view2::ImageMarker2 1)
@@ -227,7 +227,7 @@
                   geometry_msgs::PointStamped #'grasp-target-2d-callback)
   (ros::subscribe *click-point-topic*
                   geometry_msgs::PointStamped #'click-point-callback)
-  (publish-info "click tabletop object in image_view2!"))
+  )
 
 (defun publish-grasp-state ()
   (ros::publish "/grasp_state" (instance std_msgs::String :init :data *grasp-state*)))
@@ -243,5 +243,7 @@
   (pr2-pregrasp-pose)
   (wait-for-grasp-target)
   (wait-for-grasp-target-2d)
+  (ros::ros-info "click tabletop object in Rviz or in image_view2!")
+  (publish-status 'info (concatenate string "click tabletop object" '(#\newline) "in Rviz or in image_view2!"))
   (ros::spin))
 (demo)
