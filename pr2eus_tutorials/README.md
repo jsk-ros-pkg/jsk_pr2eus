@@ -75,7 +75,8 @@ roslaunch pr2eus_tutorials pr2_tabletop.launch
 ```
 
 If you try using compressed topic from the real PR2,
-```
+
+```bash
 # on local machine
 roslaunch pr2eus_tutorials pr2_tabletop.launch remote:=true
 ```
