@@ -14,7 +14,7 @@
   <arg name="RGB_IMAGE" value="/$(arg camera_name)/rgb/throttled/image_rect_color" />
   <arg name="RGB_IMAGE_REMOTE" value="/$(arg camera_name)_remote/rgb/image_rect_color" />
   <arg name="DEPTH_CAMERA_INFO" value="/$(arg camera_name)/depth_registered/camera_info" />
-  <arg name="DEPTH_IMAGE" value="/$(arg camera_name)/depth_registered/image_rect" />
+  <arg name="DEPTH_IMAGE" value="/$(arg camera_name)/depth_registered/throttled/image_rect" />
   <arg name="DEPTH_IMAGE_REMOTE" value="/$(arg camera_name)_remote/depth_registered/image_rect" />
   <arg name="PROSILICA_CAMERA_INFO" value="/prosilica/camera_info" />
   <arg name="PROSILICA_IMAGE" value="/prosilica/image_raw" /> 
