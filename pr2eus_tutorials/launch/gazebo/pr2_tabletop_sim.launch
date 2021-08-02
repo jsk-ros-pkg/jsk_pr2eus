@@ -12,7 +12,7 @@
   <include file="$(find pr2eus_tutorials)/launch/pr2_tabletop.launch">
     <arg name="run_rviz" value="$(arg run_rviz)" />
     <arg name="publish_objects_tf" value="$(arg publish_objects_tf)" />
-    <arg name="machine" value="localhost" />
-    <arg name="load_machine" value="true" />
+    <arg name="sim" value="true" />
+    <arg name="remote" value="false" />
   </include>
 </launch>

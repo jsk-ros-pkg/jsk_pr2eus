@@ -152,7 +152,7 @@ rosrun image_view2 image_view2 image:=/kinect_head/rgb/throttled/image_rect_colo
 If you try `roslaunch pr2eus_tutorials pr2_tabletop.launch` with `remote:=true`, execute this instead.
 
 ```bash
-rosrun image_view2 image_view2 image:=/kinect_head_remote/rgb/image_rect_color camera_info:=/head_mount_kinect/rgb/camera_info
+rosrun image_view2 image_view2 image:=/kinect_head_remote/rgb/throttled/image_rect_color camera_info:=/head_mount_kinect/rgb/camera_info
 ```
 
 ![pr2_interactive](https://user-images.githubusercontent.com/19769486/81817136-3913f200-9567-11ea-800a-f95bd4057cb5.png)

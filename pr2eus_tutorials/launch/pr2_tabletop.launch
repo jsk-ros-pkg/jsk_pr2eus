@@ -3,30 +3,47 @@
   <arg name="publish_objects_tf" default="true" />
   <arg name="launch_tracking" default="false" />
   <arg name="manager" default="pr2_tabletop_object_detector_nodelet_manager" />
+  <arg name="sim" default="false" />
   <arg name="remote" default="false" />
-  <arg name="load_machine" default="false" unless="$(arg remote)" />
-  <arg name="load_machine" default="true" if="$(arg remote)" />
-  <arg name="machine" default="c2" unless="$(arg remote)" />
-  <arg name="machine" default="localhost" if="$(arg remote)" />
-  <arg name="camera_name" default="kinect_head" />
+  <arg name="load_machine" default="true" />
 
-  <arg name="RGB_CAMERA_INFO" value="/$(arg camera_name)/rgb/camera_info" />
-  <arg name="RGB_IMAGE" value="/$(arg camera_name)/rgb/throttled/image_rect_color" />
-  <arg name="RGB_IMAGE_REMOTE" value="/$(arg camera_name)_remote/rgb/image_rect_color" />
-  <arg name="DEPTH_CAMERA_INFO" value="/$(arg camera_name)/depth_registered/camera_info" />
-  <arg name="DEPTH_IMAGE" value="/$(arg camera_name)/depth_registered/throttled/image_rect" />
-  <arg name="DEPTH_IMAGE_REMOTE" value="/$(arg camera_name)_remote/depth_registered/image_rect" />
-  <arg name="PROSILICA_CAMERA_INFO" value="/prosilica/camera_info" />
-  <arg name="PROSILICA_IMAGE" value="/prosilica/image_raw" /> 
-  <arg name="PROSILICA_IMAGE_REMOTE" value="/prosilica_remote/image_raw" /> 
-  <arg name="POINT_CLOUD" value="/$(arg camera_name)/depth_registered/throttled/points" />
-  <arg name="POINT_CLOUD_REMOTE" value="/$(arg camera_name)_remote/depth_registered/points" />
+  <arg name="robot" value="$(optenv ROBOT sim)" if="$(eval arg('remote') or arg('sim'))" /> 
+  <arg name="robot" value="$(optenv ROBOT pr2)" unless="$(eval arg('remote') or arg('sim'))" /> 
+  <arg name="machine" value="localhost" if="$(eval arg('remote') or arg('sim'))" />
+  <arg name="machine" value="c2" unless="$(eval arg('remote') or arg('sim'))" />
 
-  <include file="$(find pr2_machine)/$(env ROBOT).machine" unless="$(arg load_machine)" />
+  <arg name="kinect_org_name" value="kinect_head" />
+  <arg name="kinect_remote_name" value="kinect_head_remote" />
+  <arg name="prosilica_org_name" value="prosilica" />
+  <arg name="prosilica_remote_name" value="prosilica_remote" />
+
+  <arg name="RGB_CAMERA_INFO" value="/$(arg kinect_org_name)/rgb/camera_info" />
+  <arg name="DEPTH_CAMERA_INFO" value="/$(arg kinect_org_name)/depth_registered/camera_info" />
+  <arg name="PROSILICA_CAMERA_INFO" value="/$(arg prosilica_org_name)/camera_info" />
+
+  <arg name="RGB_IMAGE_ORG" value="/$(arg kinect_org_name)/rgb/throttled/image_rect_color" />
+  <arg name="DEPTH_IMAGE_ORG" value="/$(arg kinect_org_name)/depth_registered/throttled/image_rect" />
+  <arg name="POINT_CLOUD_ORG" value="/$(arg kinect_org_name)/depth_registered/throttled/points" />
+  <arg name="PROSILICA_IMAGE_ORG" value="/$(arg prosilica_org_name)/image_raw" /> 
+
+  <arg name="RGB_IMAGE_REMOTE" value="/$(arg kinect_remote_name)/rgb/throttled/image_rect_color" />
+  <arg name="DEPTH_IMAGE_REMOTE" value="/$(arg kinect_remote_name)/depth_registered/throttled/image_rect" />
+  <arg name="POINT_CLOUD_REMOTE" value="/$(arg kinect_remote_name)/depth_registered/throttled/points" />
+  <arg name="PROSILICA_IMAGE_REMOTE" value="/$(arg prosilica_remote_name)/image_raw" /> 
+
+  <arg name="RGB_IMAGE" value="$(arg RGB_IMAGE_REMOTE)" if="$(eval arg('remote') and not arg('sim'))"/>
+  <arg name="RGB_IMAGE" value="$(arg RGB_IMAGE_ORG)" unless="$(eval arg('remote') and not arg('sim'))"/>
+  <arg name="DEPTH_IMAGE" value="$(arg DEPTH_IMAGE_REMOTE)" if="$(eval arg('remote') and not arg('sim'))"/>
+  <arg name="DEPTH_IMAGE" value="$(arg DEPTH_IMAGE_ORG)" unless="$(eval arg('remote') and not arg('sim'))"/>
+  <arg name="POINT_CLOUD" value="$(arg POINT_CLOUD_REMOTE)" if="$(eval arg('remote') and not arg('sim'))"/>
+  <arg name="POINT_CLOUD" value="$(arg POINT_CLOUD_ORG)" unless="$(eval arg('remote') and not arg('sim'))"/>
+  <arg name="PROSILICA_IMAGE" value="$(arg PROSILICA_IMAGE_REMOTE)" if="$(eval arg('remote') and not arg('sim'))"/>
+  <arg name="PROSILICA_IMAGE" value="$(arg PROSILICA_IMAGE_ORG)" unless="$(eval arg('remote') and not arg('sim'))"/>
+
+  <include file="$(find pr2_machine)/$(arg robot).machine" if="$(arg load_machine)" />
 
   <include file="$(find jsk_pcl_ros)/sample/tabletop_object_detector.launch">
-    <arg name="input" value="$(arg POINT_CLOUD)" unless="$(arg remote)"/>
-    <arg name="input" value="$(arg POINT_CLOUD_REMOTE)" if="$(arg remote)"/>
+    <arg name="input" value="$(arg POINT_CLOUD)" />
     <arg name="sensor_frame" value="/head_mount_kinect_rgb_optical_frame" />
     <arg name="manager" value="$(arg manager)" />
     <arg name="machine" value="$(arg machine)" />
@@ -40,10 +57,8 @@
         args="load jsk_pcl/PointcloudScreenpoint $(arg manager)"
         output="screen" clear_params="true" respawn="true"
         machine="$(arg machine)">
-    <remap from="~points" to="$(arg POINT_CLOUD)" unless="$(arg remote)" />
-    <remap from="~points" to="$(arg POINT_CLOUD_REMOTE)" if="$(arg remote)"/>
-    <remap from="~point" to="$(arg RGB_IMAGE)/screenpoint" unless="$(arg remote)" />
-    <remap from="~point" to="$(arg RGB_IMAGE_REMOTE)/screenpoint" if="$(arg remote)" />
+    <remap from="~points" to="$(arg POINT_CLOUD)" />
+    <remap from="~point" to="$(arg RGB_IMAGE)/screenpoint" />
     <rosparam>
       queue_size: 10
       crop_size: 10
@@ -54,17 +69,17 @@
   <group if="$(arg remote)"> 
     <node name="prosilica_decompress" pkg="image_transport" type="republish"
 	    args="compressed raw">
-	    <remap from="in" to="$(arg PROSILICA_IMAGE)" />
+	    <remap from="in" to="$(arg PROSILICA_IMAGE_ORG)" />
 	    <remap from="out" to="$(arg PROSILICA_IMAGE_REMOTE)" />
     </node>
     <node name="rgb_decompress" pkg="image_transport" type="republish"
 	    args="compressed raw">
-	    <remap from="in" to="$(arg RGB_IMAGE)" />
+	    <remap from="in" to="$(arg RGB_IMAGE_ORG)" />
 	    <remap from="out" to="$(arg RGB_IMAGE_REMOTE)" />
     </node>
     <node name="depth_decompress" pkg="image_transport" type="republish"
 	    args="compressedDepth raw">
-	    <remap from="in" to="$(arg DEPTH_IMAGE)" />
+	    <remap from="in" to="$(arg DEPTH_IMAGE_ORG)" />
 	    <remap from="out" to="$(arg DEPTH_IMAGE_REMOTE)" />
     </node>
     <node pkg="nodelet" type="nodelet" name="point_cloud_xyzrgb"
@@ -85,8 +100,7 @@
     <node if="$(arg remote)" pkg="rviz" name="pr2_rviz" type="rviz"
           args="-d $(find pr2eus_tutorials)/config/pr2_tabletop_remote.rviz" />
     <node name="pr2_interactive_object_grasp_2d_node" pkg="image_view2" type="image_view2" >
-      <remap from="image" to="$(arg RGB_IMAGE)" unless="$(arg remote)" />
-      <remap from="image" to="$(arg RGB_IMAGE_REMOTE)" if="$(arg remote)" />
+      <remap from="image" to="$(arg RGB_IMAGE)" />
       <remap from="camera_info" to="$(arg RGB_CAMERA_INFO)" />
     </node>
   </group>
