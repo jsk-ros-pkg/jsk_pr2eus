@@ -7,10 +7,15 @@
   <arg name="remote" default="false" />
   <arg name="load_machine" default="true" />
 
-  <arg name="robot" value="$(optenv ROBOT sim)" if="$(eval arg('remote') or arg('sim'))" /> 
-  <arg name="robot" value="$(optenv ROBOT pr2)" unless="$(eval arg('remote') or arg('sim'))" /> 
-  <arg name="machine" value="localhost" if="$(eval arg('remote') or arg('sim'))" />
-  <arg name="machine" value="c2" unless="$(eval arg('remote') or arg('sim'))" />
+  <arg name="is_remote_or_sim" value="$(arg remote)" if="$(arg remote)" />
+  <arg name="is_remote_or_sim" value="$(arg sim)" unless="$(arg remote)" />
+  <arg name="is_remote_and_not_sim" value="false" if="$(arg sim)" />
+  <arg name="is_remote_and_not_sim" value="$(arg remote)" unless="$(arg sim)" />
+
+  <arg name="robot" value="$(optenv ROBOT sim)" if="$(arg is_remote_or_sim)" />
+  <arg name="robot" value="$(optenv ROBOT pr2)" unless="$(arg is_remote_or_sim)" />
+  <arg name="machine" value="localhost" if="$(arg is_remote_or_sim)" />
+  <arg name="machine" value="c2" unless="$(arg is_remote_or_sim)" />
 
   <arg name="kinect_org_name" value="kinect_head" />
   <arg name="kinect_remote_name" value="kinect_head_remote" />
@@ -31,14 +36,14 @@
   <arg name="POINT_CLOUD_REMOTE" value="/$(arg kinect_remote_name)/depth_registered/throttled/points" />
   <arg name="PROSILICA_IMAGE_REMOTE" value="/$(arg prosilica_remote_name)/image_raw" /> 
 
-  <arg name="RGB_IMAGE" value="$(arg RGB_IMAGE_REMOTE)" if="$(eval arg('remote') and not arg('sim'))"/>
-  <arg name="RGB_IMAGE" value="$(arg RGB_IMAGE_ORG)" unless="$(eval arg('remote') and not arg('sim'))"/>
-  <arg name="DEPTH_IMAGE" value="$(arg DEPTH_IMAGE_REMOTE)" if="$(eval arg('remote') and not arg('sim'))"/>
-  <arg name="DEPTH_IMAGE" value="$(arg DEPTH_IMAGE_ORG)" unless="$(eval arg('remote') and not arg('sim'))"/>
-  <arg name="POINT_CLOUD" value="$(arg POINT_CLOUD_REMOTE)" if="$(eval arg('remote') and not arg('sim'))"/>
-  <arg name="POINT_CLOUD" value="$(arg POINT_CLOUD_ORG)" unless="$(eval arg('remote') and not arg('sim'))"/>
-  <arg name="PROSILICA_IMAGE" value="$(arg PROSILICA_IMAGE_REMOTE)" if="$(eval arg('remote') and not arg('sim'))"/>
-  <arg name="PROSILICA_IMAGE" value="$(arg PROSILICA_IMAGE_ORG)" unless="$(eval arg('remote') and not arg('sim'))"/>
+  <arg name="RGB_IMAGE" value="$(arg RGB_IMAGE_REMOTE)" if="$(arg is_remote_and_not_sim)" />
+  <arg name="RGB_IMAGE" value="$(arg RGB_IMAGE_ORG)" unless="$(arg is_remote_and_not_sim)" />
+  <arg name="DEPTH_IMAGE" value="$(arg DEPTH_IMAGE_REMOTE)" if="$(arg is_remote_and_not_sim)" />
+  <arg name="DEPTH_IMAGE" value="$(arg DEPTH_IMAGE_ORG)" unless="$(arg is_remote_and_not_sim)" />
+  <arg name="POINT_CLOUD" value="$(arg POINT_CLOUD_REMOTE)" if="$(arg is_remote_and_not_sim)" />
+  <arg name="POINT_CLOUD" value="$(arg POINT_CLOUD_ORG)" unless="$(arg is_remote_and_not_sim)" />
+  <arg name="PROSILICA_IMAGE" value="$(arg PROSILICA_IMAGE_REMOTE)" if="$(arg is_remote_and_not_sim)" />
+  <arg name="PROSILICA_IMAGE" value="$(arg PROSILICA_IMAGE_ORG)" unless="$(arg is_remote_and_not_sim)" />
 
   <include file="$(find pr2_machine)/$(arg robot).machine" if="$(arg load_machine)" />
 
