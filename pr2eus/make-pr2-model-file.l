@@ -117,12 +117,12 @@
                 "narrow_stereo/right"
                 "wide_stereo/left"
                 "wide_stereo/right"
-                 "l_forearm_cam"
-                 "r_forearm_cam"
-                 "prosilica"
-                 "kinect_head/rgb"
-                 "kinect_head/depth"
-                 ))
+                "l_forearm_cam"
+                "r_forearm_cam"
+                "prosilica"
+                "kinect_head/rgb"
+                "kinect_head/depth"
+                ))
     (dolist (robot-name robot-names)
       (let (valid-cameras)
         (dolist (camera-path camera-paths)
