@@ -12,6 +12,7 @@
        doc="launch pr2_base_trajectory_action for debugging" />
 
   <!-- start empty world -->
+  <param name="gazebo/enable_ros_network" value="true" />
   <node name="gazebo" pkg="gazebo_ros" type="gzserver" args="-r worlds/empty.world" respawn="true" output="log"/>
   <group if="$(arg gui)">
     <node name="gazebo_gui" pkg="gazebo_ros" type="gzclient" respawn="false" output="screen"/>
