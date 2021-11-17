@@ -1,4 +1,8 @@
-# install euscollada from source since this is not released now.
+# install jskeus and euscollada from source since this is not released now.
+- git:
+    local-name: jskeus-release
+    uri: https://github.com/tork-a/jskeus-release
+    version: release/melodic/jskeus
 - tar:
     local-name: euscollada
     uri: https://github.com/tork-a/jsk_model_tools-release/archive/refs/tags/rpm/ros-melodic-euscollada-0.4.3-0_28.tar.gz
