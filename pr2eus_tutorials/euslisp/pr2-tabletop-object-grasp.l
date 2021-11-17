@@ -210,8 +210,7 @@
   (setq *grasp-state* "returning")
   (publish-grasp-state)
   (pr2-pregrasp-pose)
-  (ros::ros-info "click tabletop object in Rviz or in image_view2!")
-  (publish-status 'info (concatenate string "click tabletop object" '(#\newline) "in Rviz or in image_view2!"))
+  (publish-info (format nil "click tabletop object~%in Rviz or in image_view2!"))
   )
 
 
