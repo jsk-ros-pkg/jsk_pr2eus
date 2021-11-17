@@ -210,7 +210,8 @@
   (setq *grasp-state* "returning")
   (publish-grasp-state)
   (pr2-pregrasp-pose)
-  (publish-info (format nil "click tabletop object~%in Rviz or in image_view2!"))
+  (ros::ros-info "click tabletop object in Rviz or in image_view2!")
+  (publish-status 'info (format nil "click tabletop object~%in Rviz or in image_view2!"))
   )
 
 
@@ -242,6 +243,7 @@
   (pr2-pregrasp-pose)
   (wait-for-grasp-target)
   (wait-for-grasp-target-2d)
-  (publish-info (format nil "click tabletop object~%in Rviz or in image_view2!"))
+  (ros::ros-info "click tabletop object in Rviz or in image_view2!")
+  (publish-status 'info (format nil "click tabletop object~%in Rviz or in image_view2!"))
   (ros::spin))
 (demo)
