@@ -153,8 +153,8 @@
   (:clear-world-scene ()
    (let ((msg (instance moveit_msgs::PlanningSceneWorld :init)))
      (ros::publish planning-scene-world-topic msg)))
-  (:check-state-validity ()
-   (let* ((rmsg (send self :get-planning-scene moveit_msgs::PlanningSceneComponents::*ROBOT_STATE*))
+  (:check-state-validity (&optional (components moveit_msgs::PlanningSceneComponents::*ROBOT_STATE*))
+   (let* ((rmsg (send self :get-planning-scene components))
           (msg (instance moveit_msgs::GetStateValidityRequest :init :robot_state (send rmsg :robot_state))))
      (ros::service-call check-validity-service msg)
      ))
@@ -390,7 +390,7 @@
      consts))
   (:planning-make-trajectory-to-coords ;; use-ik
    (cds confkey &rest args &key (end-coords) ;; (list :rarm :end-coords)
-        (planning-time 5.0) (scene) (frame-id default-frame-id)
+        (planning-time 5.0) (scene) (frame-id default-frame-id) (timeout 0.05)
         (planning-attempts 3) (retry) (use-scene t)
         (multi-dof-joint-constraints)
         &allow-other-keys)
@@ -398,7 +398,7 @@
    (let (ret consts)
      (unless scene (setq scene (send self :get-planning-scene)))
      (setq ret (send self :get-ik-for-pose cds confkey :end-coords end-coords
-                                                       :use-actual-seed t :retry retry :frame-id frame-id :scene scene :use-multi-dof t)) ;; (av . multi-dof-js) or nil
+                                                       :use-actual-seed t :retry retry :frame-id frame-id :scene scene :timeout timeout :use-multi-dof t)) ;; (av . multi-dof-js) or nil
      (unless ret (return-from :planning-make-trajectory-to-coords nil))
      (when multi-dof-joint-constraints
        (if (member :extra-goal-constraints args)
@@ -433,13 +433,14 @@
      ))
   (:planning-move-arm-to-coords
    (cds confkey &key (end-coords) ;; (list :rarm :end-coords)
-        (planning-time 5.0) (scene) (frame-id default-frame-id)
+        (planning-time 5.0) (scene) (frame-id default-frame-id) (timeout 0.05)
         (planning-attempts 3) (retry) (use-scene t) (wait t)
         &allow-other-keys)
    (let (ret)
      (unless scene (setq scene (send self :get-planning-scene)))
      (unless (send self :get-ik-for-pose cds confkey :end-coords end-coords
-                   :use-actual-seed t :retry retry :frame-id frame-id :scene scene)
+                   :use-actual-seed t :retry retry :frame-id frame-id :scene scene
+                   :timeout timeout)
        (return-from :planning-move-arm-to-coords nil))
      (send self :planning-move-arm confkey
            :planning-time planning-time :planning-attempts planning-attempts
@@ -574,7 +575,10 @@
        (warn ";; controller-type: ~A not found" ctype)
        (return-from :angle-vector-motion-plan))
      (setq ret (send* self :angle-vector-make-trajectory av args))
-     (unless ret (return-from :angle-vector-motion-plan nil))
+     (unless ret
+       ;; Check if current state is in collision for user convenience
+       (send self :check-state-validity)
+       (return-from :angle-vector-motion-plan nil))
      (setq traj (send ret :trajectory))
      (setq orig-total-time (send (send (car (last (send traj :joint_trajectory :points))) :time_from_start) :to-sec)) ;; [sec]
      (when (< orig-total-time 0.001)
@@ -685,6 +689,24 @@
                          (/ (send acc twist-key vec-key) (expt time-scale 2))))))))
          (send pt :time_from_start (ros::time (* time-scale (send (send pt :time_from_start) :to-sec))))))
        traj))
+  (:check-state-validity ()
+    (let ((res (send self :planning-environment
+                     :check-state-validity
+                     (+ moveit_msgs::PlanningSceneComponents::*ROBOT_STATE*
+                        moveit_msgs::PlanningSceneComponents::*ROBOT_STATE_ATTACHED_OBJECTS*)))
+          (contacts-log "Collision is found in the current state."))
+      (when (not (send res :valid))
+        ;; contacts are not returned in indigo and earlier versions
+        ;; https://github.com/ros-planning/moveit/pull/2355
+        (when (send res :contacts)
+          (setq contacts-log (format nil "~A~%~A~%" contacts-log "Contact object pairs:"))
+          (dolist (c (send res :contacts))
+            (setq contacts-log
+                  (format nil "~A~A~%"
+                          contacts-log
+                          (list (send c :contact_body_1) (send c :contact_body_2))))))
+        (ros::ros-warn (string-right-trim '(#\Newline) contacts-log)))
+      res)
   ) ;; robot-interface
 
 (defmethod robot-move-base-interface

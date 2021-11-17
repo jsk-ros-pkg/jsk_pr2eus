@@ -40,6 +40,7 @@
     (setq *ri* (instance pr2-interface :init))
     (assert (send *pr2* :reset-pose))
     (assert (send *ri* :angle-vector (send *pr2* :angle-vector)))
+    (send *ri* :wait-interpolation)
     (assert (= (send *ri* :angle-vector-duration (send *ri* :state :potentio-vector) (send *pr2* :angle-vector) 5 1.0) 1))
     (send *pr2* :larm :shoulder-p :joint-angle 0)
     (setq tm (send *ri* :angle-vector-duration (send *ri* :state :potentio-vector) (send *pr2* :angle-vector) 5 1.0 :larm-controller))
