@@ -226,7 +226,7 @@ class soundplay:
         elif data.sound == SoundRequest.SAY:
             if not data.arg in self.voicesounds.keys():
                 rospy.logdebug('command for uncached text: "%s"' % data.arg)
-                txtfile = tempfile.NamedTemporaryFile(prefix='sound_play', suffix='.txt')
+                txtfile = tempfile.NamedTemporaryFile(mode='w+t', prefix='sound_play', suffix='.txt')
                 (wavfile,wavfilename) = tempfile.mkstemp(prefix='sound_play', suffix='.wav')
                 txtfilename=txtfile.name
                 os.close(wavfile)
