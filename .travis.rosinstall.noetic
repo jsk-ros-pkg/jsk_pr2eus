@@ -1,8 +1,20 @@
-# install jskeus and euscollada from source since this is not released now.
+# install jskeus from source since this is not released now.
+- git:
+    local-name: euslisp-release
+    uri: https://github.com/tork-a/euslisp-release
+    version: release/melodic/euslisp
 - git:
     local-name: jskeus-release
     uri: https://github.com/tork-a/jskeus-release
     version: release/melodic/jskeus
+# find_package(collada_urdf) failed due to wrong collada_urdfConfig.cmake
+# - https://github.com/ros/collada_urdf/issues/43
+# - https://github.com/ros/collada_urdf/pull/44
+- git:
+    local-name: collada_urdf
+    uri: https://github.com/werner291/collada_urdf.git
+    version: patch-1
+# compile euscollada for installed collada_urdf
 - tar:
     local-name: euscollada
     uri: https://github.com/tork-a/jsk_model_tools-release/archive/refs/tags/rpm/ros-melodic-euscollada-0.4.3-0_28.tar.gz
