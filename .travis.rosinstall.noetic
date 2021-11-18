@@ -7,6 +7,9 @@
     local-name: jskeus-release
     uri: https://github.com/tork-a/jskeus-release
     version: release/melodic/jskeus
+- git:
+    uri: https://github.com/jsk-ros-pkg/jsk_roseus.git
+    local-name: jsk-ros-pkg/jsk_roseus
 # find_package(collada_urdf) failed due to wrong collada_urdfConfig.cmake
 # - https://github.com/ros/collada_urdf/issues/43
 # - https://github.com/ros/collada_urdf/pull/44
