@@ -1,4 +1,7 @@
 <launch>
+
+  <!-- test code to check pr2eus_moveit without MoveIt instance -->
+
   <arg name="DISPLAY" default="" />
 
   <env name="DISPLAY" value="$(arg DISPLAY)" />

@@ -1,5 +1,7 @@
 #!/usr/bin/env roseus
 
+;; test code to check pr2eus_moveit without MoveIt instance
+
 (require :unittest "lib/llib/unittest.l")
 (init-unit-test)
 
