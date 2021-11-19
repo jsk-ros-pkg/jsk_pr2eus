@@ -16,5 +16,11 @@
     (assert ret "angle-vector-motion-plan returns something")
     ))
 
+;; check https://github.com/jsk-ros-pkg/jsk_pr2eus/pull/446 to avoid jsk-ros-pkg/jsk_robot#1264 problem
+(deftest test-init-collision-object-publisher
+  (setq ret (instance collision-object-publisher :init))
+  (assert ret "(instance collision-object-publisher :init)"))
+
+
 (run-all-tests)
 (exit)
