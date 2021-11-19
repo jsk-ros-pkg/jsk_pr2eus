@@ -53,6 +53,7 @@ if(CATKIN_ENABLE_TESTING)
     endif()
     add_rostest(test/pr2-ri-test-simple.launch)
     add_rostest(test/robot-init-test.test) # this uses pr2
+    add_rostest(test/pr2-ri-jta.test)
   endif()
   add_rostest(test/robot-no-clock.test)
   add_rostest(test/default-ri-test.test)
