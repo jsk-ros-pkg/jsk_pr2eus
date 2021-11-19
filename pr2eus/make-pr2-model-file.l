@@ -60,7 +60,7 @@
      (format f "))~%")
      (format f "~%")
      (format f "(defmethod ~A-sensor-robot~%" robot)
-     (format f "  (:init (n &rest args)~%")
+     (format f "  (:init (&optional (n :~A) &rest args)~%" (if (string= (car robot-names) "") "pr2" (car robot-names)))
      (format f "   (send-super* :init args)~%")
      (format f "   (setq name n)~%")
      ;; pr2 specific kinect_head frames
