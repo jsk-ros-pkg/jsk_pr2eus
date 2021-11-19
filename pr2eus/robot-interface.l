@@ -374,7 +374,7 @@
    (let* ((prev-av (send robot :angle-vector)))
      (send-all (gethash ctype controller-table) :push-angle-vector-simulation av tm prev-av)))
   (:angle-vector
-   (av &optional (tm nil) (ctype controller-type) (start-time 0) &key (scale 1) (min-time 1.0) (end-coords-interpolation nil) (end-coords-interpolation-steps 10))
+   (av &optional (tm nil) (ctype controller-type) (start-time 0) &key (scale 1) (min-time 1.0) (end-coords-interpolation nil) (end-coords-interpolation-steps 10) (minjerk-interpolation nil) &allow-other-keys)
    "Send joint angle to robot, this method returns immediately, so use :wait-interpolation to block until the motion stops.
 - av : joint angle vector [deg]
 - tm : (time to goal in [msec])
@@ -387,6 +387,7 @@
 - min-time : minimum time for time to goal
 - end-coords-interpolation : set t if you want to move robot in cartesian space interpolation
 - end-coords-interpolation-steps : number of divisions when interpolating end-coords
+- minjerk-interpolation : set t if you want to move robot with minjerk interpolation
 "
    (if end-coords-interpolation
      (return-from :angle-vector (send self :angle-vector-sequence (list av) (list tm) ctype start-time :scale scale :min-time min-time :end-coords-interpolation t :end-coords-interpolation-steps end-coords-interpolation-steps)))
@@ -416,21 +417,38 @@
    ;; for simulation mode
    (when (send self :simulation-modep)
      (if av (send self :angle-vector-simulation av tm ctype)))
-   (send robot :angle-vector av)
-   (let ((cacts (gethash ctype controller-table)))
-     (mapcar
-      #'(lambda (action param)
-          (send self :send-ros-controller
-                action (cdr (assoc :joint-names param)) ;; action server and joint-names
-                start-time  ;; start time
-                (list
-                 (list av                                     ;; positions
-                       (instantiate float-vector (length av)) ;; velocities
-                       (/ tm 1000.0)))))                      ;; duration
-      cacts (send self ctype)))
+   ;; minjerk interpolation, 0.001 [sec] inverval
+   (let (r trajpoints)
+     (if minjerk-interpolation
+       (progn
+         (setq r (pos-list-interpolation (list (send robot :angle-vector) av)
+                                         (list (/ tm 1000.0))
+                                         0.001))
+         (setq trajpoints
+               (mapcar #'(lambda (pos vel tim acc) (list pos vel tim acc))
+                       (cadr (memq :data r))           ;; positions
+                       (cadr (memq :velocity r))       ;; velocities
+                       (cadr (memq :time r))           ;; duration
+                       (cadr (memq :acceleration r)))) ;; accelerations
+         (nreverse trajpoints))
+       (setq trajpoints
+             (list
+              (list av                                         ;; positions
+                    (instantiate float-vector (length av))     ;; velocities
+                    (/ tm 1000.0)                              ;; duration
+                    (instantiate float-vector (length av)))))) ;; accelerations
+     (send robot :angle-vector av)
+     (let ((cacts (gethash ctype controller-table)))
+       (mapcar
+        #'(lambda (action param)
+            (send self :send-ros-controller
+                  action (cdr (assoc :joint-names param)) ;; action server and joint-names
+                  start-time  ;; start time
+                  trajpoints))
+        cacts (send self ctype))))
    av)
   (:angle-vector-sequence
-   (avs &optional (tms (list 3000)) (ctype controller-type) (start-time 0.1) &key (scale 1) (min-time 0.0) (end-coords-interpolation nil) (end-coords-interpolation-steps 10))
+   (avs &optional (tms (list 3000)) (ctype controller-type) (start-time 0.1) &key (scale 1) (min-time 0.0) (end-coords-interpolation nil) (end-coords-interpolation-steps 10) (minjerk-interpolation nil) &allow-other-keys)
    "Send sequence of joint angle to robot, this method returns immediately, so use :wait-interpolation to block until the motion stops.
 - avs: sequence of joint angles(float-vector) [deg],  (list av0 av1 ... avn)
 - tms: sequence of duration(float) from previous angle-vector to next goal [msec],  (list tm0 tm1 ... tmn)
@@ -444,6 +462,7 @@
 - min-time : minimum time for time to goal
 - end-coords-interpolation : set t if you want to move robot in cartesian space interpolation
 - end-coords-interpolation-steps : number of divisions when interpolating end-coords
+- minjerk-interpolation : set t if you want to move robot with minjerk interpolation
    "
    (setq ctype (or ctype controller-type))  ;; use default controller-type if ctype is nil
    (unless (gethash ctype controller-table)
@@ -533,17 +552,30 @@
          ))
      (prog1 ;; angle-vector-sequence returns avs
          avs
-       (while avs
-         (setq av (pop avs))
-         (setq fastest-tm (* 1000 (send self :angle-vector-duration av-prev av scale min-time ctype)))
-         (setq tm (pop tms))
-         (cond
-          ((equal tm :fast)
-           (setq tm fastest-tm))
-          ((null tm)
-           (setq tm (* 5 fastest-tm)))
-          ((numberp tm)
-           (if (< tm fastest-tm)
+       ;; minjerk interpolation, 0.001 [sec] inverval
+       (if minjerk-interpolation
+         (let (r)
+           (setq r (pos-list-interpolation (append (list (send robot :angle-vector)) avs)
+                                           (mapcar #'(lambda (x) (/ x 1000.0)) tms)
+                                           0.001))
+           (setq traj-points
+                 (mapcar #'(lambda (pos vel tim acc) (list pos vel tim acc))
+                         (cadr (memq :data r))           ;; positions
+                         (cadr (memq :velocity r))       ;; velocities
+                         (cadr (memq :time r))           ;; duration
+                         (cadr (memq :acceleration r)))) ;; accelerations
+           (nreverse traj-points))
+         (while avs
+           (setq av (pop avs))
+           (setq fastest-tm (* 1000 (send self :angle-vector-duration av-prev av scale min-time ctype)))
+           (setq tm (pop tms))
+           (cond
+            ((equal tm :fast)
+             (setq tm fastest-tm))
+            ((null tm)
+             (setq tm (* 5 fastest-tm)))
+            ((numberp tm)
+             (if (< tm fastest-tm)
                (setq tm fastest-tm)))
           (t (ros::ros-error ":angle-vector-sequence tm is invalid.  args: ~A" tm)
              (error ":angle-vector-sequence tm is invalid. args: ~A" tm)))
@@ -591,12 +623,14 @@
 ;	 (when (send self :simulation-modep)
 ;	   (send self :publish-joint-state)
 ;	   (if viewer (send self :draw-objects)))
-         (push (list av
-                     (copy-seq vel)  ;; velocities
-                     (/ (+ st tm) 1000.0)) ;; tm + duration
-               traj-points)
-         (setq av-prev av)
-         (incf st tm))
+
+           (push (list av
+                       (copy-seq vel)  ;; velocities
+                       (/ (+ st tm) 1000.0) ;; tm + duration
+                       (instantiate float-vector (length av))) ;; accelerations
+                 traj-points)
+           (setq av-prev av)
+           (incf st tm)))
        ;;
        (let ((cacts (gethash ctype controller-table)))
          (unless cacts
@@ -612,8 +646,8 @@
        )))
   (:wait-interpolation (&optional (ctype) (timeout 0)) ;; controller-type
    "Wait until last sent motion is finished
-- ctype : controller to be wait
-- timeout : max time of for waiting
+- ctype : controller to be waited
+- timeout : max time to wait for each controller (so (send *ri* :wait-interpolation nil 0.1) with real PR2 takes up to 0.4 sec because four controllers are registered)
 - return values is a list of interpolatingp for all controllers, so (null (some #'identity (send *ri* :wait-interpolation))) -> t if all interpolation has stopped"
    (if (send self :simulation-modep)
        (while (send self :interpolatingp)
@@ -767,27 +801,34 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
 	 (let* ((all-positions (elt trajpt 0))
 		(all-velocities (elt trajpt 1))
 		(duration (elt trajpt 2))
+		(all-accelerations (elt trajpt 3))
 		(positions (instantiate float-vector (length joint-names)))
-		(velocities (instantiate float-vector (length joint-names))))
+		(velocities (instantiate float-vector (length joint-names)))
+		(accelerations (instantiate float-vector (length joint-names))))
 	   (dotimes (i (length joints))
 	     (let* ((joint (elt joints i))
 		    (id (position joint (send robot :joint-list)))
-		    p v)
+		    p v a)
 	       (setq p (elt all-positions id)
-		     v (elt all-velocities id))
+		     v (elt all-velocities id)
+		     a (elt all-accelerations id))
 	       (cond
 		((derivedp joint rotational-joint)
 		 (setq p (deg2rad p))
-		 (setq v (deg2rad v)))
+		 (setq v (deg2rad v))
+		 (setq a (deg2rad a)))
 		(t
 		 (setq p (* 0.001 p))
-		 (setq v (* 0.001 v))))
+		 (setq v (* 0.001 v))
+		 (setq a (* 0.001 a))))
 	       (setf (elt positions i) p)
-	       (setf (elt velocities i) v)))
+	       (setf (elt velocities i) v)
+	       (setf (elt accelerations i) a)))
 	   (push (instance trajectory_msgs::JointTrajectoryPoint
 			   :init
 			   :positions positions
 			   :velocities velocities
+			   :accelerations accelerations
 			   :time_from_start (ros::time duration))
 		 goal-points)
 	   ))
@@ -977,7 +1018,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
   (:warningp (&optional (w :dummy)) "When in warning mode, it wait for user's key input before sending angle-vector to the robot" (if (not (eq w :dummy)) (setq warningp w)) warningp)
   (:spin-once () (ros::spin-once groupname))
   (:send-trajectory (joint-trajectory-msg
-                     &key ((:controller-type ct) controller-type) (starttime 1) &allow-other-keys)
+                     &key ((:controller-type ct) controller-type) (starttime 1) (minjerk-interpolation nil) &allow-other-keys)
    (unless (gethash ct controller-table)
      (warn ";; controller-type: ~A not found" ct)
      (return-from :send-trajectory))
@@ -986,10 +1027,11 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
         (send self :send-trajectory-each
               action (cdr (assoc :joint-names param)) ;; action server and joint-names
               joint-trajectory-msg
-              starttime))
+              starttime
+              minjerk-interpolation))
     (gethash ct controller-table) (send self ct)))
   (:send-trajectory-each
-   (action joint-names traj &optional (starttime 0.2))
+   (action joint-names traj &optional (starttime 0.2) (minjerk-interpolation nil))
    (let* ((jnames (send traj :joint_names))
           (ilst (mapcar #'(lambda (jn) (position jn jnames :test #'string=)) joint-names))
           points-lst)
@@ -1000,30 +1042,52 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
                                   (setq p (send robot (intern (string-upcase jn) *keyword-package*))))
                                 p))
                           joint-names))
-       (dolist (p (send traj :points))
-         (let ((poss (send p :positions))
-               (vels (send p :velocities))
-               (effs (send p :accelerations))
-               plst vlst elst)
-           (dolist (i ilst)
-             (cond
-              ((numberp i)
-               (push (elt poss i) plst)
-               (if (and vels (> (length vels) i)) (push (elt vels i) vlst))
-               (if (and effs (> (length effs) i)) (push (elt effs i) elst)))
-              (t
-               (push (send i :ros-joint-angle) plst)
-               (if vels (push 0 vlst))
-               (if effs (push 0 elst))
-               (ros::ros-warn ";; trajectory contains lacking joint names")
-               )))
-           (push
-            (instance trajectory_msgs::JointTrajectoryPoint :init
-                      :positions (coerce (nreverse plst) float-vector)
-                      :velocities (if vels (coerce (nreverse vlst) float-vector))
-                      :accelerations (if effs (coerce (nreverse elst) float-vector))
-                      :time_from_start (send p :time_from_start)) points-lst)
-           ))
+       (if minjerk-interpolation
+         ;; minjerk interpolation, 0.001 [sec] inverval
+         (let ((points (send traj :points)) (tm-prev 0.0) avs tms r)
+           (setq avs (mapcar #'(lambda (x) (send x :positions)) points))
+           (dolist (tm (mapcar #'(lambda (x) (send (send x :time_from_start) :to-sec)) points))
+             (setq tms (append tms (list (- tm tm-prev))))
+             (setq tm-prev tm))
+           (setq r (pos-list-interpolation avs (cdr tms) 0.001))
+           (setq points-lst
+                 (mapcar #'(lambda (pos vel acc tim)
+                             (instance trajectory_msgs::JointTrajectoryPoint :init
+                                       :positions pos
+                                       :velocities vel
+                                       :accelerations acc
+                                       :time_from_start (ros::time tim)))
+                         (cadr (memq :data r))
+                         (cadr (memq :velocity r))
+                         (cadr (memq :acceleration r))
+                         (cadr (memq :time r))))
+           (nreverse points-lst)
+           )
+         (dolist (p (send traj :points))
+           (let ((poss (send p :positions))
+                 (vels (send p :velocities))
+                 (effs (send p :accelerations))
+                 plst vlst elst)
+             (dolist (i ilst)
+               (cond
+                ((numberp i)
+                 (push (elt poss i) plst)
+                 (if (and vels (> (length vels) i)) (push (elt vels i) vlst))
+                 (if (and effs (> (length effs) i)) (push (elt effs i) elst)))
+                (t
+                 (push (send i :ros-joint-angle) plst)
+                 (if vels (push 0 vlst))
+                 (if effs (push 0 elst))
+                 (ros::ros-warn ";; trajectory contains lacking joint names")
+                 )))
+             (push
+              (instance trajectory_msgs::JointTrajectoryPoint :init
+                        :positions (coerce (nreverse plst) float-vector)
+                        :velocities (if vels (coerce (nreverse vlst) float-vector))
+                        :accelerations (if effs (coerce (nreverse elst) float-vector))
+                        :time_from_start (send p :time_from_start)) points-lst)
+             ))
+         )
        (let ((goal (send action :make-goal-instance))
              (st (ros::time+ (ros::time-now) (ros::time starttime))))
          (send goal :header :stamp (ros::time-now))
@@ -1269,19 +1333,20 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
      (setq odom-topic odom-topic-name)
      (setq cmd-vel-topic cmd-vel-topic-name)
      (setq move-base-action (instance ros::simple-action-client :init
-                                      move-base-action-name move_base_msgs::MoveBaseAction
+                                      (if namespace (format nil "~A/~A" namespace move-base-action-name) move-base-action-name)
+                                      move_base_msgs::MoveBaseAction
                                       :groupname groupname))
      (when base-controller-action-name
        (setq move-base-trajectory-action
              (instance ros::simple-action-client :init
-                       base-controller-action-name
+                       (if namespace (format nil "~A/~A" namespace base-controller-action-name) base-controller-action-name)
                        control_msgs::FollowJointTrajectoryAction
                        :groupname groupname))
        (unless (send move-base-trajectory-action :wait-for-server 3)
          (ros::ros-warn "move-base-trajectory-action is not found")
          (setq move-base-trajectory-action nil))
        (setq move-base-trajectory-joint-names base-controller-joint-names))
-     (ros::subscribe odom-topic-name nav_msgs::Odometry
+     (ros::subscribe (if namespace (format nil "~A/~A" namespace odom-topic-name) odom-topic-name) nav_msgs::Odometry
 		     #'send self :odom-callback :groupname groupname)
      ))
   ;;
@@ -1525,14 +1590,14 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
    (x y d) ;; [m] [m] [degree]
    (when (send self :simulation-modep)
      (return-from :send-cmd-vel-raw t))
-   (unless (ros::get-topic-publisher cmd-vel-topic)
-     (ros::advertise cmd-vel-topic geometry_msgs::Twist 1)
+   (unless (ros::get-topic-publisher (if namespace (format nil "~A/~A" namespace cmd-vel-topic) cmd-vel-topic))
+     (ros::advertise (if namespace (format nil "~A/~A" namespace cmd-vel-topic) cmd-vel-topic) geometry_msgs::Twist 1)
      (unix:sleep 1))
    (let ((msg (instance geometry_msgs::Twist :init)))
      (send msg :linear :x x)
      (send msg :linear :y y)
      (send msg :angular :z d)
-     (ros::publish cmd-vel-topic msg)))
+     (ros::publish (if namespace (format nil "~A/~A" namespace cmd-vel-topic) cmd-vel-topic) msg)))
   (:go-velocity
    (x y d ;; [m/sec] [m/sec] [rad/sec]
     &optional (msec 1000) ;; msec is total animation time [msec]
@@ -1946,6 +2011,166 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
           (intern (string-upcase (format nil "~A-init" robot-name)))) args)
   (setq *robot* (eval (intern (string-upcase (format nil "*~A*" robot-name))))))
 
+;; Copied from below except (format t )
+;; https://github.com/euslisp/jskeus/pull/596
+(defun pos-list-interpolation
+  (pos-list ;; (list pos_1 pos_2 ... pos_N), pos_i is float-vector
+   time-list ;; (list dtime_1 dtime_2 ... dtime_{N-1}), dtime_i is time[s] between time at pos_{i+1} - pos_i
+   dt ;; dt [s]
+   &key (interpolator-class minjerk-interpolator)
+        ((:interpolator ip) (instance interpolator-class :init))
+        (initial-time 0.0) (neglect-first) (vel-vector-list) (acc-vector-list))
+  (let* ((data-list) (tm-list) (vel-data-list) (acc-data-list))
+    (assert (= (length pos-list) (1+ (length time-list)))
+            (format nil "check length of pos-list(~A) and tm-list(~A)"
+                    (length pos-list) (length time-list)))
+    (setq vel-vector-list
+          (reverse
+           (do ((i 0 (1+ i)) (vel-list))
+               ((> i (length time-list)) vel-list)
+               (if (or (= i 0) (= i (length time-list)))
+                   (push (instantiate float-vector (length (car pos-list))) vel-list)
+                 (let* ((v0 (scale (/ 1.0  (elt time-list (1- i)))
+                                   (v- (elt pos-list i) (elt pos-list (1- i)))))
+                        (v1 (scale (/ 1.0 (elt time-list i))
+                                   (v- (elt pos-list (1+ i)) (elt pos-list i))))
+                        (v (scale 0.5 (v+ v0 v1))))
+                   (dotimes (i (length v)) (if (< (* (elt v0 i) (elt v1 i)) 0) (setf (elt v i) 0)))
+                   (push v vel-list))))))
+    (setq acc-vector-list
+          (reverse
+           (do ((i 0 (1+ i)) (acc-list))
+               ((> i (length time-list)) acc-list)
+               (if (or (= i 0) (= i (length time-list)))
+                   (push (instantiate float-vector (length (car vel-vector-list))) acc-list)
+                 (let* ((v0 (scale (/ 1.0  (elt time-list (1- i)))
+                                   (v- (elt vel-vector-list i) (elt vel-vector-list (1- i)))))
+                        (v1 (scale (/ 1.0 (elt time-list i))
+                                   (v- (elt vel-vector-list (1+ i)) (elt vel-vector-list i))))
+                        (v (scale 0.5 (v+ v0 v1))))
+                   (dotimes (i (length v)) (if (< (* (elt v0 i) (elt v1 i)) 0) (setf (elt v i) 0)))
+                   (push v acc-list))))))
+    ;; (format t "=INPUT~%")
+    ;; (format t "time ~A~%" time-list)
+    ;; (format t " pos ~A~%" pos-list)
+    ;; (format t " vel ~A~%" vel-vector-list)
+    ;; (format t " acc ~A~%" acc-vector-list)
+    (send* ip :reset
+           :position-list pos-list
+           :time-list (let (r) (dolist (n time-list) (push (+ n (if r (car r) 0)) r)) (nreverse r)) ;; list of time[sec] from start for each control point
+           (append
+            (if vel-vector-list (list :velocity-list vel-vector-list))
+            (if acc-vector-list (list :acceleration-list acc-vector-list))))
+    (send ip :start-interpolation)
+    (while (send ip :interpolatingp)
+      (push (if (send ip :interpolatingp)
+                (+ initial-time (send ip :time))
+              (+ dt (car tm-list))) tm-list)
+      (send ip :pass-time dt)
+      (push (send ip :position) data-list)
+      (if (find-method ip :velocity) (push (send ip :velocity) vel-data-list))
+      (if (find-method ip :acceleration) (push (send ip :acceleration) acc-data-list))
+      )
+    ;; (format t "=OUTPUT~%")
+    (if (and vel-data-list acc-data-list)
+        (mapcar #'(lambda (tm pos vel acc)
+                    ;; (format t "~7,5f ~7,3f ~13,1f ~13,1f~%"
+                    ;;         tm (elt pos 0) (elt vel 0) (elt acc 0))
+                    )
+                (reverse tm-list) (reverse data-list) (reverse vel-data-list) (reverse acc-data-list)))
+    (append
+     (list :data (if neglect-first (cdr (reverse data-list)) (reverse data-list))
+           :time (if neglect-first (cdr (reverse tm-list)) (reverse tm-list)))
+     (if (find-method ip :velocity)
+         (list :velocity (if neglect-first (cdr (reverse vel-data-list)) (reverse vel-data-list))))
+     (if (find-method ip :acceleration)
+         (list :acceleration (if neglect-first (cdr (reverse acc-data-list)) (reverse acc-data-list))))
+     )))
+
+;; This method can be removed if below is merged
+;; https://github.com/euslisp/jskeus/pull/596
+(defmethod interpolator
+  (:pass-time
+   (dt)
+   "process interpolation for dt[sec]"
+   (when interpolatingp
+     (setq position (send self :interpolation))
+     (incf time dt)
+     (setq segment-time (- time (if (= segment 0) 0 (nth (1- segment) time-list))))
+     (when (eps> time (nth segment time-list) (* 0.1 dt))
+       ;; if time-segment is not aligned, need to fix the data (see https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/457)
+       (while (and (< segment segment-num) (eps> time (nth segment time-list) (* 0.1 dt)))
+         (setq segment-time (- time (nth segment time-list)))
+         (incf segment)))
+     (when (>= segment segment-num)
+       ;; adjust time and segment-time to exact position
+       (setq segment (1- segment-num))
+       (setq time (car (last time-list)))
+       (setq segment-time (- time (if (= segment 0) 0 (nth (1- segment) time-list))))
+       ;; re-calculate :interpolation
+       (setq position (send self :interpolation))
+       (send self :reset))
+     position))
+  )
+
+;; This method can be removed if below is merged
+;; https://github.com/euslisp/jskeus/pull/596
+(defmethod minjerk-interpolator
+  (:interpolation
+   ()
+   "Minjerk interpolator, a.k.a Hoff & Arbib
+    Example code is:
+(setq l (instance minjerk-interpolator :init))
+(send l :reset :position-list (list #f(1 2 3) #f(3 4 5) #f(1 2 3)) :time-list (list 0.1 0.18))
+(send l :start-interpolation)
+(while (send l :interpolatingp) (send l :pass-time 0.02) (print (send l :position)))
+"
+   (let* ((xi (nth segment position-list))
+          (xf (nth (1+ segment) position-list))
+          (vi (nth segment velocity-list))
+          (vf (nth (1+ segment) velocity-list))
+          (ai (nth segment acceleration-list))
+          (af (nth (1+ segment) acceleration-list))
+          ;;
+          (t1+t2 (- (nth segment time-list) (if (> segment 0) (nth (1- segment) time-list) 0))) ;; total time of segment
+          ;; A=(gx-(x+v*t+(a/2.0)*t*t))/(t*t*t)
+          ;; B=(gv-(v+a*t))/(t*t)
+          ;; C=(ga-a)/t
+          (A  (scale (/ 1.0 (* t1+t2 t1+t2 t1+t2)) (v- xf (reduce #'v+ (list xi (scale t1+t2 vi) (scale (* t1+t2 t1+t2) (scale 0.5 ai)))))))
+          (B  (scale (/ 1.0 (* t1+t2 t1+t2))      (v- vf (v+ vi (scale t1+t2 ai)))))
+          (C  (scale (/ 1.0 (* t1+t2))           (v- af ai)))
+          ;; a0=x
+          ;; a1=v
+          ;; a2=a/2.0
+          ;; a3=10*A-4*B+0.5*C
+          ;;; a4=(-15*A+7*B-C)/t
+          ;; a5=(6*A-3*B+0.5*C)/(t*t)
+          (a0 xi)
+          (a1 vi)
+          (a2 (scale 0.5 ai))
+          (a3 (v+ (v- (scale 10 A) (scale 4 B)) (scale 0.5 C)))
+          (a4 (scale (/ 1.0 t1+t2) (v- (v+ (scale -15 A) (scale 7 B)) C)))
+          (a5 (scale (/ 1.0 t1+t2 t1+t2) (v+ (v+ (scale 6 A) (scale -3 B)) (scale 0.5 C))))
+          )
+     ;; x=a0+a1*t+a2*t*t+a3*t*t*t+a4*t*t*t*t+a5*t*t*t*t*t
+     ;; v=a1+2*a2*t+3*a3*t*t+4*a4*t*t*t+5*a5*t*t*t*t
+     ;; a=2*a2+6*a3*t+12*a4*t*t+20*a5*t*t*t
+     (setq position
+           (reduce #'v+ (list a0
+                              (scale (expt segment-time 1) a1) (scale (expt segment-time 2) a2)
+                              (scale (expt segment-time 3) a3) (scale (expt segment-time 4) a4)
+                              (scale (expt segment-time 5) a5)))
+           velocity
+           (reduce #'v+ (list a1
+                              (scale (* 2 (expt segment-time 1)) a2) (scale (* 3 (expt segment-time 2)) a3)
+                              (scale (* 4 (expt segment-time 3)) a4) (scale (* 5 (expt segment-time 4)) a5)))
+           acceleration
+           (reduce #'v+ (list (scale 2 a2)
+                              (scale (* 6 (expt segment-time 1)) a3) (scale (* 12 (expt segment-time 2)) a4)
+                              (scale (* 20 (expt segment-time 3)) a5))))
+     position))
+  ;
+  )
 
 ;;
 ;; navigation-client.l

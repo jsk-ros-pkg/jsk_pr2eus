@@ -1,0 +1,12 @@
+<launch>
+  <arg name="gui" default="false"/>
+  <include file="$(find pr2eus)/test/pr2-ri-test-bringup.launch" ns="namespace">
+    <arg name="gui" default="$(arg gui)"/>
+    <arg name="ROS_NAMESPACE" value="namespace" />
+  </include>
+
+  <!-- start test -->
+  <test test-name="pr2_ri_test_namespace" pkg="roseus" type="roseus" retry="1"
+        args="$(find pr2eus)/test/pr2-ri-test-namespace.l"
+        time-limit="800" />
+</launch>
