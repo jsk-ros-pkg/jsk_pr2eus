@@ -74,6 +74,13 @@ ssh <robot address>
 roslaunch pr2eus_tutorials pr2_tabletop.launch
 ```
 
+If you try using compressed topic from the real PR2,
+
+```bash
+# on local machine
+roslaunch pr2eus_tutorials pr2_tabletop.launch remote:=true
+```
+
 You can locate a desk in front of the robot and put any objects on it.
 
 ##### Using a simulator
@@ -109,6 +116,12 @@ It means the robot now recognizes each objects as individual objects from camera
 rviz -d $(rospack find pr2eus_tutorials)/config/pr2_tabletop.rviz
 ```
 
+If you try `roslaunch pr2eus_tutorials pr2_tabletop.launch` with `remote:=true`, meaning using compressed topic from the real PR2, execute this instead.
+```bash
+# on local machine
+rviz -d $(rospack find pr2eus_tutorials)/config/pr2_tabletop_remote.rviz
+```
+
 ##### Additional setup for Kinetic local machine with a real robot
 
 If you want to know why we need these node, please see [here](https://github.com/jsk-ros-pkg/jsk_pr2eus/pull/387#issuecomment-470505882).
@@ -134,6 +147,12 @@ You can click any pixels that you want the robot to pick up.
 
 ```bash
 rosrun image_view2 image_view2 image:=/kinect_head/rgb/throttled/image_rect_color camera_info:=/head_mount_kinect/rgb/camera_info
+```
+
+If you try `roslaunch pr2eus_tutorials pr2_tabletop.launch` with `remote:=true`, execute this instead.
+
+```bash
+rosrun image_view2 image_view2 image:=/kinect_head_remote/rgb/throttled/image_rect_color camera_info:=/head_mount_kinect/rgb/camera_info
 ```
 
 ![pr2_interactive](https://user-images.githubusercontent.com/19769486/81817136-3913f200-9567-11ea-800a-f95bd4057cb5.png)
