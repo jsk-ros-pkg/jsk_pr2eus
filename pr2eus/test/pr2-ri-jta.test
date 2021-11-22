@@ -1,7 +1,0 @@
-<launch>
-  <node pkg="pr2eus" type="dummy_jta_server.py" name="dummy_jta_server" />
-
-  <!-- start test -->
-  <test test-name="pr2_ri_test_arm" pkg="roseus" type="roseus" retry="1"
-        args="$(find pr2eus)/test/pr2-ri-jta.l" />
-</launch>

@@ -49,16 +49,20 @@
 (setq *robot* (dummy-robot))
 (setq *ri* (instance dummy-robot-interface :init))
 
-;;
+;; Tests
+;; Use :wait-interpolation after :angle-vector to call :action-result-cb
 
 (deftest test-abort
-  (send *ri* :angle-vector #f(-100)))
+  (send *ri* :angle-vector #f(-100))
+  (send *ri* :wait-interpolation))
 
 (deftest test-preempted
-  (send *ri* :angle-vector #f(200)))
+  (send *ri* :angle-vector #f(200))
+  (send *ri* :wait-interpolation))
 
 (deftest test-suceeded
-  (send *ri* :angle-vector #f(0)))
+  (send *ri* :angle-vector #f(0))
+  (send *ri* :wait-interpolation))
 
 (run-all-tests)
 (exit)
