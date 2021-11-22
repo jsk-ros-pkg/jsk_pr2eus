@@ -8,7 +8,7 @@
 (defmethod collision-object-publisher
   (:init (&key (service-name "apply_planning_scene")
                (scene-service "get_planning_scene")
-               (service-wait-time -1))
+               (service-wait-time 30))
    (unless (ros::ok) (ros::roseus "publish_collision_eusobj"))
    (setq object-list (make-hash-table))
    (setq attached-object-list (make-hash-table))
