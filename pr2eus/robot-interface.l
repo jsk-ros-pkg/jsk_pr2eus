@@ -29,8 +29,6 @@
    (* 0.001 v))
   )
 
-(defun controller-result-error-to-string (i)
-  (elt '(SUCCESSFUL INVALID_GOAL INVALID_JOINTS OLD_HEADER_TIMESTAMP PATH_TOLERANCE_VIOLATED GOAL_TOLERANCE_VIOLATED) (* -1 i)))
 (defclass controller-action-client
   :super ros::simple-action-client
   :slots (time-to-finish last-feedback-msg-stamp
