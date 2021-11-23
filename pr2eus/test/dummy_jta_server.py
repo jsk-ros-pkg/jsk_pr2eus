@@ -9,7 +9,7 @@ from control_msgs.msg import *
 
 class DummyJTA(object):
     # create messages that are used to publish feedback/result
-    _feedback = FollowJointTrajectoryActionFeedback()
+    _feedback = FollowJointTrajectoryFeedback()
     _result = FollowJointTrajectoryResult()
 
     def __init__(self, robot='pr2'):
@@ -25,6 +25,7 @@ class DummyJTA(object):
         if len(goal.trajectory.points) > 0 and len(goal.trajectory.points[0].positions) > 0:
             position = goal.trajectory.points[0].positions[0] * 180 / math.pi
             rospy.loginfo("Received {}".format(position))
+            self._as.publish_feedback(self._feedback)
             if robot == 'pr2':
                 if position < 0:
                     rospy.logwarn("Set aborted")
@@ -60,9 +61,7 @@ class DummyJTA(object):
                     rospy.logwarn("Set aborted")
                     self._result.error_code = FollowJointTrajectoryResult.PATH_TOLERANCE_VIOLATED
                     self._result.error_string = 'After validation, trajectory execution failed in the arm with sub error code SUB_ERROR_NONE'
-                    self._as.set_aborted(
-                        result=self._result,
-                        text="")
+                    self._as.set_aborted(result=self._result)
                 elif position >= 100:
                     rospy.logwarn("Set preempted")
                     self._result.error_code = FollowJointTrajectoryResult.PATH_TOLERANCE_VIOLATED
