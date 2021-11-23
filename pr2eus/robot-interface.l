@@ -46,14 +46,48 @@
   (:time-to-finish ()
     (ros::ros-debug "[~A] time-to-finish ~A" ros::name-space time-to-finish)
     time-to-finish)
-  (:action-result-cb
-   (msg)
+  (:action-result-cb (msg)
+   "
+   display error messages from (robot_name)/FollowJointTrajectory/result
+   "
    ;; The following error messages will not appear for the first (send *ri* :angle-vector)
    ;; To display it, use :wait-interpolation or (ros::spin-once groupname)
-   (let ((error-code (send (send msg :result) :error_code)))
+   (let ((status-num (send (send msg :status) :status))
+         (status-word '(PENDING
+                        ACTIVE
+                        PREEMPTED
+                        SUCCEEDED
+                        ABORTED
+                        REJECTED
+                        PREEMPTING
+                        RECALLING
+                        REDALLED
+                        LOST))
+         (status-text (send (send msg :status) :text))
+         (error-code (send (send msg :result) :error_code))
+         (error-word '(SUCCESSFUL
+                       INVALID_GOAL
+                       INVALID_JOINTS
+                       OLD_HEADER_TIMESTAMP
+                       PATH_TOLERANCE_VIOLATED
+                       GOAL_TOLERANCE_VIOLATED)))
+     ;; status
+     (unless (or (= status-num 3) (= status-num 8))
+       (ros::ros-error "joint trajectory status: ~A~%"
+                       (cons status-num (elt status-word status-num)))
+       (unless (string= "" status-text)
+         (ros::ros-error "~A~%" status-text)))
+     (when (or (= status-num 8))
+       (ros::ros-warn "joint trajectory status: ~A~%"
+                      (cons status-num (elt status-word status-num)))
+       (unless (string= "" status-text)
+         (ros::ros-error "~A~%" status-text)))
+     ;; error_code and error_string
      (when (< error-code 0)
-       (ros::ros-error "~A~%" (send (send msg :result) :error_string))
-       (ros::ros-error "error_code: ~A~%" (cons error-code (controller-result-error-to-string error-code)))))
+       (ros::ros-error "error_code: ~A~%"
+                       (cons error-code (elt error-word (* -1 error-code))))
+       (unless (string= "" (send (send msg :result) :error_string))
+         (ros::ros-error "~A~%" (send (send msg :result) :error_string)))))
    (send-super :action-result-cb msg))
   (:action-feedback-cb (msg)
    (let ((finish-time) (current-time))
