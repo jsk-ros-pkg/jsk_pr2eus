@@ -70,16 +70,17 @@
                         PATH_TOLERANCE_VIOLATED
                         GOAL_TOLERANCE_VIOLATED)))
       ;; status
-      (cond ((not (or (= status-num 3) (= status-num 8)))
-             (ros::ros-error "joint trajectory status: ~A~%"
-                             (cons status-num (elt status-word status-num)))
-             (unless (string= "" status-text)
-               (ros::ros-error "~A~%" status-text)))
-            ((= status-num 8)
-             (ros::ros-warn "joint trajectory status: ~A~%"
-                            (cons status-num (elt status-word status-num)))
-             (unless (string= "" status-text)
-               (ros::ros-warn "~A~%" status-text))))
+      (let ((log-func nil))
+        (cond ((not (or (= status-num actionlib_msgs::GoalStatus::*succeeded*)
+                        (= status-num actionlib_msgs::GoalStatus::*recalled*)))
+               (setq log-func #'ros::ros-error))
+              ((= status-num actionlib_msgs::GoalStatus::*recalled*)
+               (setq log-func #'ros::ros-warn)))
+        (when log-func
+          (funcall log-func "joint trajectory status: ~A~%"
+                   (cons status-num (elt status-word status-num)))
+          (unless (string= "" status-text)
+            (funcall log-func "~A~%" status-text))))
       ;; error_code and error_string
       (cond ((derivedp msg control_msgs::FollowJointTrajectoryActionResult)
              ;; e.g. pr2_controllers_msgs/JointTrajectoryActionResult does not have :error_code
