@@ -59,7 +59,7 @@
                         REJECTED
                         PREEMPTING
                         RECALLING
-                        REDALLED
+                        RECALLED
                         LOST))
          (status-text (send (send msg :status) :text))
          (error-code (send (send msg :result) :error_code))
