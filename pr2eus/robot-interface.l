@@ -71,14 +71,13 @@
                         GOAL_TOLERANCE_VIOLATED)))
       ;; status
       (let ((log-func nil))
-        (cond ((not (or (= status-num actionlib_msgs::GoalStatus::*succeeded*)
-                        (= status-num actionlib_msgs::GoalStatus::*recalled*)))
-               (setq log-func #'ros::ros-error))
+        (cond ((= status-num actionlib_msgs::GoalStatus::*succeeded*)
+               (send-super :action-result-cb msg)
+               (return-from :action-result-cb nil))
               ((= status-num actionlib_msgs::GoalStatus::*recalled*)
                (setq log-func #'ros::ros-warn))
-              ((= status-num actionlib_msgs::GoalStatus::*succeeded*)
-               (send-super :action-result-cb msg)
-               (return-from :action-result-cb nil)))
+              (t
+               (setq log-func #'ros::ros-error)))
         (when log-func
           (funcall log-func "joint trajectory status: ~A~%"
                    (cons status-num (elt status-word status-num)))
