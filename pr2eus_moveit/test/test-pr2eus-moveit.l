@@ -278,7 +278,7 @@
     (send co :add-object r)
     ;; move left arm between blocks
     (send *ri* :move-end-coords-plan (make-coords :pos #f(700 0 700)) :move-arm :larm)
-    (ros::rate 10)
+    (ros::rate 1)
     (while (not (send *ri* :interpolatingp))
       (send *ri* :spin-once)
       (ros::sleep))
