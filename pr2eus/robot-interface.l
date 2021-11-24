@@ -93,6 +93,7 @@
                                (cons error-code (elt error-word (* -1 error-code))))
                (unless (string= "" (send (send msg :result) :error_string))
                  (ros::ros-error "~A~%" (send (send msg :result) :error_string)))))
+            ((= status-num 3)) ;; when succeeded not displaying warning
             (t
              (ros::ros-warn "~A ~A ~A"
                             "Result message type is not"
