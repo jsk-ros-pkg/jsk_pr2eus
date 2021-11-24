@@ -79,7 +79,7 @@
        (ros::ros-warn "joint trajectory status: ~A~%"
                       (cons status-num (elt status-word status-num)))
        (unless (string= "" status-text)
-         (ros::ros-error "~A~%" status-text)))
+         (ros::ros-warn "~A~%" status-text)))
      ;; error_code and error_string
      (when (< error-code 0)
        (ros::ros-error "error_code: ~A~%"
