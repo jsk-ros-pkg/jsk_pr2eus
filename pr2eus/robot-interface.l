@@ -50,10 +50,6 @@
     "
     ;; The following error messages will not appear for the first (send *ri* :angle-vector)
     ;; To display it, use :wait-interpolation or (ros::spin-once groupname)
-    (unless (and (send ros::comm-state :action-goal)
-                 (not (equal (send (class ros::action-spec) :name)
-                             'control_msgs::SingleJointPositionAction)))
-      (return-from :action-result-cb nil))
     (let ((status-num (send (send msg :status) :status))
           (status-word '(PENDING
                          ACTIVE
