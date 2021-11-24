@@ -75,7 +75,10 @@
                         (= status-num actionlib_msgs::GoalStatus::*recalled*)))
                (setq log-func #'ros::ros-error))
               ((= status-num actionlib_msgs::GoalStatus::*recalled*)
-               (setq log-func #'ros::ros-warn)))
+               (setq log-func #'ros::ros-warn))
+              ((= status-num actionlib_msgs::GoalStatus::*succeeded*)
+               (send-super :action-result-cb msg)
+               (return-from :action-result-cb nil)))
         (when log-func
           (funcall log-func "joint trajectory status: ~A~%"
                    (cons status-num (elt status-word status-num)))
@@ -90,7 +93,6 @@
                                (cons error-code (elt error-word (* -1 error-code))))
                (unless (string= "" (send (send msg :result) :error_string))
                  (ros::ros-error "~A~%" (send (send msg :result) :error_string)))))
-            ((= status-num 3)) ;; when succeeded not displaying warning
             (t
              (ros::ros-warn "~A ~A ~A"
                             "Result message type is not"
