@@ -50,6 +50,10 @@
    "
    ;; The following error messages will not appear for the first (send *ri* :angle-vector)
    ;; To display it, use :wait-interpolation or (ros::spin-once groupname)
+   (unless (and (send ros::comm-state :action-goal)
+                  (not (equal (send (class ros::action-spec) :name)
+                              'control_msgs::SingleJointPositionAction)))
+     (return-from :action-result-cb nil))
    (let ((status-num (send (send msg :status) :status))
          (status-word '(PENDING
                         ACTIVE
@@ -62,7 +66,7 @@
                         RECALLED
                         LOST))
          (status-text (send (send msg :status) :text))
-         (error-code (send (send msg :result) :error_code))
+         (error-code nil)
          (error-word '(SUCCESSFUL
                        INVALID_GOAL
                        INVALID_JOINTS
@@ -81,11 +85,19 @@
        (unless (string= "" status-text)
          (ros::ros-warn "~A~%" status-text)))
      ;; error_code and error_string
-     (when (< error-code 0)
-       (ros::ros-error "error_code: ~A~%"
-                       (cons error-code (elt error-word (* -1 error-code))))
-       (unless (string= "" (send (send msg :result) :error_string))
-         (ros::ros-error "~A~%" (send (send msg :result) :error_string)))))
+     (cond ((derivedp msg control_msgs::FollowJointTrajectoryActionGoal)
+            ;; e.g. pr2_controllers_msgs/JointTrajectoryActionResult does not have :error_code
+            (setq error-code (send (send msg :result) :error_code))
+            (when (< error-code 0)
+              (ros::ros-error "error_code: ~A~%"
+                              (cons error-code (elt error-word (* -1 error-code))))
+              (unless (string= "" (send (send msg :result) :error_string))
+                (ros::ros-error "~A~%" (send (send msg :result) :error_string)))))
+           (t
+            (ros::ros-warn "~A ~A ~A"
+                           "Result message type is not"
+                           "control_msgs/FollowJointTrajectoryActionResult."
+                           "So error_code is not displaying."))))
    (send-super :action-result-cb msg))
   (:action-feedback-cb (msg)
    (let ((finish-time) (current-time))
