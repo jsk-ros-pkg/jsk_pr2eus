@@ -155,7 +155,7 @@
   (publish-grasp-state)
   (publish-info "pre grasp pose...")
   (send *ri* :stop-grasp *arm* :wait t)
-  (send *pr2* :head :look-at-hand *arm*)
+  (send *pr2* :look-at-hand *arm*)
   (send *ri* :angle-vector (send *pr2* :angle-vector) 6000)
   (send *ri* :wait-interpolation)
 
@@ -163,7 +163,7 @@
   (publish-grasp-state)
   (publish-info "reaching...")
   (send *pr2* *arm* :move-end-pos #f(160 0 0) :world)
-  (send *pr2* :head :look-at-hand *arm*)
+  (send *pr2* :look-at-hand *arm*)
   (send *ri* :angle-vector (send *pr2* :angle-vector) 3000)
   (send *ri* :wait-interpolation)
 
@@ -183,7 +183,7 @@
   (publish-grasp-state)
   (publish-info "picking up...")
   (send *pr2* *arm* :move-end-pos #f(0 0 150) :world)
-  (send *pr2* :head :look-at-hand *arm*)
+  (send *pr2* :look-at-hand *arm*)
   (send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
   (send *ri* :wait-interpolation)
   (publish-info "grasp succeeded!")
