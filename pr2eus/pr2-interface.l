@@ -738,6 +738,48 @@ Example: (send self :gripper :rarm :position) => 0.00"
     t
     ))
 
+(defun one-tuckarm-pose (&optional (tuckarm :rarm))
+  (let* ((current-arm (check-tuckarm-pose :thre 40)) ;; nil rarm larm
+         (msec 2000))
+    
+      (when (or (eq current-arm tuckarm) (not current-arm))
+	(progn
+	  (send *pr2* :larm :angle-vector #f( 25 0 0 -121 0 -6 0))
+	  (send *pr2* :rarm :angle-vector #f(-25 0 0 -121 0 -6 0))
+	  (send *ri* :angle-vector (send *pr2* :angle-vector) msec)
+	  (send *ri* :wait-interpolation)
+	  ))
+
+    (if (eq tuckarm :rarm)
+        (progn
+          (send *pr2* :rarm :angle-vector (get-tuckarm :larm :inside :rarm))
+          (send *ri* :rarm-angle-vector (send *pr2* :angle-vector) msec))
+      (progn
+        (send *pr2* :larm :angle-vector (get-tuckarm :rarm :inside :larm))
+        (send *ri* :larm-angle-vector (send *pr2* :angle-vector) msec)))
+    (send *ri* :wait-interpolation)
+
+    t
+    ))
+
+;; tuck one arm and the other move to ik-target
+(defun give-hand-pose (&key (tuckarm :rarm) &key (target-height 0.0))
+  (one-tuckarm-pose tuckarm)
+
+  (if (eq tuckarm :rarm)
+      (progn
+	(setq ik-target (make-coords :pos (float-vector -650 430.5 (+ 800 target-height))))
+	(send *pr2* :larm :inverse-kinematics ik-target :rotation-axis nil))
+      (progn
+	(setq ik-target (make-coords :pos (float-vector -650 -430.5 (+ 800 target-height))))
+	(send *pr2* :rarm :inverse-kinematics ik-target :rotation-axis nil)))
+      
+  (send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
+  (send *ri* :wait-interpolation)
+  (send *irtviewer* :draw-objects))
+  
+
+
 ;; send pr2 to move to reset pose
 (defun pr2-reset-pose ()
   (let ()
