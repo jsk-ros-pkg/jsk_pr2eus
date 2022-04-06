@@ -728,15 +728,15 @@ Example: (send self :gripper :rarm :position) => 0.00"
         (send *pr2* :larm :angle-vector (get-tuckarm :rarm dir :larm))
         (send *ri* :larm-angle-vector (send *pr2* :angle-vector) msec)))
     (send *ri* :wait-interpolation)
-    (if (eq arm-side :both)
-        (if (eq free-arm :larm)
-            (progn
-              (send *pr2* :larm :angle-vector (get-tuckarm :larm dir :larm))
-              (send *ri* :larm-angle-vector (send *pr2* :angle-vector) msec))
+    (when (eq arm-side :both)
+      (if (eq free-arm :larm)
+          (progn
+            (send *pr2* :larm :angle-vector (get-tuckarm :larm dir :larm))
+            (send *ri* :larm-angle-vector (send *pr2* :angle-vector) msec))
           (progn
             (send *pr2* :rarm :angle-vector (get-tuckarm :rarm dir :rarm))
             (send *ri* :rarm-angle-vector (send *pr2* :angle-vector) msec)))
-        (send *ri* :wait-interpolation))
+      (send *ri* :wait-interpolation))
     t
     ))
 
