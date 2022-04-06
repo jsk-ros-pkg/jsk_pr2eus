@@ -709,7 +709,7 @@ Example: (send self :gripper :rarm :position) => 0.00"
 (defun pr2-tuckarm-pose (&rest args)
   (let* ((current-arm (check-tuckarm-pose :thre 40)) ;; nil rarm larm
          (free-arm (or (car args) current-arm :larm))
-         (side (or (cadr args) :inside))
+         (dir (or (cadr args) :inside))
          (arm-side (or (caddr args) :both))
          (msec 500))
     (when (not (eq current-arm free-arm))
@@ -722,19 +722,19 @@ Example: (send self :gripper :rarm :position) => 0.00"
         ))
     (if (eq free-arm :larm)
         (progn
-          (send *pr2* :rarm :angle-vector (get-tuckarm :larm side :rarm))
+          (send *pr2* :rarm :angle-vector (get-tuckarm :larm dir :rarm))
           (send *ri* :rarm-angle-vector (send *pr2* :angle-vector) msec))
       (progn
-        (send *pr2* :larm :angle-vector (get-tuckarm :rarm side :larm))
+        (send *pr2* :larm :angle-vector (get-tuckarm :rarm dir :larm))
         (send *ri* :larm-angle-vector (send *pr2* :angle-vector) msec)))
     (send *ri* :wait-interpolation)
     (if (eq arm-side :both)
         (if (eq free-arm :larm)
             (progn
-              (send *pr2* :larm :angle-vector (get-tuckarm :larm side :larm))
+              (send *pr2* :larm :angle-vector (get-tuckarm :larm dir :larm))
               (send *ri* :larm-angle-vector (send *pr2* :angle-vector) msec))
           (progn
-            (send *pr2* :rarm :angle-vector (get-tuckarm :rarm side :rarm))
+            (send *pr2* :rarm :angle-vector (get-tuckarm :rarm dir :rarm))
             (send *ri* :rarm-angle-vector (send *pr2* :angle-vector) msec)))
         (send *ri* :wait-interpolation))
     t
