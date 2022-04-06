@@ -102,6 +102,16 @@
                              move-target)
                (send self :link-list (send move-target :parent)
                      (unless use-torso (car (send self move-arm)))))))
+     ;; force use-torso when calling from other methods which have already set link-list
+     (when (and (memq :use-torso args) use-torso)
+       (flet ((check-link-list (ll)
+                (if (not (member (send self :torso_lift_link_lk) ll))
+                    (send self :link-list (car (last ll)))
+                    ll)))
+         (setq link-list
+               (if (consp (car link-list)) ;; dual arm
+                   (mapcar #'check-link-list link-list)
+                   (check-link-list link-list)))))
 
      ;; use base
      (cond
