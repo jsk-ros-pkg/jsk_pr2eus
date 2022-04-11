@@ -64,7 +64,8 @@
    (limb method &rest args)
    (case method
          (:inverse-kinematics
-          (send* self :inverse-kinematics (car args) :move-arm limb (cdr args)))
+          (let ((use-torso (cadr (memq :use-torso args)))) ;;  (send *pr2* :rarm :inverse-kinematics ...) defaults to (use-torso t)
+            (send* self :inverse-kinematics (car args) :move-arm limb :use-torso use-torso (cdr args))))
          (t
           (send-super* :limb limb method args))))
   (:inverse-kinematics
