@@ -4,6 +4,7 @@
 (require :pr2 "package://pr2eus/pr2.l")
 (require :pr2-utils "package://pr2eus/pr2-utils.l")
 (require :robot-interface "package://pr2eus/robot-interface.l")
+(require :roseus_resume "package://roseus_resume/euslisp/interruption-handler.l")
 (require :speak "package://pr2eus/speak.l")
 
 (unless (ros::rospack-find "pr2_controllers_msgs")
@@ -641,6 +642,17 @@ Example: (send self :gripper :rarm :position) => 0.00"
   (unless (boundp '*pr2*) (pr2))
   (unless (ros::ok) (ros::roseus "pr2_eus_interface"))
   (unless (boundp '*ri*) (setq *ri* (instance pr2-interface :init)))
+
+  (warning-message 3 "Installing interruption handler...~%")
+  (roseus_resume:install-interruption-handler *ri*
+      r-gripper-action
+      l-gripper-action
+      move-base-action
+      move-base-trajectory-action)
+
+  (roseus_resume:defintervention interruption "/roseus_resume/interrupt" std_msgs::Empty
+                                 :groupname (*ri* . groupname))
+  (warning-message 3 "...done.~%")
 
   (ros::spin-once)
   (send *ri* :spin-once)
