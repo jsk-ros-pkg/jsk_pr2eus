@@ -1326,7 +1326,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
           (move-base-action-name "move_base") ((:base-frame-id base-frame-id-name) "base_footprint")
           (base-controller-action-name "/base_controller/follow_joint_trajectory")
           (base-controller-joint-names (list "base_link_x" "base_link_y" "base_link_pan"))
-          ((:cmd-vel-topi cmd-vel-topic-name) "/base_controller/command")
+          ((:cmd-vel-topic cmd-vel-topic-name) "/base_controller/command")
 	  ((:odom-topic odom-topic-name) "/base_odometry/odom") &allow-other-keys)
    (prog1 (send-super* :init args)
      (setq base-frame-id base-frame-id-name)
