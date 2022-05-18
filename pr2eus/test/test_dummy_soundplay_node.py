@@ -170,7 +170,7 @@ class soundtype:
             pass
             # position = self.sound.query_position(gst.FORMAT_TIME)[0]
             # duration = self.sound.query_duration(gst.FORMAT_TIME)[0]
-        except Exception, e:
+        except Exception as e:
             position = 0
             duration = 0
         finally:
@@ -279,7 +279,7 @@ class soundplay:
             else:
                 sound = self.select_sound(data)
                 sound.command(data.command)
-        except Exception, e:
+        except Exception as e:
             rospy.logerr('Exception in callback: %s'%str(e))
             rospy.loginfo(traceback.format_exc())
         finally:
@@ -292,7 +292,7 @@ class soundplay:
         for (key,sound) in dict.iteritems():
             try:
                 staleness = sound.get_staleness()
-            except Exception, e:
+            except Exception as e:
                 rospy.logerr('Exception in cleanupdict for sound (%s): %s'%(str(key),str(e)))
                 staleness = 100 # Something is wrong. Let's purge and try again.
             #print "%s %i"%(key, staleness)
@@ -339,7 +339,7 @@ class soundplay:
             da.status.append(ds)
             da.header.stamp = rospy.get_rostime()
             self.diagnostic_pub.publish(da)
-        except Exception, e:
+        except Exception as e:
             rospy.loginfo('Exception in diagnostics: %s'%str(e))
 
     def execute_cb(self, data):
@@ -379,7 +379,7 @@ class soundplay:
                     rospy.loginfo('sound_play action: Succeeded')
                     self._as.set_succeeded(self._result)
 
-        except Exception, e:
+        except Exception as e:
             rospy.logerr('Exception in actionlib callback: %s'%str(e))
             rospy.loginfo(traceback.format_exc())
         finally:
