@@ -1595,12 +1595,12 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
    (x y d &key topic-name) ;; [m] [m] [degree]
    (when (send self :simulation-modep)
      (return-from :send-cmd-vel-raw t))
-   (setq vel-topic
+   (let ((vel-topic
          (if topic-name
              (if namespace
                  (if (eq (char "/" 0) (char topic-name 0)) topic-name (format nil "~A/~A" namespace topic-name))
                  topic-name)
-             (if namespace (format nil "~A/~A" namespace cmd-vel-topic) cmd-vel-topic)))
+             (if namespace (format nil "~A/~A" namespace cmd-vel-topic) cmd-vel-topic))))
    (unless (ros::get-topic-publisher vel-topic)
      (ros::advertise vel-topic geometry_msgs::Twist 1)
      (unix:sleep 1))
@@ -1608,7 +1608,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
      (send msg :linear :x x)
      (send msg :linear :y y)
      (send msg :angular :z d)
-     (ros::publish vel-topic msg)))
+     (ros::publish vel-topic msg))))
   (:go-velocity
    (x y d ;; [m/sec] [m/sec] [rad/sec]
     &optional (msec 1000) ;; msec is total animation time [msec]
