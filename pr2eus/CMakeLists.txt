@@ -37,9 +37,8 @@ file(GLOB _install_files RELATIVE ${PROJECT_SOURCE_DIR} *.l *.launch)
 install(FILES ${_install_files}
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
   )
-install(FILES pr2-send-joints.l pr2-read-state.l
+install(PROGRAMS pr2-send-joints.l pr2-read-state.l
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-  PERMISSIONS WORLD_EXECUTE
   )
 
 if(CATKIN_ENABLE_TESTING)
