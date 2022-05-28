@@ -16,7 +16,7 @@ class TestPr2EusOpenrave(unittest.TestCase):
         pub2 = rospy.Publisher('change_pose_pr2', std_msgs.msg.String)
  
         while pub1.get_num_connections() < 1 :
-            print "waiting"
+            print("waiting")
             time.sleep(1)
 
         target_poses = [
@@ -52,13 +52,13 @@ class TestPr2EusOpenrave(unittest.TestCase):
                 stopmsg = std_msgs.msg.String()
                 stopmsg.data = "stop-visualize"
                 pub2.publish(stopmsg)
-                print "removing visualization."
+                print("removing visualization.")
                 time.sleep(1)
 
                 tuckmsg = std_msgs.msg.String()
                 tuckmsg.data = "tuck-arm-l"
                 pub2.publish(tuckmsg)
-                print "resetting pose."
+                print("resetting pose.")
                 time.sleep(4)
 
         finally:
