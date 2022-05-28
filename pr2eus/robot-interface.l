@@ -1326,12 +1326,15 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
           (move-base-action-name "move_base") ((:base-frame-id base-frame-id-name) "base_footprint")
           (base-controller-action-name "/base_controller/follow_joint_trajectory")
           (base-controller-joint-names (list "base_link_x" "base_link_y" "base_link_pan"))
-          ((:cmd-vel-topi cmd-vel-topic-name) "/base_controller/command")
+          ((:cmd-vel-topi cmd-vel-topi-name))
+          ((:cmd-vel-topic cmd-vel-topic-name) "/base_controller/command")
 	  ((:odom-topic odom-topic-name) "/base_odometry/odom") &allow-other-keys)
    (prog1 (send-super* :init args)
      (setq base-frame-id base-frame-id-name)
      (setq odom-topic odom-topic-name)
-     (setq cmd-vel-topic cmd-vel-topic-name)
+     (when cmd-vel-topi-name
+       (ros::ros-warn ":cmd-vel-topi is deprecated. Please use :cmd-vel-topic."))
+     (setq cmd-vel-topic (or cmd-vel-topi-name cmd-vel-topic-name))
      (setq move-base-action (instance ros::simple-action-client :init
                                       (if namespace (format nil "~A/~A" namespace move-base-action-name) move-base-action-name)
                                       move_base_msgs::MoveBaseAction
