@@ -232,6 +232,9 @@ class soundplay:
                 os.close(wavfile)
                 voice = data.arg2
                 try:
+                    # try to encode if data.args is not string for pytho3n
+                    if sys.version_info.major >= 3 and type(data.arg) is str:
+                        data.arg = data.arg.encode()
                     txtfile.write(data.arg)
                     txtfile.flush()
                     rospy.loginfo("text2wave -eval '("+voice+")' "+txtfilename+" -o "+wavfilename)
