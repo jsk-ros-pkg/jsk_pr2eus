@@ -649,9 +649,8 @@ Example: (send self :gripper :rarm :position) => 0.00"
       l-gripper-action
       move-base-action
       move-base-trajectory-action)
+  (roseus_resume:install-default-intervention *ri*)
 
-  (roseus_resume:defintervention interruption "/roseus_resume/interrupt" std_msgs::Empty
-                                 :groupname (*ri* . groupname))
   (warning-message 3 "...done.~%")
 
   (ros::spin-once)
