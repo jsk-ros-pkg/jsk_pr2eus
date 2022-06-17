@@ -2,7 +2,7 @@
   <env name="DISPLAY" value=":0.0" />
   <arg name="test_action" default="false" />
 
-  <test test-name="stest_peak_publish_euslisp_$(arg test_action)" pkg="roseus" type="roseus"
+  <test test-name="test_speak_publish_euslisp_$(arg test_action)" pkg="roseus" type="roseus"
         args="$(find pr2eus)/test/speak-test.l"/>
 
   <group if="$(arg test_action)" >

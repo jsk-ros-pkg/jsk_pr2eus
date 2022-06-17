@@ -1380,12 +1380,15 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
           (move-base-action-name "move_base") ((:base-frame-id base-frame-id-name) "base_footprint")
           (base-controller-action-name "/base_controller/follow_joint_trajectory")
           (base-controller-joint-names (list "base_link_x" "base_link_y" "base_link_pan"))
-          ((:cmd-vel-topi cmd-vel-topic-name) "/base_controller/command")
+          ((:cmd-vel-topi cmd-vel-topi-name))
+          ((:cmd-vel-topic cmd-vel-topic-name) "/base_controller/command")
 	  ((:odom-topic odom-topic-name) "/base_odometry/odom") &allow-other-keys)
    (prog1 (send-super* :init args)
      (setq base-frame-id base-frame-id-name)
      (setq odom-topic odom-topic-name)
-     (setq cmd-vel-topic cmd-vel-topic-name)
+     (when cmd-vel-topi-name
+       (ros::ros-warn ":cmd-vel-topi is deprecated. Please use :cmd-vel-topic."))
+     (setq cmd-vel-topic (or cmd-vel-topi-name cmd-vel-topic-name))
      (setq move-base-action (instance ros::simple-action-client :init
                                       (if namespace (format nil "~A/~A" namespace move-base-action-name) move-base-action-name)
                                       move_base_msgs::MoveBaseAction
@@ -1646,17 +1649,18 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
      (send self :move-to-wait :retry 1 :frame-id base-frame-id :no-wait nil)
      ))
   (:send-cmd-vel-raw
-   (x y d) ;; [m] [m] [degree]
+   (x y d &key (topic-name cmd-vel-topic) ((:namespace ns) namespace)) ;; [m] [m] [degree]
    (when (send self :simulation-modep)
      (return-from :send-cmd-vel-raw t))
-   (unless (ros::get-topic-publisher (if namespace (format nil "~A/~A" namespace cmd-vel-topic) cmd-vel-topic))
-     (ros::advertise (if namespace (format nil "~A/~A" namespace cmd-vel-topic) cmd-vel-topic) geometry_msgs::Twist 1)
+   (when ns (setq topic-name (format nil "~A/~A" ns topic-name)))
+   (unless (ros::get-topic-publisher topic-name)
+     (ros::advertise topic-name geometry_msgs::Twist 1)
      (unix:sleep 1))
    (let ((msg (instance geometry_msgs::Twist :init)))
      (send msg :linear :x x)
      (send msg :linear :y y)
      (send msg :angular :z d)
-     (ros::publish (if namespace (format nil "~A/~A" namespace cmd-vel-topic) cmd-vel-topic) msg)))
+     (ros::publish topic-name msg)))
   (:go-velocity
    (x y d ;; [m/sec] [m/sec] [rad/sec]
     &optional (msec 1000) ;; msec is total animation time [msec]
