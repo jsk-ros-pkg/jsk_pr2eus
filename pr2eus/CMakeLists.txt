@@ -37,9 +37,8 @@ file(GLOB _install_files RELATIVE ${PROJECT_SOURCE_DIR} *.l *.launch)
 install(FILES ${_install_files}
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
   )
-install(FILES pr2-send-joints.l pr2-read-state.l
+install(PROGRAMS pr2-send-joints.l pr2-read-state.l
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-  PERMISSIONS WORLD_EXECUTE
   )
 
 if(CATKIN_ENABLE_TESTING)
@@ -50,6 +49,8 @@ if(CATKIN_ENABLE_TESTING)
     find_package(pr2_gazebo QUIET)
     if(pr2_gazebo_FOUND AND (NOT pr2_gazebo_VERSION VERSION_LESS 2.0.7)) # test only supports indigo
       add_rostest(test/pr2-ri-test.launch)
+      add_rostest(test/pr2-ri-test-arm.launch)
+      add_rostest(test/pr2-ri-test-base.launch)
       add_rostest(test/pr2-ri-test-namespace.launch)
     endif()
     add_rostest(test/pr2-ri-test-simple.launch)
@@ -63,7 +64,9 @@ if(CATKIN_ENABLE_TESTING)
   add_rostest(test/speak-test-eus.test ARGS test_action:=true)
 endif()
 
-generate_eusdoc(robot-interface.l)
-generate_eusdoc(pr2-interface.l)
-generate_eusdoc(pr2-utils.l)
-generate_eusdoc(speak.l)
+if(NOT DISABLE_DOCUMENTATION)
+  generate_eusdoc(robot-interface.l)
+  generate_eusdoc(pr2-interface.l)
+  generate_eusdoc(pr2-utils.l)
+  generate_eusdoc(speak.l)
+endif()

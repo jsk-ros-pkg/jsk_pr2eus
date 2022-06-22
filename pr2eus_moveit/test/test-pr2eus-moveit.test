@@ -11,7 +11,9 @@
     <arg name="gui" default="$(arg gui)"/>
     <arg name="paused" default="false"/>
   </include>
-  <include file="$(find pr2_moveit_config)/launch/move_group.launch" />
+  <include file="$(find pr2_moveit_config)/launch/move_group.launch" >
+    <arg name="allow_trajectory_execution" default="false" />
+  </include>
 
   <!-- test : it takes ~60 sec to launch gazebo -->
   <test pkg="pr2eus_moveit" type="test-pr2eus-moveit.l"
