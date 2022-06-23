@@ -82,6 +82,15 @@
        (setq joint-action-enable nil)
        (ros::ros-warn "~A is not respond, pr2-interface is disabled" action)
        (return)))
+   ;; install interruption handler
+   (warning-message 3 "Installing interruption handler...~%")
+   (roseus_resume:install-interruption-handler self
+       r-gripper-action
+       l-gripper-action
+       move-base-action
+       move-base-trajectory-action)
+   (roseus_resume:install-default-intervention self)
+   (warning-message 3 "...done.~%")
    t)
   ;;
   (:state (&rest args) ;; overwrite for jsk_maps/pr2
@@ -642,16 +651,6 @@ Example: (send self :gripper :rarm :position) => 0.00"
   (unless (boundp '*pr2*) (pr2))
   (unless (ros::ok) (ros::roseus "pr2_eus_interface"))
   (unless (boundp '*ri*) (setq *ri* (instance pr2-interface :init)))
-
-  (warning-message 3 "Installing interruption handler...~%")
-  (roseus_resume:install-interruption-handler *ri*
-      r-gripper-action
-      l-gripper-action
-      move-base-action
-      move-base-trajectory-action)
-  (roseus_resume:install-default-intervention *ri*)
-
-  (warning-message 3 "...done.~%")
 
   (ros::spin-once)
   (send *ri* :spin-once)
