@@ -4,8 +4,18 @@
 (require :pr2 "package://pr2eus/pr2.l")
 (require :pr2-utils "package://pr2eus/pr2-utils.l")
 (require :robot-interface "package://pr2eus/robot-interface.l")
-(require :roseus_resume "package://roseus_resume/euslisp/interruption-handler.l")
 (require :speak "package://pr2eus/speak.l")
+(defvar *enable-roseus-resume* (ros::rospack-find "roseus_resume"))
+(if *enable-roseus-resume*
+  (progn
+    (require :roseus_resume "package://roseus_resume/euslisp/interruption-handler.l")
+    (warning-message 2 "roseus_resume is enabled.~%"))
+  (progn
+    ;; make dummy package to avoid symbol search error
+    (unless (find-package "ROSEUS_RESUME") (make-package "ROSEUS_RESUME"))
+    (warning-message 3 "roseus_resume is disabled.~%")))
+
+
 
 (unless (ros::rospack-find "pr2_controllers_msgs")
   (cond ((or (string= (unix::getenv "ROS_DISTRO") "indigo")
@@ -83,12 +93,16 @@
        (ros::ros-warn "~A is not respond, pr2-interface is disabled" action)
        (return)))
    ;; install interruption handler
-   (roseus_resume:install-interruption-handler self
-       r-gripper-action
-       l-gripper-action
-       move-base-action
-       move-base-trajectory-action)
-   (roseus_resume:install-default-intervention self)
+   (if *enable-roseus-resume*
+     (progn
+       (warning-message 3 "Installing interruption handler...~%")
+       (roseus_resume::install-interruption-handler self
+           r-gripper-action
+           l-gripper-action
+           move-base-action
+           move-base-trajectory-action)
+       (roseus_resume::install-default-intervention self)
+       (warning-message 3 "...done.~%")))
    t)
   ;;
   (:state (&rest args) ;; overwrite for jsk_maps/pr2
