@@ -95,7 +95,7 @@ jobs:
           fi
 
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3.0.2
 
       - name: Run jsk_travis
         uses: jsk-ros-pkg/jsk_travis@master
