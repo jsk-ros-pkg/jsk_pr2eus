@@ -94,7 +94,7 @@ jobs:
              git config --global --add safe.directory $GITHUB_WORKSPACE
           fi
 
-      - name: Chcekout
+      - name: Checkout
         uses: actions/checkout@v2
 
       - name: Run jsk_travis
