@@ -54,12 +54,12 @@
     (let ((status-num (send (send msg :status) :status))
           (status-text (send (send msg :status) :text))
           (error-code nil)
-          (error-word '(SUCCESSFUL
-                        INVALID_GOAL
-                        INVALID_JOINTS
-                        OLD_HEADER_TIMESTAMP
-                        PATH_TOLERANCE_VIOLATED
-                        GOAL_TOLERANCE_VIOLATED)))
+          (error-word '("SUCCESSFUL"
+                        "INVALID_GOAL"
+                        "INVALID_JOINTS"
+                        "OLD_HEADER_TIMESTAMP"
+                        "PATH_TOLERANCE_VIOLATED"
+                        "GOAL_TOLERANCE_VIOLATED")))
       ;; status
       (let ((log-func nil))
         (cond ((= status-num actionlib_msgs::GoalStatus::*succeeded*)
