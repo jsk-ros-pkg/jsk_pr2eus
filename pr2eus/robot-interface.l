@@ -9,6 +9,7 @@
 (ros::roseus-add-msgs "move_base_msgs")
 (ros::roseus-add-msgs "nav_msgs")
 (require :speak "package://pr2eus/speak.l")
+(require :actionlib-commstate "package://roseus/euslisp/actionlib-commstate.l")
 
 (defun shortest-angle (d0 d1)
   (atan2 (sin (- d0 d1)) (cos (- d0 d1))))
@@ -51,16 +52,6 @@
     ;; The following error messages will not appear for the first (send *ri* :angle-vector)
     ;; To display it, use :wait-interpolation or (ros::spin-once groupname)
     (let ((status-num (send (send msg :status) :status))
-          (status-word '(PENDING
-                         ACTIVE
-                         PREEMPTED
-                         SUCCEEDED
-                         ABORTED
-                         REJECTED
-                         PREEMPTING
-                         RECALLING
-                         RECALLED
-                         LOST))
           (status-text (send (send msg :status) :text))
           (error-code nil)
           (error-word '(SUCCESSFUL
@@ -80,7 +71,7 @@
                (setq log-func #'ros::ros-error)))
         (when log-func
           (funcall log-func "joint trajectory status: ~A~%"
-                   (cons status-num (elt status-word status-num)))
+                   (cons status-num (goal-status-to-string status-num)))
           (unless (string= "" status-text)
             (funcall log-func "~A~%" status-text))))
       ;; error_code and error_string
