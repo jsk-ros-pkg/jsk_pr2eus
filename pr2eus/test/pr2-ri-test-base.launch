@@ -4,6 +4,6 @@
            pass_all_args="true" />
 
   <!-- start test -->
-  <test test-name="pr2_ri_test_base" pkg="roseus" type="roseus" retry="1"
+  <test test-name="pr2_ri_test_base" pkg="roseus" type="roseus" retry="3"
         args="$(find pr2eus)/test/pr2-ri-test-base.l" time-limit="800" />
 </launch>
