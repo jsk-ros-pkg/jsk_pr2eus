@@ -1,6 +1,7 @@
 <launch>
-  <arg name="DISPLAY" default="" />
-  <env name="DISPLAY" value="$(arg DISPLAY)" />
+  <arg name="gui" default="false"/>
+  <env name="DISPLAY" value=":0.0" if="$(arg gui)"/>
+  <env name="DISPLAY" value="" unless="$(arg gui)"/>
 
   <!-- start test -->
   <test test-name="pr2_ri_test_simple_no_gazebo_angle_vector" pkg="roseus" type="roseus" retry="3"

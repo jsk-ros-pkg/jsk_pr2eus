@@ -1,5 +1,8 @@
 <launch>
   <arg name="gui" default="false"/>
+  <env name="DISPLAY" value=":0.0" if="$(arg gui)"/>
+  <env name="DISPLAY" value="" unless="$(arg gui)"/>
+
   <include file="$(find pr2eus)/test/pr2-ri-test-bringup.launch"
            pass_all_args="true" />
 
