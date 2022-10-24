@@ -706,10 +706,9 @@ Example: (send self :gripper :rarm :position) => 0.00"
 
 ;; send pr2 to move to tuckarm pose if not the pose now
 ;; args is set the arm to move freely
-(defun pr2-tuckarm-pose (&rest args)
+(defun pr2-tuckarm-pose (&optional free-arm (direction :inside) (arm-side :both))
   (let* ((current-arm (check-tuckarm-pose :thre 40)) ;; nil rarm larm
-         (free-arm (or (car args) current-arm :larm))
-         (side (or (cadr args) :inside))
+         (free-arm (or free-arm current-arm :larm))
          (msec 500))
     (when (not (eq current-arm free-arm))
       (progn
@@ -721,20 +720,21 @@ Example: (send self :gripper :rarm :position) => 0.00"
         ))
     (if (eq free-arm :larm)
         (progn
-          (send *pr2* :rarm :angle-vector (get-tuckarm :larm side :rarm))
+          (send *pr2* :rarm :angle-vector (get-tuckarm :larm direction :rarm))
           (send *ri* :rarm-angle-vector (send *pr2* :angle-vector) msec))
       (progn
-        (send *pr2* :larm :angle-vector (get-tuckarm :rarm side :larm))
+        (send *pr2* :larm :angle-vector (get-tuckarm :rarm direction :larm))
         (send *ri* :larm-angle-vector (send *pr2* :angle-vector) msec)))
     (send *ri* :wait-interpolation)
-    (if (eq free-arm :larm)
-        (progn
-          (send *pr2* :larm :angle-vector (get-tuckarm :larm side :larm))
-          (send *ri* :larm-angle-vector (send *pr2* :angle-vector) msec))
-      (progn
-        (send *pr2* :rarm :angle-vector (get-tuckarm :rarm side :rarm))
-        (send *ri* :rarm-angle-vector (send *pr2* :angle-vector) msec)))
-    (send *ri* :wait-interpolation)
+    (when (eq arm-side :both)
+      (if (eq free-arm :larm)
+          (progn
+            (send *pr2* :larm :angle-vector (get-tuckarm :larm direction :larm))
+            (send *ri* :larm-angle-vector (send *pr2* :angle-vector) msec))
+          (progn
+            (send *pr2* :rarm :angle-vector (get-tuckarm :rarm direction :rarm))
+            (send *ri* :rarm-angle-vector (send *pr2* :angle-vector) msec)))
+      (send *ri* :wait-interpolation))
     t
     ))
 
