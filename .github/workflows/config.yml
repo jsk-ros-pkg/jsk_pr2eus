@@ -1,0 +1,113 @@
+# jsk_travis
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+env:
+  DISPLAY: ':0.0'
+
+jobs:
+  ros:
+    runs-on: ubuntu-latest
+#    continue-on-error: ${{ matrix.experimental }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - ROS_DISTRO: indigo
+            CONTAINER: jskrobotics/ros-ubuntu:14.04
+            USE_DEB : true
+            EXTRA_DEB: "ros-indigo-pr2-gazebo ros-indigo-pr2-arm-kinematics"
+            NOT_TEST_INSTALL: true
+            TEST_PKGS: "pr2eus"
+            BEFORE_SCRIPT: "echo 'deb http://packages.osrfoundation.org/gazebo/ubuntu trusty main' | sudo tee /etc/apt/sources.list.d/gazebo-stable.list; wget --no-check-certificate https://packages.osrfoundation.org/gazebo.key -O - | sudo apt-key add -; sudo apt update -y; sudo apt dist-upgrade -y; mkdir -p ~/.gazebo/; git clone --depth=1 https://github.com/osrf/gazebo_models.git ~/.gazebo/models"
+          - ROS_DISTRO: indigo
+            CONTAINER: jskrobotics/ros-ubuntu:14.04
+            USE_DEB : true
+            EXTRA_DEB: "ros-indigo-pr2-gazebo ros-indigo-pr2-arm-kinematics"
+            NOT_TEST_INSTALL: true
+            TEST_PKGS: "pr2eus_moveit pr2eus_tutorials"
+            BEFORE_SCRIPT: "echo 'deb http://packages.osrfoundation.org/gazebo/ubuntu trusty main' | sudo tee /etc/apt/sources.list.d/gazebo-stable.list; wget --no-check-certificate https://packages.osrfoundation.org/gazebo.key -O - | sudo apt-key add -; sudo apt update -y; sudo apt dist-upgrade -y; mkdir -p ~/.gazebo/; git clone --depth=1 https://github.com/osrf/gazebo_models.git ~/.gazebo/models"
+          - ROS_DISTRO: kinetic
+            CONTAINER: ubuntu:16.04
+            USE_DEB : true
+            TEST_PKGS: "pr2eus"
+            EXTRA_DEB: "ros-kinetic-moveit-ros-perception"
+            BEFORE_SCRIPT: "echo 'deb http://packages.osrfoundation.org/gazebo/ubuntu xenial main' | sudo tee /etc/apt/sources.list.d/gazebo-stable.list; wget --no-check-certificate https://packages.osrfoundation.org/gazebo.key -O - | sudo apt-key add -; sudo apt update -y"
+          - ROS_DISTRO: kinetic
+            CONTAINER: ubuntu:16.04
+            USE_DEB : true
+            TEST_PKGS: "pr2eus_moveit pr2eus_tutorials"
+            EXTRA_DEB: "ros-kinetic-moveit-ros-perception"
+            BEFORE_SCRIPT: "echo 'deb http://packages.osrfoundation.org/gazebo/ubuntu xenial main' | sudo tee /etc/apt/sources.list.d/gazebo-stable.list; wget --no-check-certificate https://packages.osrfoundation.org/gazebo.key -O - | sudo apt-key add -; sudo apt update -y"
+          - ROS_DISTRO: melodic
+            CONTAINER: ubuntu:18.04
+            USE_DEB : true
+            TEST_PKGS: "pr2eus"
+          - ROS_DISTRO: melodic
+            CONTAINER: ubuntu:18.04
+            USE_DEB : true
+            TEST_PKGS: "pr2eus_moveit pr2eus_tutorials"
+          - ROS_DISTRO: noetic
+            CONTAINER: ubuntu:20.04
+            USE_DEB : true
+            BUILD_PKGS: "pr2eus"
+            TEST_PKGS: "pr2eus"
+          - ROS_DISTRO: noetic
+            CONTAINER: ubuntu:20.04
+            USE_DEB : true
+            BUILD_PKGS: "pr2eus_moveit pr2eus_tutorials"
+            TEST_PKGS: "pr2eus_moveit pr2eus_tutorials"
+          - ROS_DISTRO: noetic
+            CONTAINER: ubuntu:20.04
+            USE_DEB : false
+            BUILD_PKGS: "pr2eus_moveit pr2eus_tutorials"
+            TEST_PKGS: "pr2eus"
+          - ROS_DISTRO: noetic
+            CONTAINER: ubuntu:20.04
+            USE_DEB : false
+            BUILD_PKGS: "pr2eus_moveit pr2eus_tutorials"
+            TEST_PKGS: "pr2eus_moveit pr2eus_tutorials"
+
+
+    container: ${{ matrix.CONTAINER }}
+
+    steps:
+      - name: Install latest git ( use sudo for ros-ubuntu )
+        run: |
+          (apt-get update && apt-get install -y sudo) || echo "OK"
+          sudo apt-get update && sudo apt-get install -y software-properties-common && sudo apt-get update && sudo add-apt-repository -y ppa:git-core/ppa && sudo apt-get update && sudo apt-get install -y git
+
+      - name: work around permission issue  # https://github.com/actions/checkout/issues/760#issuecomment-1097501613
+        run: |
+          set -x
+          export USER=$(whoami)
+          if [ "${{ matrix.CONTAINER }}" = "jskrobotics/ros-ubuntu:14.04" ]; then
+             git config --global --add safe.directory $GITHUB_WORKSPACE || echo "OK" # Show 'could not lock config file /github/home/.gitconfig: Permission denied', but it is ok
+             sudo mkdir -p /__w/
+             sudo chmod 777 -R /__w/
+             sudo chown -R $USER $HOME
+             # sudo mkdir -p /home/runner/work/_temp/_github_workflow/
+             # sudo chown -R $USER $HOME /home/runner/work/_temp/_github_workflow/
+             # ls -al /home/runner/work/_temp/_github_workflow/
+          else
+             git config --global --add safe.directory $GITHUB_WORKSPACE
+          fi
+
+      - name: Chcekout
+        uses: actions/checkout@v3.0.2
+
+      - name: Run jsk_travis
+        uses: jsk-ros-pkg/jsk_travis@master
+        with:
+          ROS_PARALLEL_TEST_JOBS : "-j1"
+          CATKIN_PARALLEL_TEST_JOBS : "-p1"
+          ROS_DISTRO : ${{ matrix.ROS_DISTRO }}
+          USE_DEB :  ${{ matrix.USE_DEB }}
+          NOT_TEST_INSTALL : ${{ matrix.NOT_TEST_INSTALL }}
+          BUILD_PKGS: ${{ matrix.BUILD_PKGS }}
+          TEST_PKGS : ${{ matrix.TEST_PKGS }}
+          EXTRA_DEB : ${{ matrix.EXTRA_DEB }}
+          BEFORE_SCRIPT : ${{ matrix.BEFORE_SCRIPT }}
