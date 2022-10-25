@@ -1,0 +1,14 @@
+<launch>
+
+  <!-- test code to check pr2eus_moveit without MoveIt instance -->
+
+  <arg name="DISPLAY" default="" />
+
+  <env name="DISPLAY" value="$(arg DISPLAY)" />
+
+  <env name="ROSCONSOLE_CONFIG_FILE"
+       value="$(find pr2eus_moveit)/test/rosconsole.conf"/>
+
+  <test pkg="pr2eus_moveit" type="test-pr2eus-moveit-sim.l"
+        test-name="test_pr2eus_moveit_sim"  />
+</launch>

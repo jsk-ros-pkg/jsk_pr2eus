@@ -50,8 +50,15 @@
             (format nil "height changed ~A from ~A" torso-height (send *pr2* :torso :waist-z :joint-angle)))
     ))
 
+(defun pr2-test-move-end-pos ()
+  (send *pr2* :reset-pose)
+  (assert (not (send *pr2* :rarm :move-end-pos #f(0 0 200) :world :use-torso nil :warnp nil)))
+  (assert (not (send *pr2* :rarm :move-end-pos #f(0 0 200) :world :warnp nil)))
+  (assert (send *pr2* :rarm :move-end-pos #f(0 0 200) :world :use-torso t)))
+
 (deftest pr2-test-ik-both1 () (pr2-test-ik-both :use-torso nil))
 (deftest pr2-test-ik-both2 () (pr2-test-ik-both :use-torso t))
+(deftest pr2-test-move-end-pos1 () (pr2-test-move-end-pos))
 
 (run-all-tests)
 (exit)

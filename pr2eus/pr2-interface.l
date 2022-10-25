@@ -58,23 +58,21 @@
        (setf (gethash type controller-table) (list action))
        ))
    ;;
-   (ros::advertise "j_robotsound" sound_play::SoundRequest 5)
-   ;;
-   (ros::subscribe "/pressure/r_gripper_motor" pr2_msgs::PressureState
+   (ros::subscribe (if namespace (format nil "~A/~A" namespace "pressure/r_gripper_motor") "/pressure/r_gripper_motor") pr2_msgs::PressureState
                    #'send self :pr2-fingertip-callback :rarm-pressure :groupname groupname)
-   (ros::subscribe "/pressure/l_gripper_motor" pr2_msgs::PressureState
+   (ros::subscribe (if namespace (format nil "~A/~A" namespace "pressure/l_gripper_motor") "/pressure/l_gripper_motor") pr2_msgs::PressureState
                    #'send self :pr2-fingertip-callback :larm-pressure :groupname groupname)
-   (ros::subscribe "/r_gripper_controller/state" pr2_controllers_msgs::JointControllerState
+   (ros::subscribe (if namespace (format nil "~A/~A" namespace "r_gripper_controller/state") "/r_gripper_controller/state") pr2_controllers_msgs::JointControllerState
                    #'send self :pr2-gripper-state-callback :rarm :groupname groupname)
-   (ros::subscribe "/l_gripper_controller/state" pr2_controllers_msgs::JointControllerState
+   (ros::subscribe (if namespace (format nil "~A/~A" namespace "l_gripper_controller/state") "/l_gripper_controller/state") pr2_controllers_msgs::JointControllerState
                    #'send self :pr2-gripper-state-callback :larm :groupname groupname)
    ;;
    (setq r-gripper-action (instance ros::simple-action-client :init
-                                    "/r_gripper_controller/gripper_action"
+                                    (if namespace (format nil "~A/~A" namespace "r_gripper_controller/gripper_action") "/r_gripper_controller/gripper_action")
                                     pr2_controllers_msgs::Pr2GripperCommandAction
                                     :groupname groupname))
    (setq l-gripper-action (instance ros::simple-action-client :init
-                                    "/l_gripper_controller/gripper_action"
+                                    (if namespace (format nil "~A/~A" namespace "l_gripper_controller/gripper_action") "/l_gripper_controller/gripper_action")
                                     pr2_controllers_msgs::Pr2GripperCommandAction
                                     :groupname groupname))
    ;; wait for pr2-action server (except move_base)
@@ -693,10 +691,9 @@ Example: (send self :gripper :rarm :position) => 0.00"
 
 ;; send pr2 to move to tuckarm pose if not the pose now
 ;; args is set the arm to move freely
-(defun pr2-tuckarm-pose (&rest args)
+(defun pr2-tuckarm-pose (&optional free-arm (direction :inside) (arm-side :both))
   (let* ((current-arm (check-tuckarm-pose :thre 40)) ;; nil rarm larm
-         (free-arm (or (car args) current-arm :larm))
-         (side (or (cadr args) :inside))
+         (free-arm (or free-arm current-arm :larm))
          (msec 500))
     (when (not (eq current-arm free-arm))
       (progn
@@ -708,20 +705,21 @@ Example: (send self :gripper :rarm :position) => 0.00"
         ))
     (if (eq free-arm :larm)
         (progn
-          (send *pr2* :rarm :angle-vector (get-tuckarm :larm side :rarm))
+          (send *pr2* :rarm :angle-vector (get-tuckarm :larm direction :rarm))
           (send *ri* :rarm-angle-vector (send *pr2* :angle-vector) msec))
       (progn
-        (send *pr2* :larm :angle-vector (get-tuckarm :rarm side :larm))
+        (send *pr2* :larm :angle-vector (get-tuckarm :rarm direction :larm))
         (send *ri* :larm-angle-vector (send *pr2* :angle-vector) msec)))
     (send *ri* :wait-interpolation)
-    (if (eq free-arm :larm)
-        (progn
-          (send *pr2* :larm :angle-vector (get-tuckarm :larm side :larm))
-          (send *ri* :larm-angle-vector (send *pr2* :angle-vector) msec))
-      (progn
-        (send *pr2* :rarm :angle-vector (get-tuckarm :rarm side :rarm))
-        (send *ri* :rarm-angle-vector (send *pr2* :angle-vector) msec)))
-    (send *ri* :wait-interpolation)
+    (when (eq arm-side :both)
+      (if (eq free-arm :larm)
+          (progn
+            (send *pr2* :larm :angle-vector (get-tuckarm :larm direction :larm))
+            (send *ri* :larm-angle-vector (send *pr2* :angle-vector) msec))
+          (progn
+            (send *pr2* :rarm :angle-vector (get-tuckarm :rarm direction :rarm))
+            (send *ri* :rarm-angle-vector (send *pr2* :angle-vector) msec)))
+      (send *ri* :wait-interpolation))
     t
     ))
 
@@ -739,3 +737,6 @@ Example: (send self :gripper :rarm :position) => 0.00"
   (let ((req (instance topic_tools::MuxSelectRequest :init
                        :topic (if enable "tilt_scan_filtered" "empty_cloud"))))
     (ros::service-call "/tilt_laser_mux/select" req)))
+
+
+(provide :pr2-interface "pr2-interface.l")

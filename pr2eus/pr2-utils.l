@@ -54,6 +54,20 @@
 	  (let ((v (send self :inverse-transform-vector (send c :worldpos))))
 	    (if (> (elt v 1) 0) :larm :rarm)) ;; check y-coords
 	  )))
+  ;; :limb is defined in irtrobot.l. It basically change 'args' based on 'limb' and forward message to '(send self method args)'
+  ;; If method is defined in pr2-robot class, then we need to directly call method from here.
+  ;; for example :move-end-pos/:move-end-rot/:move-end calls '(send* self limb :inverse-kinematics args)'
+  ;;   -> (send* self :inverse-kinematics (car args) -(modify args)-> (send* self :inverse-kinematics (car args) (cdr args)
+  ;; and (modify args) does not take into account :use-torso defined in :inverse-kinematics below.
+  ;; See https://github.com/jsk-ros-pkg/jsk_pr2eus/pull/476 for more information
+  (:limb
+   (limb method &rest args)
+   (case method
+         (:inverse-kinematics
+          (let ((use-torso (cadr (memq :use-torso args)))) ;;  (send *pr2* :rarm :inverse-kinematics ...) defaults to (use-torso t)
+            (send* self :inverse-kinematics (car args) :move-arm limb :use-torso use-torso (cdr args))))
+         (t
+          (send-super* :limb limb method args))))
   (:inverse-kinematics
    (target-coords &rest args &key (link-list) (move-arm)
                   (use-torso t) (move-target) (stop 300)
@@ -102,7 +116,6 @@
                              move-target)
                (send self :link-list (send move-target :parent)
                      (unless use-torso (car (send self move-arm)))))))
-
      ;; use base
      (cond
       (use-base
@@ -362,4 +375,4 @@
   )
 
 
-
+(provide :pr2-utils "pr2-utils.l")
