@@ -50,14 +50,16 @@ jobs:
             CONTAINER: ubuntu:18.04
             USE_DEB : true
             TEST_PKGS: "pr2eus_moveit pr2eus_tutorials"
-          # - ROS_DISTRO: noetic
-          #   CONTAINER: ubuntu:20.04
-          #   USE_DEB : true
-          #   TEST_PKGS: "pr2eus"
-          # - ROS_DISTRO: noetic
-          #   CONTAINER: ubuntu:20.04
-          #   USE_DEB : true
-          #   TEST_PKGS: "pr2eus_moveit pr2eus_tutorials"
+          - ROS_DISTRO: noetic
+            CONTAINER: ubuntu:20.04
+            USE_DEB : true
+            BUILD_PKGS: "pr2eus"
+            TEST_PKGS: "pr2eus"
+          - ROS_DISTRO: noetic
+            CONTAINER: ubuntu:20.04
+            USE_DEB : true
+            BUILD_PKGS: "pr2eus_moveit pr2eus_tutorials"
+            TEST_PKGS: "pr2eus_moveit pr2eus_tutorials"
           - ROS_DISTRO: noetic
             CONTAINER: ubuntu:20.04
             USE_DEB : false
