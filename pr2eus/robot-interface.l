@@ -9,6 +9,7 @@
 (ros::roseus-add-msgs "move_base_msgs")
 (ros::roseus-add-msgs "nav_msgs")
 (require :speak "package://pr2eus/speak.l")
+(require :actionlib-commstate "package://roseus/euslisp/actionlib-commstate.l")
 
 (defun shortest-angle (d0 d1)
   (atan2 (sin (- d0 d1)) (cos (- d0 d1))))
@@ -44,6 +45,50 @@
   (:time-to-finish ()
     (ros::ros-debug "[~A] time-to-finish ~A" ros::name-space time-to-finish)
     time-to-finish)
+  (:action-result-cb (msg)
+    "
+    display error messages from [depending on robots]/follow_joint_trajectory/result
+    "
+    ;; The following error messages will not appear for the first (send *ri* :angle-vector)
+    ;; To display it, use :wait-interpolation or (ros::spin-once groupname)
+    (let ((status-num (send (send msg :status) :status))
+          (status-text (send (send msg :status) :text))
+          (error-code nil)
+          (error-word '("SUCCESSFUL"
+                        "INVALID_GOAL"
+                        "INVALID_JOINTS"
+                        "OLD_HEADER_TIMESTAMP"
+                        "PATH_TOLERANCE_VIOLATED"
+                        "GOAL_TOLERANCE_VIOLATED")))
+      ;; status
+      (let ((log-func nil))
+        (cond ((= status-num actionlib_msgs::GoalStatus::*succeeded*)
+               (send-super :action-result-cb msg)
+               (return-from :action-result-cb nil))
+              ((= status-num actionlib_msgs::GoalStatus::*recalled*)
+               (setq log-func #'ros::ros-warn))
+              (t
+               (setq log-func #'ros::ros-error)))
+        (when log-func
+          (funcall log-func "joint trajectory status: ~A~%"
+                   (cons status-num (goal-status-to-string status-num)))
+          (unless (string= "" status-text)
+            (funcall log-func "~A~%" status-text))))
+      ;; error_code and error_string
+      (cond ((derivedp msg control_msgs::FollowJointTrajectoryActionResult)
+             ;; e.g. pr2_controllers_msgs/JointTrajectoryActionResult does not have :error_code
+             (setq error-code (send (send msg :result) :error_code))
+             (when (< error-code 0)
+               (ros::ros-error "error_code: ~A~%"
+                               (cons error-code (elt error-word (* -1 error-code))))
+               (unless (string= "" (send (send msg :result) :error_string))
+                 (ros::ros-error "~A~%" (send (send msg :result) :error_string)))))
+            (t
+             (ros::ros-warn "~A ~A ~A"
+                            "Result message type is not"
+                            "control_msgs/FollowJointTrajectoryActionResult."
+                            "So error_code is not displaying."))))
+    (send-super :action-result-cb msg))
   (:action-feedback-cb (msg)
    (let ((finish-time) (current-time))
      (ros::ros-debug "[~A] feedback-cb ~A" ros::name-space msg)
