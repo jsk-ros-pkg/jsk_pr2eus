@@ -1,0 +1,12 @@
+<launch>
+  <arg name="gui" default="false"/>
+  <env name="DISPLAY" value=":0.0" if="$(arg gui)"/>
+  <env name="DISPLAY" value="" unless="$(arg gui)"/>
+
+  <include file="$(find pr2eus)/test/pr2-ri-test-bringup.launch"
+           pass_all_args="true" />
+
+  <!-- start test -->
+  <test test-name="pr2_ri_test_base" pkg="roseus" type="roseus" retry="3"
+        args="$(find pr2eus)/test/pr2-ri-test-base.l" time-limit="800" />
+</launch>

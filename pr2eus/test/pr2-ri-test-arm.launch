@@ -1,0 +1,9 @@
+<launch>
+  <arg name="gui" default="false"/>
+  <include file="$(find pr2eus)/test/pr2-ri-test-bringup.launch"
+           pass_all_args="true" />
+
+  <!-- start test -->
+  <test test-name="pr2_ri_test_arm" pkg="roseus" type="roseus" retry="1"
+        args="$(find pr2eus)/test/pr2-ri-test-arm.l" time-limit="800" />
+</launch>

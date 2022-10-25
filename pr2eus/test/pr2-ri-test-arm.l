@@ -229,6 +229,42 @@
     (assert (< tm-diff 2) (format nil "end-coords-interpolation takes too long time ~A" tm-diff))
     ))
 
+(deftest test-minjerk-interpolation
+  (let (tm-0 tm-1 tm-2 tm-3 tm-diff)
+    ;; (send *ri*:angle-vector :minjerk-interpolation t)
+    (send *pr2* :reset-manip-pose)
+    (send *ri* :angle-vector (send *pr2* :angle-vector) 1000)
+    (send *ri* :wait-interpolation)
+    (send *pr2* :larm :move-end-pos #f(50 0 0) :world)
+    (send *pr2* :rarm :move-end-pos #f(50 0 0) :world)
+    (send *ri* :angle-vector (send *pr2* :angle-vector) 1000 nil 0
+          :min-time 1.0
+          :minjerk-interpolation t)
+    (setq tm-0 (ros::time-now))
+    (send *ri* :wait-interpolation)
+    (setq tm-1 (ros::time-now))
+    (setq tm-diff (send (ros::time- tm-1 tm-0) :to-sec))
+    (ros::ros-info "time for duration ~A" tm-diff)
+    (assert (< tm-diff 2) (format nil "minjerk-interpolation with :angle-vector takes too long time ~A" tm-diff))
+    ;; (send *ri*:angle-vector-sequence :minjerk-interpolation t)
+    (send *pr2* :reset-manip-pose)
+    (send *ri* :angle-vector (send *pr2* :angle-vector) 1000)
+    (send *ri* :wait-interpolation)
+    (send *ri* :angle-vector-sequence
+          (list (send *pr2* :angle-vector)
+                (send *pr2* :larm :move-end-pos #f(50 0 0) :world)
+                (send *pr2* :rarm :move-end-pos #f(50 0 0) :world))
+          1000 nil 0
+          :min-time 1.0
+          :minjerk-interpolation t)
+    (setq tm-2 (ros::time-now))
+    (send *ri* :wait-interpolation)
+    (setq tm-3 (ros::time-now))
+    (setq tm-diff (send (ros::time- tm-2 tm-3) :to-sec))
+    (ros::ros-info "time for duration ~A" tm-diff)
+    (assert (< tm-diff 2) (format nil "minjerk-interpolation with :angle-vector-sequence takes too long time ~A" tm-diff))
+    ))
+
 (deftest test-angle-vector-fast
   (send *pr2* :angle-vector (send *ri* :state :reference-vector))
   (send *pr2* :r_wrist_roll_joint :joint-angle
@@ -244,4 +280,3 @@
 
 (run-all-tests)
 (exit)
-
