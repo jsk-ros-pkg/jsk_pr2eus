@@ -11,6 +11,12 @@
 (require :speak "package://pr2eus/speak.l")
 (require :actionlib-commstate "package://roseus/euslisp/actionlib-commstate.l")
 
+;; ROSEUS_RESUME
+(defvar *enable-roseus-resume*
+  #+:condition (ros::rospack-find "roseus_resume"))
+;; make dummy package to avoid symbol search error
+(unless (find-package "ROSEUS_RESUME") (make-package "ROSEUS_RESUME"))
+
 (defun shortest-angle (d0 d1)
   (atan2 (sin (- d0 d1)) (cos (- d0 d1))))
 
@@ -264,6 +270,9 @@
        (pushnew `(lambda () (send ,self :robot-interface-simulation-callback)) *timer-job*)
        (warning-message 3 "current *timer-job* is ~A~%" *timer-job*)
        ))
+   ;;
+   (when *enable-roseus-resume*
+     (roseus_resume::install-interruption-handler self))
    self)
   ;;
   (:add-controller (ctype &key (joint-enable-check) (create-actions))
@@ -2297,5 +2306,12 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
       (require (cadr robot-name-interface-file-list))
       (funcall (eval (read-from-string (format nil "#'~A-init" robot-name))))
       ))))
+
+;; roseus_resume must be loaded after `robot-interface' definition
+(if *enable-roseus-resume*
+    (progn
+      (require :roseus_resume "package://roseus_resume/euslisp/interruption-handler.l")
+      (warning-message 2 ";; roseus_resume is enabled.~%"))
+    (warning-message 3 ";; roseus_resume is disabled.~%"))
 
 (provide :robot-interface "robot-interface.l")
