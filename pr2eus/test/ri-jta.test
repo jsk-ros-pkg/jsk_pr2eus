@@ -1,0 +1,13 @@
+<launch>
+  <arg name="robot" default="pr2" />
+
+  <node pkg="pr2eus" type="dummy_jta_server.py" name="dummy_jta_server" >
+    <rosparam subst_value="true">
+      robot: $(arg robot)
+    </rosparam>
+  </node>
+
+  <!-- start test -->
+  <test test-name="$(arg robot)_ri_test_arm" pkg="roseus" type="roseus" retry="1"
+        args="$(find pr2eus)/test/ri-jta.l" />
+</launch>
