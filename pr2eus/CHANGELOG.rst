@@ -2,8 +2,8 @@
 Changelog for package pr2eus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.3.15 (2023-04-17)
+-------------------
 * Add *enable-roseus-resume* for installing default interruption handlers (`#488 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/488>`_)
 * add displaying error msg method to controller-action-client in robot-interface.l (`#460 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/460>`_)
 * .github/workflows/config.yml: enable noetic USE_DEB=true (`#484 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/484>`_)

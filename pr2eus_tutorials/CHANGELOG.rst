@@ -2,8 +2,8 @@
 Changelog for package pr2eus_tutorials
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.3.15 (2023-04-17)
+-------------------
 * integrate all .github/workflows/*.yml to config.yml, fix permission issue (`#479 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/479>`_)
 * [pr2eus_tutorials] fix look-at-hand (`#472 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/472>`_)
 * [pr2eus_tutorials] fix pr2_tabletop.launch for remote PC (`#459 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/459>`_)

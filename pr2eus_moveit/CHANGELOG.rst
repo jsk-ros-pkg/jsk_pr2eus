@@ -2,8 +2,8 @@
 Changelog for package pr2eus_moveit
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.3.15 (2023-04-17)
+-------------------
 * Loosen test condition for test-collision-object-publisher (`#484 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/484>`_)
 * integrate all .github/workflows/*.yml to config.yml, fix permission issue (`#479 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/479>`_)
 * test check apply_planning_scene before creating collision-object-publisher/*ci* without MoveIt (`#469 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/469>`_)
