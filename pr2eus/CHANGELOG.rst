@@ -2,6 +2,45 @@
 Changelog for package pr2eus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Add *enable-roseus-resume* for installing default interruption handlers (`#488 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/488>`_)
+* add displaying error msg method to controller-action-client in robot-interface.l (`#460 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/460>`_)
+* .github/workflows/config.yml: enable noetic USE_DEB=true (`#484 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/484>`_)
+* Enable either-or tuckarm-pose (`#475 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/475>`_)
+* Allow to set :use-torso in :move-end-pos (`#476 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/476>`_)
+* disable doc generation if 'catkin bt -vi --cmake-args -DDISABLE_DOCUMENTATION=1' (`#482 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/482>`_)
+* [pr2eus] Fix typo :cmd-vel-topi -> :cmd-vel-topic (`#480 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/480>`_)
+* [pr2eus] Add key topic-name to :send-cmd-vel-raw (`#481 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/481>`_)
+* install pr2-send-joints.l pr2-read-state.l with original permissions (`#478 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/478>`_)
+* integrate all .github/workflows/*.yml to config.yml, fix permission issue (`#479 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/479>`_)
+* add dummy_jta_server.py and pr2-ri-jta for example code of (`#460 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/460>`_)
+* add comments to :move-to (`#470 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/470>`_)
+* add test code for (pr2) and (instance pr2-robot :init) (instance r2-sensor-robot :init) (`#466 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/466>`_)
+* add test code for `#461 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/461>`_ (`#468 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/468>`_)
+* Fix wide_stereo camera model parameters (`#426 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/426>`_)
+* [pr2eus] Fix doc about timeout of :wait-interpolation (`#445 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/445>`_)
+* Add minjerk-interpolation to :angle-vector and :angle-vector-sequence (`#456 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/456>`_)
+* [pr2eus] remove j_robotsound advertise (`#450 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/450>`_)
+* [pr2eus] add provide in pr2-interface.l and pr2-utils.l (`#441 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/441>`_)
+* fix to support namespace (`#440 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/440>`_)
+* define methods for interpolation (`#443 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/443>`_)
+* add pr2-ri-test-namespace.launch to check (`#439 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/439>`_)
+* Fix bug on joint-move-over-180 with tm :fast (`#422 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/422>`_)
+* add pr2-ri-test-simple.l to test/pr2-ri-test.launch (`#430 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/430>`_)
+* Updates to :stop-motion (`#402 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/402>`_)
+* Fix typo move-to-no-wait -> move-to-wait (`#409 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/409>`_)
+* [pr2eus] Add correction arg in :move-to-wait (`#418 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/418>`_)
+* Fix tilt laser mux topic for obstacle observation (`#408 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/408>`_)
+* [pr2eus] add gain key in :stop-grasp (`#415 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/415>`_)
+* Fix return value of clear-costmap function (`#396 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/396>`_)
+* update :go-velocity, :go-pos-unsafe-no-wait for robto without move-base-trajectory-action, add :send-cmd-vel-raw (`#425 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/425>`_)
+* enable to test navigation in gazebo for  pr2-ri-test (`#420 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/420>`_)
+* Fix confirmation on warningp (`#395 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/395>`_)
+* Avoid unnecessary convex-hull-3d calculation on :start-grasp (`#398 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/398>`_)
+* Fix typos in comments about :fast utility in :angle-vector* (`#391 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/391>`_)
+* Contributors: Aoi Nakane, Guilherme Affonso, Hiro Ishida, Kei Okada, Naoki Hiraoka, Naoto Tsukamoto, Naoya Yamaguchi, Shingo Kitagawa, Shumpei Wakabayashi, Shun Hasegawa, Yuto Uchimi, Taichi Higashide
+
 0.3.14 (2019-02-11)
 -------------------
 * [pr2eus] add :get-grasp-result methody and :wait key to :start-grasp method (`#386 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/386>`_ )

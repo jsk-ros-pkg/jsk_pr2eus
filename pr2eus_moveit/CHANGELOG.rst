@@ -2,6 +2,26 @@
 Changelog for package pr2eus_moveit
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Loosen test condition for test-collision-object-publisher (`#484 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/484>`_)
+* integrate all .github/workflows/*.yml to config.yml, fix permission issue (`#479 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/479>`_)
+* test check apply_planning_scene before creating collision-object-publisher/*ci* without MoveIt (`#469 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/469>`_)
+* check apply_planning_scene before creating collision-object-publisher/*ci* (`#446 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/446>`_)
+* add test code for `#461 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/461>`_ (`#468 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/468>`_)
+* [pr2eus_moveit] Add timeout arg for computing IK and increase timeout for test (`#438 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/438>`_)
+* Check current collision when trajectory could not be generated (`#448 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/448>`_)
+* [pr2eus_moveit] evaluate all bodies only when it has bodies (`#442 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/442>`_)
+* [pr2eus_moveit] Add test for collision-object-publisher (`#431 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/431>`_)
+* [pr2eus_moveit] fix collision-object-sample.l and :add-object in collision-object-publisher.l (`#423 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/423>`_)
+* [pr2eus_moveit] add method to delete collision objects by id (`#421 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/421>`_)
+* [pr2eus_moveit] fix cylinder collision object msg (`#419 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/419>`_)
+* enable to test navigation in gazebo for  pr2-ri-test (`#420 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/420>`_)
+* [pr2eus_moveit] Add docstring to :angle-vector-motion-plan (`#392 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/392>`_)
+* need to check both pr2_gazebo and pr2_moveit_config (`#393 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/393>`_)
+
+* Contributors: Kei Okada, Koki Shinjo, Naoto Tsukamoto, Naoya Yamaguchi, Shingo Kitagawa, Shumpei Wakabayashi, Shun Hasegawa, Yuto Uchimi
+
 0.3.14 (2019-02-11)
 -------------------
 * fix typo and add pr2-init in pr2eus-moveit.l for PR2 + moveit (`#382 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/382>`_ )

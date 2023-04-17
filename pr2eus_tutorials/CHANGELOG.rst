@@ -2,6 +2,17 @@
 Changelog for package pr2eus_tutorials
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* integrate all .github/workflows/*.yml to config.yml, fix permission issue (`#479 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/479>`_)
+* [pr2eus_tutorials] fix look-at-hand (`#472 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/472>`_)
+* [pr2eus_tutorials] fix pr2_tabletop.launch for remote PC (`#459 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/459>`_)
+* [pr2eus_tutorials] Fix publish status (`#464 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/464>`_)
+* [pr2eus_tutorials] Select grasp position via 2D image (`#437 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/437>`_)
+* Update pr2eus_tutorials README (`#389 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/389>`_)
+* [pr2eus_tutorials] add pr2 tabletop demo test and sample (`#387 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/387>`_)
+* Contributors: Furushchev, Kei Okada, Naoto Tsukamoto, Naoya Yamaguchi, Shingo Kitagawa, Shumpei Wakabayashi, Yuki Furuta
+
 0.3.14 (2019-02-11)
 -------------------
 * add jsk_interactive_marker (`#349 <https://github.com/jsk-ros-pkg/jsk_pr2eus/issues/349>`_ )
