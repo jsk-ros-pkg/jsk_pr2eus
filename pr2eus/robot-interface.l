@@ -781,12 +781,12 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
      (send self :spin-once))
    t)
   ;;
-  (:worldcoords () "Returns world coords of robot. This method uses caced data" (send robot :copy-worldcoords))
+  (:worldcoords () "Returns world coords of robot. This method uses cached data" (send robot :copy-worldcoords))
   (:torque-vector
    ()
-   "Return torque vector of robot. This method uses caced data"
+   "Return torque vector of robot. This method uses cached data"
    (coerce (send-all (send robot :joint-list) :joint-torque) float-vector))
-  (:potentio-vector () "Returns current robot angle vector. This method uses caced data" (send robot :angle-vector))
+  (:potentio-vector () "Returns current robot angle vector. This method uses cached data" (send robot :angle-vector))
   (:reference-vector () "Returns reference joint angle vector. This method reads current state." (send self :state-vector :desired))
   (:actual-vector () "Returns current robot angle vector. This method reads current state." (send self :state-vector :actual))
   (:error-vector () "Returns error vector of the robot. This method reads current state." (send self :state-vector :error))
