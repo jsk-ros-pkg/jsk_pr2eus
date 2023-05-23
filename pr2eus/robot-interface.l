@@ -1697,8 +1697,8 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
        (if wait (send move-base-trajectory-action :wait-for-result)))
      ))
   (:go-pos-unsafe (&rest args)
-    (send* self :go-pos-unsafe-no-wait args)
-    (send self :go-pos-unsafe-wait))
+    (or (send* self :go-pos-unsafe-no-wait args)
+        (send self :go-pos-unsafe-wait)))
   (:go-pos-unsafe-no-wait
    (x y &optional (d 0)) ;; [m] [m] [degree]
    (ros::ros-info "go-pos-unsafe (x y d) = (~A ~A ~A)" x y d)
@@ -1760,6 +1760,8 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
                                         x y (deg2rad d) msec
                                         :stop t))
      (send move-base-trajectory-action :send-goal go-pos-unsafe-goal-msg)
+     ;; check if the action moves properly in :go-pos-unsafe-wait
+     (return-from :go-pos-unsafe-no-wait nil)
      ))
   (:go-pos-unsafe-wait ()
    (let (x y d msec step goal (maxvel 0.295) (maxrad 0.495) (counter 0))
