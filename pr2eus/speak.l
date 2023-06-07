@@ -43,6 +43,7 @@
           (when (eq (send ac :get-state) actionlib_msgs::GoalStatus::*active*)
             (send ac :cancel-goal)
             (send ac :wait-for-result :timeout 10))
+          (send goal :header :stamp (ros::time-now))
           (send goal :goal :sound_request msg)
           (setf (gethash topic-name *sound-play-clients*) ac)
           (send ac :send-goal goal)
