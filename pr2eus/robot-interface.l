@@ -172,6 +172,7 @@
           ((:controller-timeout ct) 3)
           ((:visualization-marker-topic vmt) "robot_interface_marker_array")
           ((:simulation-look-all sim-look-all) t)
+          ((:joint-action-enable jae) t)
           &allow-other-keys)
    "Create robot interface
 - robot : class name of robot
@@ -185,10 +186,11 @@
 - publish-joint-state-topic :  name for publishing joint state topic (only for simulation)
 - controller-timeout : timeout seconds for controller look-up
 - visualization-marker-topic : topic name for visualize
+- joint-action-enable (jae) : set nil when you set simulation-modep to t for robots that do not use follow_joint_trajectory
 "
    (setq joint-states-topic jst)
    (setq pub-joint-states-topic pjst)
-   (setq joint-action-enable t)
+   (setq joint-action-enable jae)
    (setq controller-timeout ct)
    (setq namespace ns)
    (setq robot (cond ((derivedp r metaclass) (instance r :init))
