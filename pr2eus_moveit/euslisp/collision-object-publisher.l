@@ -78,7 +78,6 @@
                                   :dimensions (float-vector
                                                (/ (height-of-cylinder obj) 1000.0)
                                                (/ (radius-of-cylinder obj) 1000.0))))))
-         ;; Adjust the pose in the message to align EusLisp cylinder (origin at base) with MoveIt cylinder (origin at center).
          (send colobj :primitive_poses
                (append pose
                        (list
@@ -87,7 +86,8 @@
                                                                  (send obj :worldcoords)))
                                                      (hv (float-vector 0 0 (/ (height-of-cylinder obj) 2)))
                                                      (hv-t (send coords :transform-vector hv)))
-                                                     (make-coords :pos hv-t :rot (send coords :rot)))))))))
+                                                ;; Adjust the pose in the message to align EusLisp cylinder (origin at base) with MoveIt cylinder (origin at center).
+                                                (make-coords :pos hv-t :rot (send coords :rot)))))))))
       ((and (derivedp obj body) (eq (car (send obj :body-type)) :cube))
        (let ((geom (send colobj :primitives))
              (pose (send colobj :primitive_poses)))
