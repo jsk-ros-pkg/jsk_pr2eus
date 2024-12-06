@@ -78,6 +78,7 @@
                                   :dimensions (float-vector
                                                (/ (height-of-cylinder obj) 1000.0)
                                                (/ (radius-of-cylinder obj) 1000.0))))))
+         ;; Adjust the pose in the message to align EusLisp cylinder (origin at base) with MoveIt cylinder (origin at center).
          (send colobj :primitive_poses
                (append pose
                        (list
