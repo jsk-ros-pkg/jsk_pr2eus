@@ -81,7 +81,13 @@
          (send colobj :primitive_poses
                (append pose
                        (list
-                        (ros::coords->tf-pose (if relative-pose relative-pose (send obj :worldcoords))))))))
+                        (ros::coords->tf-pose (let* ((coords (if relative-pose
+                                                                 relative-pose
+                                                                 (send obj :worldcoords)))
+                                                     (hv (float-vector 0 0 (/ (height-of-cylinder obj) 2)))
+                                                     (hv-t (send coords :transform-vector hv)))
+                                                ;; Adjust the pose in the message to align EusLisp cylinder (origin at base) with MoveIt cylinder (origin at center).
+                                                (make-coords :pos hv-t :rot (send coords :rot)))))))))
       ((and (derivedp obj body) (eq (car (send obj :body-type)) :cube))
        (let ((geom (send colobj :primitives))
              (pose (send colobj :primitive_poses)))
