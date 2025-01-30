@@ -1,4 +1,4 @@
-<package>
+<package format="3">
   <name>pr2eus_tutorials</name>
   <version>0.3.15</version>
   <description>pr2eus_tutorials</description>
@@ -16,21 +16,23 @@
 
   <!-- Dependencies needed to compile this package. -->
   <build_depend>pr2eus</build_depend>
-  <build_depend>jsk_pcl_ros</build_depend>
 
   <!-- Dependencies needed after this package is compiled. -->
-  <run_depend>app_manager</run_depend>
-  <run_depend>eusurdf</run_depend>
-  <run_depend>pr2_gazebo</run_depend>
-  <run_depend>pr2eus</run_depend>
-  <run_depend>roseus_tutorials</run_depend>
-  <run_depend>image_view2</run_depend>
-  <run_depend>jsk_pcl_ros</run_depend>
-  <run_depend>jsk_interactive_marker</run_depend>
-  <run_depend>jsk_recognition_msgs</run_depend>
-  <run_depend>jsk_rviz_plugins</run_depend>
-  <run_depend>jsk_pr2_startup</run_depend>
-  <run_depend>jsk_maps</run_depend>
+  <exec_depend>app_manager</exec_depend>
+  <exec_depend>eusurdf</exec_depend>
+  <exec_depend>pr2_gazebo</exec_depend>
+  <exec_depend>pr2eus</exec_depend>
+  <exec_depend>roseus_tutorials</exec_depend>
+  <exec_depend>image_view2</exec_depend>
+  <exec_depend>jsk_pcl_ros</exec_depend>
+  <exec_depend>jsk_interactive_marker</exec_depend>
+  <exec_depend>jsk_recognition_msgs</exec_depend>
+  <exec_depend>jsk_rviz_plugins</exec_depend>
+  <!-- jsk_pr2_startup is provided from jsk_robot, this is circular dependency -->
+  <exec_depend condition="$ROS_DISTRO != debian">jsk_pr2_startup</exec_depend>
+  <!-- jsk_maps is provided from jsk_demos, this is circular dependency -->
+  <exec_depend condition="$ROS_DISTRO != debian">jsk_maps</exec_depend>
+  <exec_depend>jsk_pcl_ros</exec_depend>
 
   <!-- Dependencies needed only for running tests. -->
   <test_depend>rostest</test_depend>
