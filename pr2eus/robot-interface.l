@@ -1331,7 +1331,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
      )
    )
   (:eus-mannequin-mode
-   (tmp-robot limb &key ((:time tm) 1000) ((:viewer vwr) *viewer*))
+   (tmp-robot limb &key ((:time tm) 1000) ((:viewer vwr) *viewer*) ((:min-time mtm) 1.0))
    "Euslisp version mannequin mode.
     In every loop, :angle-vector is continuously updated.
     If you want to stop this mode, press Enter.
@@ -1345,7 +1345,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
     (send self :state)
     (send tmp-robot limb :angle-vector (send robot limb :angle-vector))
     (send vwr :draw-objects)
-    (send self :angle-vector (send tmp-robot :angle-vector) tm)
+    (send self :angle-vector (send tmp-robot :angle-vector) tm controller-type 0 :min-time mtm)
     (send self :wait-interpolation)
     )
    (warn ";; Stop Euslisp mannequin mode.~%")
