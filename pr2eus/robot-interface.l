@@ -428,7 +428,7 @@
    (let* ((prev-av (send robot :angle-vector)))
      (send-all (gethash ctype controller-table) :push-angle-vector-simulation av tm prev-av)))
   (:angle-vector
-   (av &optional (tm nil) (ctype controller-type) (start-time 0) &key (scale 1) (min-time 1.0) (end-coords-interpolation nil) (end-coords-interpolation-steps 10) (minjerk-interpolation nil) &allow-other-keys)
+   (av &optional (tm nil) (ctype controller-type) (start-time 0) &key (scale 1) (min-time 1.0) (end-coords-interpolation nil) (end-coords-interpolation-steps 10) (minjerk-interpolation nil) (spin-once t) &allow-other-keys)
    "Send joint angle to robot, this method returns immediately, so use :wait-interpolation to block until the motion stops.
 - av : joint angle vector [deg]
 - tm : (time to goal in [msec])
@@ -442,6 +442,7 @@
 - end-coords-interpolation : set t if you want to move robot in cartesian space interpolation
 - end-coords-interpolation-steps : number of divisions when interpolating end-coords
 - minjerk-interpolation : set t if you want to move robot with minjerk interpolation
+- spin-once : set nil to skip ROS groupname callbacks (no state update), enabling faster loop rate but it doesn't safe
 "
    (if end-coords-interpolation
      (return-from :angle-vector (send self :angle-vector-sequence (list av) (list tm) ctype start-time :scale scale :min-time min-time :end-coords-interpolation t :end-coords-interpolation-steps end-coords-interpolation-steps)))
@@ -450,16 +451,19 @@
      (warn ";; controller-type: ~A not found" ctype)
      (return-from :angle-vector))
    ;;Check and decide tm
-   (let ((fastest-tm (* 1000 (send self :angle-vector-duration 
-                                   (send self :state :potentio-vector) av scale min-time ctype))))
+   (let ((fastest-tm (if spin-once
+                         (* 1000 (send self :angle-vector-duration
+                                       (send self :state :potentio-vector) av scale min-time ctype))
+                         1000))) ;; for safety, set tm to 1000 ms when :spin-once is nil
      (cond
       ;;Fastest time Mode
       ((equal tm :fast)
        (setq tm fastest-tm))
       ;;Normal Number designated Mode
       ((numberp tm)
-       (if (< tm fastest-tm)
-           (setq tm fastest-tm)))
+       (if spin-once
+           (if (< tm fastest-tm)
+               (setq tm fastest-tm)))) ;; maybe it would need additional safe condition when :spin-once is nil
       ;;Safe Mode (Speed will be 5 * fastest-tm)
       ((null tm)
        (setq tm (* 5 fastest-tm)))
@@ -498,7 +502,8 @@
             (send self :send-ros-controller
                   action (cdr (assoc :joint-names param)) ;; action server and joint-names
                   start-time  ;; start time
-                  trajpoints))
+                  trajpoints
+                  :spin-once spin-once))
         cacts (send self ctype))))
    av)
   (:angle-vector-sequence
@@ -816,7 +821,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
   (:stamp () "Returns the stamp which was read at latest callback" (send self :get-robot-state :stamp))
   ;;
   (:send-ros-controller
-   (action joint-names starttime trajpoints)
+   (action joint-names starttime trajpoints &key (spin-once t))
    (when (send self :simulation-modep)
      (return-from :send-ros-controller nil))
    (if (and warningp
@@ -845,7 +850,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
 	      )
 	 (send goal :goal :position pos)
 	 (send goal :goal :max_velocity 5)
-	 (send self :spin-once)
+     (if spin-once (send self :spin-once)) ;; ignore spin-once for groupname to maintain faster loop rate
 	 )
        )
       (t
@@ -886,7 +891,7 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
 			   :time_from_start (ros::time duration))
 		 goal-points)
 	   ))
-       (send self :spin-once)
+       (if spin-once (send self :spin-once)) ;; ignore spin-once for groupname to maintain faster loop rate
        (send goal :goal :trajectory :points goal-points)
        ))
      (send action :send-goal goal)
