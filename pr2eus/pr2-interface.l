@@ -408,16 +408,17 @@ Example: (send self :gripper :rarm :position) => 0.00"
        (incf i (send j :joint-dof)))
      add-new-trajectory-point))
   (:angle-vector
-   (av &optional (tm 3000) &rest args)
+   (av &optional (tm 3000) (ctype controller-type) (start-time 0) &key (spin-once t) &rest args)
    (let (diff-av)
-     ;; use reference-vector to get last commanded joint and use :angle-vector to toruncate the joint limit to eus lisp style
-     (setq diff-av (v- av (send robot :angle-vector (send self :state :reference-vector))))
+     ;; use reference-vector to get last commanded joint and use :angle-vector to truncate the joint limit to eus lisp style
+     (if spin-once
+         (setq diff-av (v- av (send robot :angle-vector (send self :state :reference-vector))))
+         (setq diff-av (v- av (send self :potentio-vector)))) ;; calculate joint difference based on the previous state
      ;; use shortest path for contiuous joint
-     ;;
      (when (send self :check-continuous-joint-move-over-180 diff-av)
        (return-from :angle-vector
          (send* self :angle-vector-sequence (list av) (list tm) args))) ;; when
-     (send-super* :angle-vector av tm args)
+     (send-super* :angle-vector av tm ctype start-time :spin-once spin-once args)
      ))
   (:angle-vector-sequence
    (avs &optional (tms (list 3000)) &rest args)
