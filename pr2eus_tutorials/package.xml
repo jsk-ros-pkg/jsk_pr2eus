@@ -29,9 +29,9 @@
   <exec_depend>jsk_recognition_msgs</exec_depend>
   <exec_depend>jsk_rviz_plugins</exec_depend>
   <!-- jsk_pr2_startup is provided from jsk_robot, this is circular dependency -->
-  <exec_depend condition="$ROS_DISTRO != debian">jsk_pr2_startup</exec_depend>
+  <exec_depend condition="($ROS_DISTRO != debian) and ($ROS_DISTRO != one)">jsk_pr2_startup</exec_depend>
   <!-- jsk_maps is provided from jsk_demos, this is circular dependency -->
-  <exec_depend condition="$ROS_DISTRO != debian">jsk_maps</exec_depend>
+  <exec_depend condition="($ROS_DISTRO != debian) and ($ROS_DISTRO != one)">jsk_maps</exec_depend>
   <exec_depend>jsk_pcl_ros</exec_depend>
 
   <!-- Dependencies needed only for running tests. -->
