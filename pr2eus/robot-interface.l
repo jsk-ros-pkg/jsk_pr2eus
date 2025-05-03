@@ -1171,6 +1171,29 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
        (if spin-self (send self :spin-once))
        (ros::sleep)))
    t)
+  (:assoc-objects-in-gripper
+    (arm-list &key ((:objects objs) objects) force-assoc)
+    (dolist (a arm-list)
+      (when objs
+        (let ((grasp-convex
+                (convex-hull-3d
+                  (flatten
+                    (mapcar
+                      #'(lambda (l)
+                          (send-all (send l :bodies) :worldcoords)
+                          (send-all (send l :bodies) :vertices))
+                      (send robot a :gripper :links))))))
+          (dolist (obj objs)
+            (when (or force-assoc
+                      (and (find-method obj :faces)
+                           (not (= (pqp-collision-check grasp-convex obj) 0))))
+              (if (send obj :parent) (send (send obj :parent) :dissoc obj))
+              (send robot a :end-coords :assoc obj)))))))
+  (:dissoc-objects-in-gripper
+    (arm-list)
+    (dolist (a arm-list)
+      (dolist (obj (send robot a :end-coords :descendants))
+        (send robot a :end-coords :dissoc obj))))
   ;;
   (:go-pos
    (x y &optional (d 0)) ;; [m] [m] [degree]
