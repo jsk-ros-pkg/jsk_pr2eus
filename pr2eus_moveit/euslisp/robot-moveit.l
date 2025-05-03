@@ -64,6 +64,8 @@
          ((:query-planner-interface-service qr-pl-srv) "/query_planner_interface")
          ((:planning-scene-world pl-sc-world) "/planning_scene_world")
          ((:state-validity-service sv-srv) "/check_state_validity")
+         ((:compute-ik-service cm-ik-srv) "/compute_ik")
+         ((:apply-planning-scene-service ap-ps-srv) "/apply_planning_scene")
          ((:robot rb)) (frame-id) ;; frame-id needs to be contained in robot_model
          ((:planner-id pl-id) "RRTConnectkConfigDefault")
          (multi-dof-joint-name "virtual_joint")
@@ -85,6 +87,7 @@
          default-planner-id pl-id
          multi-dof-name multi-dof-joint-name
          multi-dof-frame multi-dof-frame-id)
+   (instance collision-object-publisher :init :service-name ap-ps-srv :scene-service scene-service)
    (ros::advertise planning-scene-world-topic moveit_msgs::PlanningSceneWorld)
    (setq default-link (send self :search-link-from-name frame-id))
    (setq config-list (send self :default-configuration))
@@ -199,11 +202,11 @@
                                      :attempts (if attempts attempts 0)
                                      :timeout (ros::time timeout)
                                      :pose_stamped msg)))
-            (res (ros::service-call "/compute_ik" req)))
+            (res (ros::service-call cm-ik-srv req)))
        (when (and retry (/= (send res :error_code :val) 1))
          (send req :ik_request :attempts (if attempts (* 2 attempts) 2))
          (send req :ik_request :timeout (ros::time (* 2 timeout)))
-         (setq res (ros::service-call "/compute_ik" req)))
+         (setq res (ros::service-call cm-ik-srv req)))
        (cond
         ((= (send res :error_code :val) 1) ;; success
          (apply-joint_state (send res :solution :joint_state) robot)) ;; updates joint-list
