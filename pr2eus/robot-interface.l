@@ -40,13 +40,19 @@
   :super ros::simple-action-client
   :slots (time-to-finish last-feedback-msg-stamp
           ri angle-vector-sequence timer-sequence current-time current-angle-vector previous-angle-vector scale-angle-vector;; slot for angle-vector-sequence
+          simulation-speed-scale
           ))
 (defmethod controller-action-client
-  (:init (r &rest args)
+  (:init (r controller-action-name controller-action-type
+            &key ((:groupname groupname) nil)
+                 ((:simulation-speed-scale sim-speed-scale) 1.0)
+            &rest args)
     (setq ri r) ;; robot-interface
+    (setq simulation-speed-scale sim-speed-scale)
     (setq time-to-finish 0)
     (setq last-feedback-msg-stamp (ros::time-now)) ;; this is for real robot
-    (send-super* :init args))
+    (send-super* :init controller-action-name controller-action-type
+                 :groupname groupname args))
   (:last-feedback-msg-stamp () last-feedback-msg-stamp)
   (:time-to-finish ()
     (ros::ros-debug "[~A] time-to-finish ~A" ros::name-space time-to-finish)
@@ -129,7 +135,7 @@
       (when tm
         (setq scale-av (send ri :sub-angle-vector av previous-angle-vector))
         (setq av (v+ previous-angle-vector (scale (/ current-time tm) scale-av)))
-        (incf current-time 100.0)
+        (incf current-time (* simulation-speed-scale 100.0))
         (when (> current-time tm)
           (pop timer-sequence)
           (pop angle-vector-sequence)
@@ -153,6 +159,7 @@
                 namespace controller-table ;; hashtable :type -> (action)
                 visualization-topic simulation-default-look-all-p
                 joint-states-topic pub-joint-states-topic
+                simulation-speed-scale
                 viewer groupname)
   :documentation "robot-interface is object for interacting real robot through JointTrajectoryAction servers and JointState topics, this function uses old nervous-style interface for historical reason. If JointTrajectoryAcion server is not found, this instance runs as simulation mode, see \"Kinematics Simulator\" view as simulated robot,
 
@@ -172,6 +179,7 @@
           ((:controller-timeout ct) 3)
           ((:visualization-marker-topic vmt) "robot_interface_marker_array")
           ((:simulation-look-all sim-look-all) t)
+          ((:simulation-speed-scale sim-speed-scale) 1.0)
           &allow-other-keys)
    "Create robot interface
 - robot : class name of robot
@@ -194,6 +202,7 @@
    (setq robot (cond ((derivedp r metaclass) (instance r :init))
                      (t r)))
    (setq groupname nh)
+   (setq simulation-speed-scale sim-speed-scale)
    (unless (ros::ok)
      (ros::roseus "default_robot_interface"))
    (ros::create-nodehandle groupname)
@@ -286,7 +295,9 @@
                    (action (instance controller-action-client :init self
                                      (if namespace (format nil "~A/~A" namespace controller-action)
                                        controller-action) action-type
-                                       :groupname groupname)))
+                                       :groupname groupname
+                                       :simulation-speed-scale simulation-speed-scale
+                                       )))
               (push action tmp-actions)))
         (send self ctype))
        (setq tmp-actions (nreverse tmp-actions))
@@ -1935,8 +1946,12 @@ Return value is a list of interpolatingp for all controllers, so (null (some #'i
          ((and (eps= (norm diff-pos) 0) (eps= (norm diff-rot) 0))
           (setq current-goal-coords nil))
          (t
-          (send robot :newcoords (midcoords (min (/ 10 (max (norm diff-pos) 10))
-                                                 (/ 0.02 (max (norm diff-rot) 0.02)))
+          (send robot :newcoords (midcoords (min (/ (* simulation-speed-scale 10)
+                                                    (max (norm diff-pos)
+                                                         (* simulation-speed-scale 10)))
+                                                 (/ (* simulation-speed-scale 0.02)
+                                                    (max (norm diff-rot)
+                                                         (* simulation-speed-scale 0.02))))
                                             orig-coords current-goal-coords))))
    )) ;; when
    (send-super :robot-interface-simulation-callback)
