@@ -73,11 +73,7 @@
          (send colobj :primitives
                (append geom
                        (list
-                        (instance shape_msgs::SolidPrimitive
-                                  :init :type shape_msgs::SolidPrimitive::*CYLINDER*
-                                  :dimensions (float-vector
-                                               (/ (height-of-cylinder obj) 1000.0)
-                                               (/ (radius-of-cylinder obj) 1000.0))))))
+                        (cylinder->shape-msg obj))))
          (send colobj :primitive_poses
                (append pose
                        (list
@@ -94,12 +90,7 @@
          (send colobj :primitives
                (append geom
                        (list
-                        (instance shape_msgs::SolidPrimitive
-                                  :init :type shape_msgs::SolidPrimitive::*BOX*
-                                  :dimensions (float-vector
-                                               (/ (elt (send obj :body-type) 1) 1000.0)
-                                               (/ (elt (send obj :body-type) 2) 1000.0)
-                                               (/ (elt (send obj :body-type) 3) 1000.0))))))
+                        (cube->shape-msg obj))))
          (send colobj :primitive_poses
                (append pose
                        (list
@@ -110,10 +101,7 @@
          (send colobj :primitives
                (append geom
                        (list
-                        (instance shape_msgs::SolidPrimitive
-                                  :init :type shape_msgs::SolidPrimitive::*SPHERE*
-                                  :dimensions (float-vector
-                                               (/ (radius-of-sphere obj) 1000.0))))))
+                        (sphere->shape-msg obj))))
          (send colobj :primitive_poses
                (append pose
                        (list
