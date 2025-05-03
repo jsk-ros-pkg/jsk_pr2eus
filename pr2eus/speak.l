@@ -81,4 +81,40 @@
   "Speak japanese sentence"
   (speak text :lang :ja :topic-name topic-name :wait wait :volume volume))
 
+(defun speak
+  (speach-string-candidates
+   &rest args)
+  "Speak with language selection.
+   Argument:
+     speach-string-candidates should be two types:
+       List of cons of language name and speak-string. For example, '( (\"en\" . \"Hello\") (\"jp\" . \"こんにちわ\") )
+       English speak-string. For example, \"Hello\", which is same as '( (\"en\" . \"Hello\") ).
+     If adequate argument are not specified, english string are input to speak-google.
+   Speak language name:
+     Speak language name is switched by 'speak_language' rosparam.
+     If no such rosparam is specified, speak \"en\".
+     If users do not use speak-google, speak_language should be related with speak-xx functinos, such as speak-jp and speak-en. Otherwise, speak function invokes error."
+  ;; Convert atom argument to candidate list
+  (if (stringp speach-string-candidates)
+      (setq speach-string-candidates (list (cons "en" speach-string-candidates))))
+  ;; Check speak_language
+  (let* ((lang (or (ros::get-param "speak_language") "en"))
+         (speak-string (cdr (assoc lang speach-string-candidates :test #'string=)))
+         (speak-func
+          (when (functionp (intern (read-from-string (format nil "'speak-~A" lang))))
+            (intern (read-from-string (format nil "#'speak-~A" lang))))))
+    ;; Check argument
+    (unless speak-string
+      (warn ";; No speach string are specified for ~A from argumenta!! Use english and speak-google!!~%" lang)
+      (setq speak-string (cdr (assoc "en" speach-string-candidates :test #'string=)))
+      (setq speak-func #'speak-google))
+    ;; Check speak-xx function existence.
+    (unless speak-func
+      (warn ";; No such speak function (speak-~A) defined!! Using google engine~%" lang)
+      (setq speak-func #'speak-google))
+    (warn ";; ~A~%" (list (cadr speak-func) speak-string args))
+    ;; Speak
+    (apply speak-func speak-string args)
+    ))
+
 (provide :speak) ;; end of speak.l
