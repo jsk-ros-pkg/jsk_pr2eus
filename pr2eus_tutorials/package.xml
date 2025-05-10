@@ -20,7 +20,8 @@
   <!-- Dependencies needed after this package is compiled. -->
   <exec_depend>app_manager</exec_depend>
   <exec_depend>eusurdf</exec_depend>
-  <exec_depend>pr2_gazebo</exec_depend>
+  <!-- gazebo is not available on ROS-O -->
+  <exec_depend condition="($ROS_DISTRO != debian) and ($ROS_DISTRO != one)">pr2_gazebo</exec_depend>
   <exec_depend>pr2eus</exec_depend>
   <exec_depend>roseus_tutorials</exec_depend>
   <exec_depend>image_view2</exec_depend>
