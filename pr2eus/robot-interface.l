@@ -96,7 +96,7 @@
                             "So error_code is not displaying."))))
     (send-super :action-result-cb msg))
   (:action-feedback-cb (msg)
-   (let ((finish-time) (current-time))
+   (let ((finish-time))
      (ros::ros-debug "[~A] feedback-cb ~A" ros::name-space msg)
      (setq last-feedback-msg-stamp (send msg :header :stamp))
      (unless (and (send ros::comm-state :action-goal)
